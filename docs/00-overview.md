@@ -19,18 +19,20 @@ Dokumen ini merangkum seluruh tahapan pembangunan aplikasi **PantauPegawai** dar
 
 ## Daftar Dokumen
 
-| File                      | Isi                                                  |
-| ------------------------- | ---------------------------------------------------- |
-| `01-setup-project.md`     | Setup project Flutter, dependencies, struktur folder |
-| `02-database-schema.md`   | Schema database Supabase, RLS, trigger               |
-| `03-supabase-setup.md`    | Konfigurasi Supabase: Auth, API Keys, SQL migration  |
-| `04-edge-functions.md`    | Semua Edge Functions yang di-deploy ke Supabase      |
-| `05-fitur-auth.md`        | Implementasi login/logout, role-based redirect       |
-| `06-fitur-pegawai.md`     | CRUD pegawai, ubah password                          |
-| `07-fitur-dokumentasi.md` | Dokumentasi harian: upload foto, filter, riwayat     |
-| `08-fitur-admin.md`       | Dashboard admin, CRUD kegiatan, assign, laporan      |
-| `09-troubleshooting.md`   | Masalah yang ditemui dan solusinya                   |
-| `10-cara-menjalankan.md`  | Panduan menjalankan aplikasi                         |
+| File                              | Isi                                                                |
+| --------------------------------- | ------------------------------------------------------------------ |
+| `01-setup-project.md`             | Setup project Flutter, dependencies, struktur folder               |
+| `02-database-schema.md`           | Schema database Supabase, RLS, trigger                             |
+| `03-supabase-setup.md`            | Konfigurasi Supabase: Auth, API Keys, SQL migration                |
+| `04-edge-functions.md`            | Semua Edge Functions yang di-deploy ke Supabase                    |
+| `05-fitur-auth.md`                | Implementasi login/logout, role-based redirect                     |
+| `06-fitur-pegawai.md`             | CRUD pegawai, ubah password                                        |
+| `07-fitur-dokumentasi.md`         | Dokumentasi harian: upload foto, filter, riwayat                   |
+| `08-fitur-admin.md`               | Dashboard admin, CRUD kegiatan, assign, laporan                    |
+| `09-troubleshooting.md`           | Masalah yang ditemui dan solusinya                                 |
+| `10-cara-menjalankan.md`          | Panduan menjalankan aplikasi                                       |
+| `11-install-ios-android.md`       | Panduan install ke iPhone dan Android                              |
+| `12-panduan-instalasi-lengkap.md` | **Panduan instalasi end-to-end** (Supabase + DB + Drive + Flutter) |
 
 ## Referensi Aplikasi Sebelumnya
 
