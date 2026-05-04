@@ -1,0 +1,45 @@
+# PantauPegawai — Dokumentasi Pengembangan
+
+Dokumen ini merangkum seluruh tahapan pembangunan aplikasi **PantauPegawai** dari awal hingga MVP.
+
+## Stack Teknologi
+
+| Layer               | Teknologi                                 |
+| ------------------- | ----------------------------------------- |
+| Mobile (Pegawai)    | Flutter Android                           |
+| Web/Desktop (Admin) | Flutter Web                               |
+| Auth & Database     | Supabase (PostgreSQL + RLS)               |
+| Realtime            | Supabase Realtime                         |
+| File Storage        | Google Drive via Service Account          |
+| Upload Proxy        | Supabase Edge Functions (Deno/TypeScript) |
+| State Management    | Riverpod (riverpod_annotation)            |
+| Navigation          | go_router                                 |
+| HTTP Client         | http package                              |
+| Image Picker        | image_picker                              |
+
+## Daftar Dokumen
+
+| File                      | Isi                                                  |
+| ------------------------- | ---------------------------------------------------- |
+| `01-setup-project.md`     | Setup project Flutter, dependencies, struktur folder |
+| `02-database-schema.md`   | Schema database Supabase, RLS, trigger               |
+| `03-supabase-setup.md`    | Konfigurasi Supabase: Auth, API Keys, SQL migration  |
+| `04-edge-functions.md`    | Semua Edge Functions yang di-deploy ke Supabase      |
+| `05-fitur-auth.md`        | Implementasi login/logout, role-based redirect       |
+| `06-fitur-pegawai.md`     | CRUD pegawai, ubah password                          |
+| `07-fitur-dokumentasi.md` | Dokumentasi harian: upload foto, filter, riwayat     |
+| `08-fitur-admin.md`       | Dashboard admin, CRUD kegiatan, assign, laporan      |
+| `09-troubleshooting.md`   | Masalah yang ditemui dan solusinya                   |
+| `10-cara-menjalankan.md`  | Panduan menjalankan aplikasi                         |
+
+## Referensi Aplikasi Sebelumnya
+
+Aplikasi ini menggantikan versi AppSheet yang bisa diakses di:
+
+- https://s.bps.go.id/pantau_pegawai
+
+## Git
+
+- Repository diinisialisasi pada: 4 Mei 2026
+- Initial commit: `db6efb0`
+- 130 files, 11.619 baris kode
