@@ -1,0 +1,42 @@
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+*.iml
+
+# Generated Riverpod files
+*.g.dart
+*.freezed.dart
+
+# ⚠️  CREDENTIALS - JANGAN COMMIT
+lib/core/constants/supabase_constants.dart
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Android
+android/local.properties
+android/key.properties
+*.jks
+*.keystore
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# Supabase temp
+supabase/.temp/
+
+# Env
+.env
+*.env
