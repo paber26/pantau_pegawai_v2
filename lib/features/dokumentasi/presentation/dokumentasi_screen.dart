@@ -214,7 +214,7 @@ class RiwayatDokumentasiScreen extends ConsumerWidget {
             return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
               const Icon(Icons.history, size: 64, color: AppColors.textHint),
               const SizedBox(height: 16),
-              Text('Halo, \${user?.nama ?? "Pegawai"}!', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text('Halo, ${user?.nama ?? "Pegawai"}!', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               const Text('Belum ada riwayat dokumentasi.', style: TextStyle(color: AppColors.textSecondary)),
             ]));
@@ -298,7 +298,8 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
     final errorMsg = await ref.read(myDokumentasiNotifierProvider.notifier).tambah(
       proyek: _proyekController.text.trim(),
       tanggalKegiatan: _tanggal,
-      imageFile: _imageFile,
+      imageFile: kIsWeb ? null : _imageFile,
+      imageBytes: kIsWeb ? _webImageBytes : null,
       catatan: _catatanController.text.trim().isEmpty ? null : _catatanController.text.trim(),
       link: _linkController.text.trim().isEmpty ? null : _linkController.text.trim(),
     );
@@ -307,7 +308,7 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
       setState(() => _isLoading = false);
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(errorMsg == null ? 'Dokumentasi berhasil disimpan!' : 'Gagal: \$errorMsg'),
+        content: Text(errorMsg == null ? 'Dokumentasi berhasil disimpan!' : 'Gagal: $errorMsg'),
         backgroundColor: errorMsg == null ? AppColors.success : AppColors.error,
         duration: const Duration(seconds: 4),
       ));
@@ -432,7 +433,7 @@ class DokDateGroup extends ConsumerWidget {
             const SizedBox(width: 8),
             const Expanded(child: Divider(color: AppColors.divider, height: 1)),
             const SizedBox(width: 8),
-            Text('\${items.length} entri', style: const TextStyle(fontSize: 11, color: AppColors.textHint)),
+            Text('${items.length} entri', style: const TextStyle(fontSize: 11, color: AppColors.textHint)),
           ]),
         ),
         ...items.map((doc) => DokCard(doc: doc, showPegawai: showPegawai)),

@@ -10,6 +10,7 @@ abstract class DokumentasiRepository {
     required String proyek,
     required DateTime tanggalKegiatan,
     File? imageFile,
+    List<int>? imageBytes, // untuk Flutter Web
     String? catatan,
     String? link,
   });

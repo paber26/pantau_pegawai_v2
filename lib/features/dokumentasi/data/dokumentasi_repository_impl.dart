@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -66,16 +67,22 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
     required String proyek,
     required DateTime tanggalKegiatan,
     File? imageFile,
+    List<int>? imageBytes,
     String? catatan,
     String? link,
   }) async {
     try {
       String? imageUrl;
 
-      // Upload foto jika ada
-      if (imageFile != null) {
+      // Tentukan bytes yang akan diupload
+      List<int>? bytesToUpload = imageBytes;
+      if (bytesToUpload == null && imageFile != null && !kIsWeb) {
+        bytesToUpload = await imageFile.readAsBytes();
+      }
+
+      if (bytesToUpload != null) {
         imageUrl = await _uploadToGoogleDrive(
-          imageFile: imageFile,
+          imageBytes: bytesToUpload,
           pegawaiNama: pegawaiNama,
           tanggal: AppDateUtils.toFolderDate(tanggalKegiatan),
         );
@@ -111,7 +118,7 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
   }
 
   Future<String> _uploadToGoogleDrive({
-    required File imageFile,
+    required List<int> imageBytes,
     required String pegawaiNama,
     required String tanggal,
   }) async {
@@ -130,8 +137,14 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
     request.fields['pegawai_nama'] = pegawaiNama;
     request.fields['tanggal'] = tanggal;
     request.fields['filename'] = filename;
+
+    // Gunakan fromBytes — kompatibel dengan web dan mobile
     request.files.add(
-      await http.MultipartFile.fromPath('file', imageFile.path),
+      http.MultipartFile.fromBytes(
+        'file',
+        imageBytes,
+        filename: filename,
+      ),
     );
 
     final streamedResponse = await request.send();

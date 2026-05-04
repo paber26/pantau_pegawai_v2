@@ -40,3 +40,5 @@ supabase/.temp/
 # Env
 .env
 *.env
+*.envbackup
+.env*

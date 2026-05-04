@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -39,6 +40,7 @@ class MyDokumentasiNotifier extends _$MyDokumentasiNotifier {
     required String proyek,
     required DateTime tanggalKegiatan,
     File? imageFile,
+    Uint8List? imageBytes, // untuk Flutter Web
     String? catatan,
     String? link,
   }) async {
@@ -52,11 +54,12 @@ class MyDokumentasiNotifier extends _$MyDokumentasiNotifier {
             proyek: proyek,
             tanggalKegiatan: tanggalKegiatan,
             imageFile: imageFile,
+            imageBytes: imageBytes,
             catatan: catatan,
             link: link,
           );
       await refresh();
-      return null; // null = sukses
+      return null;
     } catch (e) {
       return e.toString();
     }

@@ -27,7 +27,7 @@ final dokumentasiRepositoryProvider =
 typedef DokumentasiRepositoryRef
     = AutoDisposeProviderRef<DokumentasiRepository>;
 String _$myDokumentasiNotifierHash() =>
-    r'6160da028b9a5510720b096daadada2748dc8825';
+    r'f999a902bde77f58cd07c66bc19d8c7a62d2bee0';
 
 /// Dokumentasi milik pegawai yang login
 ///

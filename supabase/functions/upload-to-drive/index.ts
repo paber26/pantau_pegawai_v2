@@ -1,95 +1,42 @@
-/**
- * Supabase Edge Function: upload-to-drive
- *
- * Menerima file foto dari Flutter app, mengupload ke Google Drive
- * menggunakan Service Account, dan mengembalikan URL file.
- *
- * Environment variables yang dibutuhkan (set via Supabase Dashboard > Edge Functions > Secrets):
- *   GOOGLE_SERVICE_ACCOUNT_EMAIL  - email service account
- *   GOOGLE_PRIVATE_KEY            - private key (dengan \n literal)
- *   GOOGLE_DRIVE_ROOT_FOLDER_ID   - ID folder root di Google Drive
- *   SUPABASE_URL                  - otomatis tersedia
- *   SUPABASE_ANON_KEY             - otomatis tersedia
- */
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-// ── Google Drive helpers ──────────────────────────────────────────────────────
-
-const GOOGLE_SERVICE_ACCOUNT_EMAIL = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_EMAIL")!
-const GOOGLE_PRIVATE_KEY = Deno.env.get("GOOGLE_PRIVATE_KEY")!.replace(/\\n/g, "\n")
+// OAuth2 credentials (set via Supabase secrets)
+const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID")!
+const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET")!
+const GOOGLE_REFRESH_TOKEN = Deno.env.get("GOOGLE_REFRESH_TOKEN")!
 const ROOT_FOLDER_ID = Deno.env.get("GOOGLE_DRIVE_ROOT_FOLDER_ID")!
 
-/**
- * Membuat JWT untuk Google Service Account dan menukarnya dengan access token.
- */
-async function getGoogleAccessToken(): Promise<string> {
-  const now = Math.floor(Date.now() / 1000)
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Authorization, Content-Type"
+}
 
-  const header = { alg: "RS256", typ: "JWT" }
-  const payload = {
-    iss: GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    scope: "https://www.googleapis.com/auth/drive",
-    aud: "https://oauth2.googleapis.com/token",
-    exp: now + 3600,
-    iat: now
-  }
-
-  const encode = (obj: object) => btoa(JSON.stringify(obj)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
-
-  const headerB64 = encode(header)
-  const payloadB64 = encode(payload)
-  const signingInput = `${headerB64}.${payloadB64}`
-
-  // Import private key
-  const pemContents = GOOGLE_PRIVATE_KEY.replace("-----BEGIN PRIVATE KEY-----", "")
-    .replace("-----END PRIVATE KEY-----", "")
-    .replace(/\s/g, "")
-
-  const binaryKey = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0))
-  const cryptoKey = await crypto.subtle.importKey(
-    "pkcs8",
-    binaryKey,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"]
-  )
-
-  const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", cryptoKey, new TextEncoder().encode(signingInput))
-
-  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "")
-
-  const jwt = `${signingInput}.${signatureB64}`
-
-  // Exchange JWT untuk access token
-  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+// Dapatkan access token baru dari refresh token
+async function getAccessToken(): Promise<string> {
+  const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: jwt
+      client_id: GOOGLE_CLIENT_ID,
+      client_secret: GOOGLE_CLIENT_SECRET,
+      refresh_token: GOOGLE_REFRESH_TOKEN,
+      grant_type: "refresh_token"
     })
   })
 
-  if (!tokenResponse.ok) {
-    const err = await tokenResponse.text()
-    throw new Error(`Gagal mendapatkan Google access token: ${err}`)
+  if (!response.ok) {
+    const err = await response.text()
+    throw new Error(`Gagal refresh access token: ${err}`)
   }
 
-  const tokenData = await tokenResponse.json()
-  return tokenData.access_token as string
+  const data = await response.json()
+  return data.access_token as string
 }
 
-/**
- * Mencari atau membuat folder di Google Drive.
- * Mengembalikan folder ID.
- */
+// Cari atau buat folder di Google Drive
 async function getOrCreateFolder(accessToken: string, folderName: string, parentId: string): Promise<string> {
-  // Cari folder yang sudah ada
   const searchUrl = new URL("https://www.googleapis.com/drive/v3/files")
   searchUrl.searchParams.set(
     "q",
@@ -120,21 +67,22 @@ async function getOrCreateFolder(accessToken: string, folderName: string, parent
     })
   })
 
+  if (!createRes.ok) {
+    const err = await createRes.text()
+    throw new Error(`Gagal buat folder '${folderName}': ${err}`)
+  }
+
   const createData = await createRes.json()
   return createData.id as string
 }
 
-/**
- * Upload file ke Google Drive dan set permission public.
- * Mengembalikan URL yang bisa dibuka.
- */
-async function uploadFileToDrive(
+// Upload file ke Google Drive
+async function uploadFile(
   accessToken: string,
   fileBytes: Uint8Array,
   filename: string,
   folderId: string
 ): Promise<string> {
-  // Multipart upload
   const boundary = "pantau_pegawai_boundary"
   const metadata = JSON.stringify({
     name: filename,
@@ -187,36 +135,28 @@ async function uploadFileToDrive(
     body: JSON.stringify({ role: "reader", type: "anyone" })
   })
 
-  // Return URL yang bisa ditampilkan langsung
   return `https://drive.google.com/uc?export=view&id=${fileId}`
 }
 
-// ── Main handler ─────────────────────────────────────────────────────────────
-
 serve(async (req: Request) => {
-  // CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Authorization, Content-Type"
-      }
-    })
+    return new Response(null, { headers: corsHeaders })
   }
 
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405
+      status: 405,
+      headers: corsHeaders
     })
   }
 
   try {
-    // 1. Verifikasi Supabase JWT
+    // Verifikasi Supabase JWT
     const authHeader = req.headers.get("Authorization")
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401
+        status: 401,
+        headers: corsHeaders
       })
     }
 
@@ -230,11 +170,12 @@ serve(async (req: Request) => {
     } = await supabase.auth.getUser()
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401
+        status: 401,
+        headers: corsHeaders
       })
     }
 
-    // 2. Parse multipart form data
+    // Parse form data
     const formData = await req.formData()
     const file = formData.get("file") as File | null
     const pegawaiNama = formData.get("pegawai_nama") as string | null
@@ -242,36 +183,30 @@ serve(async (req: Request) => {
     const filename = formData.get("filename") as string | null
 
     if (!file || !pegawaiNama || !tanggal || !filename) {
-      return new Response(JSON.stringify({ error: "Parameter tidak lengkap: file, pegawai_nama, tanggal, filename" }), {
-        status: 400
-      })
+      return new Response(JSON.stringify({ error: "Parameter tidak lengkap" }), { status: 400, headers: corsHeaders })
     }
 
     const fileBytes = new Uint8Array(await file.arrayBuffer())
 
-    // 3. Dapatkan Google access token
-    const accessToken = await getGoogleAccessToken()
+    // Dapatkan access token via refresh token
+    const accessToken = await getAccessToken()
 
-    // 4. Buat struktur folder: /PantauPegawai/{nama_pegawai}/{yyyy-mm-dd}/
-    const rootFolderId = await getOrCreateFolder(accessToken, "PantauPegawai", ROOT_FOLDER_ID)
-    const pegawaiFolderId = await getOrCreateFolder(accessToken, pegawaiNama, rootFolderId)
+    // Buat struktur folder: ROOT/{nama_pegawai}/{yyyy-mm-dd}/
+    const pegawaiFolderId = await getOrCreateFolder(accessToken, pegawaiNama, ROOT_FOLDER_ID)
     const dateFolderId = await getOrCreateFolder(accessToken, tanggal, pegawaiFolderId)
 
-    // 5. Upload file
-    const imageUrl = await uploadFileToDrive(accessToken, fileBytes, filename, dateFolderId)
+    // Upload file
+    const imageUrl = await uploadFile(accessToken, fileBytes, filename, dateFolderId)
 
     return new Response(JSON.stringify({ image_url: imageUrl }), {
       status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*"
-      }
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
     })
   } catch (error) {
     console.error("Error:", error)
     return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: 500,
-      headers: { "Content-Type": "application/json" }
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
     })
   }
 })

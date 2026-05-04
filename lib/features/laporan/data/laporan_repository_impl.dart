@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart'
     hide AuthException, StorageException;
@@ -25,9 +26,8 @@ class LaporanRepositoryImpl implements LaporanRepository {
   }) async {
     try {
       // Build query dengan filter bertahap
-      var query = _client
-          .from('laporan')
-          .select('*, users(nama), kegiatan(judul)');
+      var query =
+          _client.from('laporan').select('*, users(nama), kegiatan(judul)');
 
       // Filter harus dilakukan sebelum .order() karena supabase_flutter
       // mengembalikan PostgrestFilterBuilder dari .select()
@@ -108,7 +108,7 @@ class LaporanRepositoryImpl implements LaporanRepository {
           .single();
       return LaporanModel.fromMap(data);
     } catch (e) {
-      throw AppException('Laporan tidak ditemukan');
+      throw const AppException('Laporan tidak ditemukan');
     }
   }
 
@@ -166,9 +166,17 @@ class LaporanRepositoryImpl implements LaporanRepository {
     request.fields['pegawai_nama'] = pegawaiNama;
     request.fields['tanggal'] = tanggal;
     request.fields['filename'] = filename;
-    request.files.add(
-      await http.MultipartFile.fromPath('file', imageFile.path),
-    );
+
+    if (kIsWeb) {
+      final bytes = await imageFile.readAsBytes();
+      request.files.add(
+        http.MultipartFile.fromBytes('file', bytes, filename: filename),
+      );
+    } else {
+      request.files.add(
+        await http.MultipartFile.fromPath('file', imageFile.path),
+      );
+    }
 
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);
