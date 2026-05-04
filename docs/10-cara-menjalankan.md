@@ -150,6 +150,63 @@ flutter build web --release
 # Output: build/web/
 ```
 
+Output berupa file HTML/CSS/JS statis di folder `build/web/` yang siap di-hosting.
+
+#### Cara Membuka Hasil Build Web
+
+> ⚠️ **Jangan** buka `index.html` langsung dengan double-click atau via file path
+> (`127.0.0.1:5500/build/web/index.html`). Flutter web butuh HTTP server yang
+> serve dari root folder `build/web/`, bukan dari subfolder.
+
+**Cara 1 — Python HTTP Server (paling mudah, sudah ada di Mac/Linux):**
+
+```bash
+cd build/web
+python3 -m http.server 8080
+```
+
+Buka: `http://localhost:8080`
+
+**Cara 2 — Flutter langsung (direkomendasikan untuk development):**
+
+```bash
+flutter run -d chrome --release
+```
+
+Flutter otomatis handle server dan buka Chrome.
+
+**Cara 3 — VS Code Live Server (perlu konfigurasi tambahan):**
+
+Live Server secara default serve dari root project, bukan dari `build/web/`.
+Akibatnya semua asset (flutter.js, manifest.json, dll) gagal load dengan 404.
+
+Fix: tambahkan ke `.vscode/settings.json`:
+
+```json
+{
+  "liveServer.settings.root": "/build/web"
+}
+```
+
+Setelah itu klik kanan `build/web/index.html` → **Open with Live Server**.
+URL akan menjadi `127.0.0.1:5500/index.html` (tanpa prefix `build/web/`).
+
+> Catatan: Live Server kurang ideal untuk Flutter web karena setiap rebuild
+> kamu harus restart Live Server. Cara 2 lebih praktis untuk development.
+
+#### Hosting Production
+
+| Platform             | Cara                                                                          |
+| -------------------- | ----------------------------------------------------------------------------- |
+| **Netlify**          | Drag & drop folder `build/web/` ke https://netlify.com/drop                   |
+| **Firebase Hosting** | `firebase init hosting` (public dir: `build/web`) → `firebase deploy`         |
+| **Nginx/VPS**        | Copy `build/web/` ke `/var/www/html/`, tambahkan `try_files $uri /index.html` |
+
+Setelah deploy, update di Supabase → **Authentication → URL Configuration**:
+
+- **Site URL**: `https://domain-kamu.com`
+- **Redirect URLs**: `https://domain-kamu.com/**`
+
 ### iOS (butuh Apple Developer Account)
 
 ```bash
