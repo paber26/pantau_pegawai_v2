@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
+import '../../../shared/widgets/drive_image.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../../auth/presentation/auth_provider.dart';
@@ -469,7 +470,7 @@ class DokCard extends ConsumerWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: doc.imageUrl != null
-                    ? Image.network(doc.imageUrl!, width: 60, height: 60, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _noImage())
+                    ? DriveImage(imageUrl: doc.imageUrl, width: 60, height: 60, fit: BoxFit.cover)
                     : _noImage(),
               ),
             ),
@@ -539,7 +540,7 @@ class DokCard extends ConsumerWidget {
         backgroundColor: Colors.black,
         insetPadding: EdgeInsets.zero,
         child: Stack(children: [
-          InteractiveViewer(child: Image.network(imageUrl, fit: BoxFit.contain, width: double.infinity, height: double.infinity)),
+          InteractiveViewer(child: DriveImage(imageUrl: imageUrl, width: double.infinity, height: double.infinity, fit: BoxFit.contain)),
           Positioned(top: 40, right: 16, child: IconButton(icon: const Icon(Icons.close, color: Colors.white, size: 28), onPressed: () => Navigator.pop(context))),
         ]),
       ),

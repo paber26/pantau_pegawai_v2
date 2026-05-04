@@ -135,7 +135,9 @@ async function uploadFile(
     body: JSON.stringify({ role: "reader", type: "anyone" })
   })
 
-  return `https://drive.google.com/uc?export=view&id=${fileId}`
+  // Return URL proxy Supabase (bukan URL Drive langsung) agar bisa ditampilkan di browser
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!
+  return `${supabaseUrl}/functions/v1/image-proxy?id=${fileId}`
 }
 
 serve(async (req: Request) => {
