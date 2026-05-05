@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../features/auth/presentation/auth_provider.dart';
 
+// GlobalKey untuk mengakses drawer dari mana saja di admin area
+final adminScaffoldKey = GlobalKey<ScaffoldState>();
+
 class AdminScaffold extends ConsumerWidget {
   final Widget child;
 
@@ -34,12 +37,10 @@ class _WideLayout extends ConsumerWidget {
     return Scaffold(
       body: Row(
         children: [
-          // Sidebar
           SizedBox(
             width: 240,
             child: _AdminSidebar(currentLocation: location),
           ),
-          // Content
           Expanded(child: child),
         ],
       ),
@@ -54,11 +55,12 @@ class _NarrowLayout extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final location = GoRouterState.of(context).matchedLocation;
+
     return Scaffold(
+      key: adminScaffoldKey,
       drawer: Drawer(
-        child: _AdminSidebar(
-          currentLocation: GoRouterState.of(context).matchedLocation,
-        ),
+        child: _AdminSidebar(currentLocation: location),
       ),
       body: child,
     );
@@ -206,9 +208,61 @@ class _NavItem extends StatelessWidget {
             fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
-        onTap: () => context.go(route),
+        onTap: () {
+          // Tutup drawer dulu jika terbuka (mode mobile)
+          Navigator.of(context).pop();
+          context.go(route);
+        },
         dense: true,
       ),
+    );
+  }
+}
+
+/// Mixin/helper untuk menambahkan hamburger button dan logout di AppBar admin
+/// saat mode mobile. Gunakan di setiap screen admin.
+///
+/// Contoh penggunaan:
+/// ```dart
+/// appBar: AppBar(
+///   title: const Text('Dashboard'),
+///   leading: AdminMenuButton(),
+///   actions: [
+///     AdminLogoutButton(),
+///     IconButton(icon: Icon(Icons.refresh), onPressed: ...),
+///   ],
+/// ),
+/// ```
+class AdminMenuButton extends ConsumerWidget {
+  const AdminMenuButton({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isWide = MediaQuery.of(context).size.width >= 800;
+    if (isWide) return const SizedBox.shrink();
+
+    return IconButton(
+      icon: const Icon(Icons.menu),
+      onPressed: () => adminScaffoldKey.currentState?.openDrawer(),
+    );
+  }
+}
+
+class AdminLogoutButton extends ConsumerWidget {
+  const AdminLogoutButton({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isWide = MediaQuery.of(context).size.width >= 800;
+    if (isWide) return const SizedBox.shrink();
+
+    return IconButton(
+      icon: const Icon(Icons.logout),
+      tooltip: 'Keluar',
+      onPressed: () async {
+        await ref.read(authNotifierProvider.notifier).logout();
+        if (context.mounted) context.go('/login');
+      },
     );
   }
 }

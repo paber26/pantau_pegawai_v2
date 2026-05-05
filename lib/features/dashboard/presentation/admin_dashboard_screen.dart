@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_utils.dart';
+import '../../../shared/widgets/admin_scaffold.dart';
 import '../../../shared/widgets/stat_card.dart';
 import '../../laporan/domain/laporan_model.dart';
 import 'dashboard_provider.dart';
@@ -19,7 +20,9 @@ class AdminDashboardScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard'),
+        leading: const AdminMenuButton(),
         actions: [
+          const AdminLogoutButton(),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => ref.invalidate(dashboardStatsProvider),
@@ -112,8 +115,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: list.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: 8),
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
                         itemBuilder: (context, index) =>
                             _RecentLaporanCard(laporan: list[index]),
                       ),

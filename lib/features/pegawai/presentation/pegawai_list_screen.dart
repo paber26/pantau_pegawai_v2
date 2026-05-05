@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../shared/widgets/admin_scaffold.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
@@ -20,7 +21,9 @@ class PegawaiListScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(AppStrings.pegawai),
+        leading: const AdminMenuButton(),
         actions: [
+          const AdminLogoutButton(),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () =>

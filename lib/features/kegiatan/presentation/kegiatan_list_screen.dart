@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/utils/date_utils.dart';
+import '../../../shared/widgets/admin_scaffold.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
@@ -27,7 +28,9 @@ class KegiatanListScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(isAdmin ? AppStrings.kegiatan : 'Tugas Saya'),
+        leading: isAdmin ? const AdminMenuButton() : null,
         actions: [
+          if (isAdmin) const AdminLogoutButton(),
           if (isAdmin)
             IconButton(
               icon: const Icon(Icons.refresh),

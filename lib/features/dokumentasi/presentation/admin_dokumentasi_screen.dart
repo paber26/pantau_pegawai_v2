@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_utils.dart';
+import '../../../shared/widgets/admin_scaffold.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../domain/dokumentasi_model.dart';
@@ -21,7 +22,9 @@ class AdminDokumentasiScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Dokumentasi Harian'),
+        leading: const AdminMenuButton(),
         actions: [
+          const AdminLogoutButton(),
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: () => _showFilterSheet(context, ref),
