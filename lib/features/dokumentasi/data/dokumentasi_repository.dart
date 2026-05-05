@@ -14,5 +14,6 @@ abstract class DokumentasiRepository {
     String? catatan,
     String? link,
   });
+  Future<List<DokumentasiModel>> getByYear(int year);
   Future<void> delete(String id);
 }

@@ -15,6 +15,7 @@ import '../../features/laporan/presentation/laporan_list_screen.dart';
 import '../../features/pegawai/presentation/pegawai_form_screen.dart';
 import '../../features/pegawai/presentation/pegawai_list_screen.dart';
 import '../../features/penugasan/presentation/assign_screen.dart';
+import '../../features/rekap_upload/presentation/rekap_upload_screen.dart';
 import '../../shared/widgets/admin_scaffold.dart';
 import '../../shared/widgets/pegawai_scaffold.dart';
 
@@ -101,6 +102,10 @@ GoRouter appRouter(Ref ref) {
           GoRoute(
             path: '/admin/import-sheets',
             builder: (context, state) => const ImportSheetsScreen(),
+          ),
+          GoRoute(
+            path: '/admin/rekap-upload',
+            builder: (context, state) => const RekapUploadScreen(),
           ),
         ],
       ),

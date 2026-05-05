@@ -70,9 +70,9 @@ $$ LANGUAGE sql SECURITY DEFINER;
 -- ── users ──────────────────────────────────────────────────
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
--- Pegawai bisa baca/update data sendiri
-CREATE POLICY "users_self_select" ON public.users
-  FOR SELECT USING (auth.uid() = id OR public.is_admin());
+-- Semua authenticated user bisa baca semua profil (diperlukan untuk join dokumentasi)
+CREATE POLICY "users_all_read" ON public.users
+  FOR SELECT USING (auth.role() = 'authenticated');
 
 CREATE POLICY "users_self_update" ON public.users
   FOR UPDATE USING (auth.uid() = id OR public.is_admin());

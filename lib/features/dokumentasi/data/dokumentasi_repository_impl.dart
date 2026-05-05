@@ -22,12 +22,10 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
     DateTime? toDate,
   }) async {
     try {
-      var query = _client.from('dokumentasi').select('*, users(nama)');
-
       if (fromDate != null && toDate != null) {
         final data = await _client
             .from('dokumentasi')
-            .select('*, users(nama)')
+            .select('*, users(nama, jabatan, unit_kerja)')
             .gte(
                 'tanggal_kegiatan', fromDate.toIso8601String().split('T').first)
             .lte('tanggal_kegiatan', toDate.toIso8601String().split('T').first)
@@ -36,7 +34,9 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
         return (data as List).map((e) => DokumentasiModel.fromMap(e)).toList();
       }
 
-      final data = await query
+      final data = await _client
+          .from('dokumentasi')
+          .select('*, users(nama, jabatan, unit_kerja)')
           .order('tanggal_kegiatan', ascending: false)
           .order('created_at', ascending: false);
       return (data as List).map((e) => DokumentasiModel.fromMap(e)).toList();
@@ -50,7 +50,7 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
     try {
       final data = await _client
           .from('dokumentasi')
-          .select('*, users(nama)')
+          .select('*, users(nama, jabatan, unit_kerja)')
           .eq('user_id', userId)
           .order('tanggal_kegiatan', ascending: false)
           .order('created_at', ascending: false);
@@ -92,6 +92,7 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
           .from('dokumentasi')
           .insert({
             'user_id': userId,
+            'pegawai_nama': pegawaiNama,
             'proyek': proyek,
             'tanggal_kegiatan':
                 tanggalKegiatan.toIso8601String().split('T').first,
@@ -99,12 +100,28 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
             'catatan': catatan,
             'link': link,
           })
-          .select('*, users(nama)')
+          .select('*, users(nama, jabatan, unit_kerja)')
           .single();
 
       return DokumentasiModel.fromMap(data);
     } catch (e) {
       throw AppException('Gagal menyimpan dokumentasi: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<List<DokumentasiModel>> getByYear(int year) async {
+    try {
+      final data = await _client
+          .from('dokumentasi')
+          .select('*, users(nama, jabatan, unit_kerja)')
+          .gte('tanggal_kegiatan', '$year-01-01')
+          .lte('tanggal_kegiatan', '$year-12-31')
+          .order('tanggal_kegiatan', ascending: false);
+      return (data as List).map((e) => DokumentasiModel.fromMap(e)).toList();
+    } catch (e) {
+      throw AppException(
+          'Gagal memuat dokumentasi tahun $year: ${e.toString()}');
     }
   }
 

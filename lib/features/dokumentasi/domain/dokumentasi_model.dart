@@ -10,6 +10,8 @@ class DokumentasiModel {
 
   // Join fields
   final String? pegawaiNama;
+  final String? pegawaiJabatan;
+  final String? pegawaiUnitKerja;
 
   const DokumentasiModel({
     required this.id,
@@ -21,9 +23,12 @@ class DokumentasiModel {
     this.link,
     required this.createdAt,
     this.pegawaiNama,
+    this.pegawaiJabatan,
+    this.pegawaiUnitKerja,
   });
 
   factory DokumentasiModel.fromMap(Map<String, dynamic> map) {
+    final users = map['users'] as Map<String, dynamic>?;
     return DokumentasiModel(
       id: map['id'] as String,
       userId: map['user_id'] as String,
@@ -33,9 +38,11 @@ class DokumentasiModel {
       catatan: map['catatan'] as String?,
       link: map['link'] as String?,
       createdAt: DateTime.parse(map['created_at'] as String),
-      pegawaiNama: map['users'] != null
-          ? (map['users'] as Map<String, dynamic>)['nama'] as String?
-          : null,
+      // Prioritaskan kolom pegawai_nama langsung, fallback ke join users
+      pegawaiNama:
+          (map['pegawai_nama'] as String?) ?? users?['nama'] as String?,
+      pegawaiJabatan: users?['jabatan'] as String?,
+      pegawaiUnitKerja: users?['unit_kerja'] as String?,
     );
   }
 }

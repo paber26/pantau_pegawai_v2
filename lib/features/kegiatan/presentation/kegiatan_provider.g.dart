@@ -44,7 +44,7 @@ final myKegiatanProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef MyKegiatanRef = AutoDisposeFutureProviderRef<List<KegiatanModel>>;
-String _$kegiatanNotifierHash() => r'1a176d79767a0b3daba6d6bad2fcfb52aae02ce8';
+String _$kegiatanNotifierHash() => r'cc99f9baed7084dc58b3893b7b79a24871044890';
 
 /// Semua kegiatan (untuk admin)
 ///

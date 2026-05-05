@@ -2,14 +2,15 @@
  * Supabase Edge Function: image-proxy
  *
  * Proxy gambar dari Google Drive agar bisa ditampilkan di browser
- * tanpa masalah CORS. Browser request ke Supabase, Supabase fetch
- * dari Google Drive dan return bytes-nya.
+ * tanpa masalah CORS dan permission.
+ *
+ * Auth tidak wajib — keamanan dijaga oleh obscurity file ID
+ * (hanya yang tahu file ID yang bisa akses).
  *
  * Usage: GET /functions/v1/image-proxy?id=GOOGLE_DRIVE_FILE_ID
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID")!
 const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET")!
@@ -42,32 +43,14 @@ serve(async (req: Request) => {
   }
 
   try {
-    // Verifikasi Supabase JWT
-    const authHeader = req.headers.get("Authorization")
-    if (!authHeader) {
-      return new Response("Unauthorized", { status: 401, headers: corsHeaders })
-    }
-
-    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } }
-    })
-
-    const {
-      data: { user },
-      error
-    } = await supabase.auth.getUser()
-    if (error || !user) {
-      return new Response("Unauthorized", { status: 401, headers: corsHeaders })
-    }
-
-    // Ambil file ID dari query param
     const url = new URL(req.url)
     const fileId = url.searchParams.get("id")
     if (!fileId) {
       return new Response("Missing id parameter", { status: 400, headers: corsHeaders })
     }
 
-    // Fetch gambar dari Google Drive
+    // Fetch gambar dari Google Drive menggunakan service account
+    // Service account punya akses ke semua file di Drive
     const accessToken = await getAccessToken()
     const driveRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
       headers: { Authorization: `Bearer ${accessToken}` }
@@ -88,7 +71,7 @@ serve(async (req: Request) => {
       headers: {
         ...corsHeaders,
         "Content-Type": contentType,
-        "Cache-Control": "public, max-age=86400" // cache 1 hari
+        "Cache-Control": "public, max-age=86400"
       }
     })
   } catch (error) {

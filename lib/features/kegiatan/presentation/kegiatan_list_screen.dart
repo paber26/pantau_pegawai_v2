@@ -18,6 +18,76 @@ class KegiatanListScreen extends ConsumerWidget {
 
   const KegiatanListScreen({super.key, required this.isAdmin});
 
+  Future<void> _showImportDialog(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Import Proyek'),
+        content: const Text(
+          'Masukkan 65 proyek ke database? Proyek yang sudah ada akan dilewati.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Import'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    // Tampilkan loading snackbar
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(width: 12),
+            Text('Mengimport proyek...'),
+          ],
+        ),
+        duration: Duration(seconds: 30),
+      ),
+    );
+
+    final result =
+        await ref.read(kegiatanNotifierProvider.notifier).bulkImport();
+
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+    if (result != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Berhasil! ${result.inserted} proyek diimport, ${result.skipped} dilewati.',
+          ),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gagal melakukan import proyek.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final kegiatanAsync = isAdmin
@@ -31,6 +101,12 @@ class KegiatanListScreen extends ConsumerWidget {
         leading: isAdmin ? const AdminMenuButton() : null,
         actions: [
           if (isAdmin) const AdminLogoutButton(),
+          if (isAdmin)
+            IconButton(
+              tooltip: 'Import Proyek',
+              icon: const Icon(Icons.upload_outlined),
+              onPressed: () => _showImportDialog(context, ref),
+            ),
           if (isAdmin)
             IconButton(
               icon: const Icon(Icons.refresh),

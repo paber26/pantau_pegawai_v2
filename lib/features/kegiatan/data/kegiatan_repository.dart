@@ -1,3 +1,4 @@
+import '../domain/bulk_import_result.dart';
 import '../domain/kegiatan_model.dart';
 
 abstract class KegiatanRepository {
@@ -16,4 +17,6 @@ abstract class KegiatanRepository {
     required DateTime deadline,
   });
   Future<void> delete(String id);
+  Future<BulkImportResult> bulkImport(
+      List<String> judulList, DateTime deadline);
 }

@@ -145,6 +145,12 @@ class _AdminSidebar extends ConsumerWidget {
             isActive: currentLocation.startsWith('/admin/dokumentasi'),
           ),
           _NavItem(
+            icon: Icons.bar_chart_outlined,
+            label: 'Rekap Upload',
+            route: '/admin/rekap-upload',
+            isActive: currentLocation.startsWith('/admin/rekap-upload'),
+          ),
+          _NavItem(
             icon: Icons.upload_file_outlined,
             label: 'Import Data',
             route: '/admin/import-sheets',

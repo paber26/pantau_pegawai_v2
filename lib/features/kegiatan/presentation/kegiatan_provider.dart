@@ -5,7 +5,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../data/kegiatan_repository.dart';
 import '../data/kegiatan_repository_impl.dart';
+import '../domain/bulk_import_result.dart';
 import '../domain/kegiatan_model.dart';
+import '../domain/proyek_constants.dart';
 
 part 'kegiatan_provider.g.dart';
 
@@ -74,6 +76,18 @@ class KegiatanNotifier extends _$KegiatanNotifier {
       return true;
     } catch (_) {
       return false;
+    }
+  }
+
+  Future<BulkImportResult?> bulkImport() async {
+    try {
+      final result = await ref
+          .read(kegiatanRepositoryProvider)
+          .bulkImport(kProyekBulkImport, DateTime(2026, 12, 31));
+      await refresh();
+      return result;
+    } catch (_) {
+      return null;
     }
   }
 }

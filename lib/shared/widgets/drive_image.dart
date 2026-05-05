@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/supabase_constants.dart';
 import '../../core/utils/image_url_utils.dart';
 
-/// Widget untuk menampilkan gambar dari Google Drive via proxy.
-/// Otomatis menambahkan Authorization header dari session Supabase.
-/// Mendukung dua format URL:
-/// - URL image-proxy Supabase (data baru): tambahkan auth header
-/// - URL Google Drive langsung (data migrasi): konversi ke thumbnail URL
+/// Widget untuk menampilkan gambar dari Google Drive via image-proxy Supabase.
+///
+/// Semua gambar diakses melalui image-proxy yang berjalan di server Supabase,
+/// sehingga tidak ada masalah CORS di Flutter Web.
+/// Proxy menggunakan service account Google — bisa akses semua file di Drive.
+/// Auth tidak wajib di proxy (versi terbaru).
 class DriveImage extends ConsumerWidget {
   final String? imageUrl;
   final double? width;
@@ -31,42 +31,15 @@ class DriveImage extends ConsumerWidget {
       return _placeholder();
     }
 
-    final session = Supabase.instance.client.auth.currentSession;
-    final token = session?.accessToken;
+    // Ekstrak file ID dari URL apapun
+    final fileId = ImageUrlUtils.extractFileId(imageUrl);
+    if (fileId == null) return _placeholder();
 
-    // Konversi URL Drive lama ke format yang bisa ditampilkan
-    final displayUrl = ImageUrlUtils.toDisplayUrl(imageUrl);
-    if (displayUrl == null) return _placeholder();
+    // Semua gambar via image-proxy — tidak ada CORS issue, tidak butuh auth header
+    final proxyUrl = '${SupabaseConstants.imageProxyUrl}?id=$fileId';
 
-    final isProxyUrl = displayUrl.contains(SupabaseConstants.url);
-
-    if (isProxyUrl && token != null) {
-      // URL image-proxy Supabase — butuh auth header
-      return Image.network(
-        displayUrl,
-        width: width,
-        height: height,
-        fit: fit,
-        headers: {'Authorization': 'Bearer $token'},
-        errorBuilder: (_, __, ___) => _placeholder(),
-        loadingBuilder: (context, child, progress) {
-          if (progress == null) return child;
-          return Container(
-            width: width,
-            height: height,
-            color: AppColors.background,
-            child: const Center(
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          );
-        },
-      );
-    }
-
-    // URL thumbnail Google Drive (lh3.googleusercontent.com) atau URL lain
-    // — bisa diakses langsung tanpa auth header
     return Image.network(
-      displayUrl,
+      proxyUrl,
       width: width,
       height: height,
       fit: fit,
