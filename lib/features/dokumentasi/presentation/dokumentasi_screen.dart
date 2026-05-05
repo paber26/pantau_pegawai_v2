@@ -39,8 +39,14 @@ class _DokumentasiScreenState extends ConsumerState<DokumentasiScreen> {
       appBar: AppBar(
         title: const Text('Dokumentasi Harian'),
         actions: [
-          IconButton(icon: const Icon(Icons.filter_list), onPressed: () => _showFilterSheet(context, pegawaiList)),
-          IconButton(icon: const Icon(Icons.refresh), onPressed: () => ref.read(adminDokumentasiNotifierProvider.notifier).refresh()),
+          IconButton(
+              icon: const Icon(Icons.filter_list),
+              onPressed: () => _showFilterSheet(context, pegawaiList)),
+          IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () => ref
+                  .read(adminDokumentasiNotifierProvider.notifier)
+                  .refresh()),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -52,29 +58,42 @@ class _DokumentasiScreenState extends ConsumerState<DokumentasiScreen> {
       ),
       body: docsAsync.when(
         loading: () => const LoadingShimmer(),
-        error: (e, _) => ErrorDisplay(message: e.toString(), onRetry: () => ref.read(adminDokumentasiNotifierProvider.notifier).refresh()),
+        error: (e, _) => ErrorDisplay(
+            message: e.toString(),
+            onRetry: () =>
+                ref.read(adminDokumentasiNotifierProvider.notifier).refresh()),
         data: (allList) {
           var list = allList;
-          if (_filterPegawaiId != null) list = list.where((d) => d.userId == _filterPegawaiId).toList();
+          if (_filterPegawaiId != null)
+            list = list.where((d) => d.userId == _filterPegawaiId).toList();
           if (_filterProyek != null && _filterProyek!.isNotEmpty) {
-            list = list.where((d) => d.proyek.toLowerCase().contains(_filterProyek!.toLowerCase())).toList();
+            list = list
+                .where((d) => d.proyek
+                    .toLowerCase()
+                    .contains(_filterProyek!.toLowerCase()))
+                .toList();
           }
           if (list.isEmpty) {
-            return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.photo_library_outlined, size: 64, color: AppColors.textHint),
-              const SizedBox(height: 16),
-              const Text('Belum ada dokumentasi', style: TextStyle(color: AppColors.textSecondary)),
+            return const Center(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.photo_library_outlined,
+                  size: 64, color: AppColors.textHint),
+              SizedBox(height: 16),
+              Text('Belum ada dokumentasi',
+                  style: TextStyle(color: AppColors.textSecondary)),
             ]));
           }
           final grouped = _groupByDate(list);
           return RefreshIndicator(
-            onRefresh: () => ref.read(adminDokumentasiNotifierProvider.notifier).refresh(),
+            onRefresh: () =>
+                ref.read(adminDokumentasiNotifierProvider.notifier).refresh(),
             child: ListView.builder(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
               itemCount: grouped.length,
               itemBuilder: (context, index) {
                 final entry = grouped.entries.elementAt(index);
-                return DokDateGroup(tanggal: entry.key, items: entry.value, showPegawai: true);
+                return DokDateGroup(
+                    tanggal: entry.key, items: entry.value, showPegawai: true);
               },
             ),
           );
@@ -83,10 +102,12 @@ class _DokumentasiScreenState extends ConsumerState<DokumentasiScreen> {
     );
   }
 
-  Map<DateTime, List<DokumentasiModel>> _groupByDate(List<DokumentasiModel> list) {
+  Map<DateTime, List<DokumentasiModel>> _groupByDate(
+      List<DokumentasiModel> list) {
     final Map<DateTime, List<DokumentasiModel>> grouped = {};
     for (final doc in list) {
-      final date = DateTime(doc.tanggalKegiatan.year, doc.tanggalKegiatan.month, doc.tanggalKegiatan.day);
+      final date = DateTime(doc.tanggalKegiatan.year, doc.tanggalKegiatan.month,
+          doc.tanggalKegiatan.day);
       grouped.putIfAbsent(date, () => []).add(doc);
     }
     return grouped;
@@ -101,76 +122,140 @@ class _DokumentasiScreenState extends ConsumerState<DokumentasiScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModal) => Padding(
-          padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
+          padding: EdgeInsets.fromLTRB(
+              20, 16, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+                Center(
+                    child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 16),
-                const Text('Filter Dokumentasi', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text('Filter Dokumentasi',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: tempPegawaiId,
-                  decoration: InputDecoration(labelText: 'Pegawai', prefixIcon: const Icon(Icons.person_outline), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
+                  initialValue: tempPegawaiId,
+                  decoration: InputDecoration(
+                      labelText: 'Pegawai',
+                      prefixIcon: const Icon(Icons.person_outline),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10))),
                   items: [
-                    const DropdownMenuItem(value: null, child: Text('Semua Pegawai')),
-                    ...pegawaiList.map((p) => DropdownMenuItem(value: p.id as String, child: Text(p.nama as String))),
+                    const DropdownMenuItem(
+                        value: null, child: Text('Semua Pegawai')),
+                    ...pegawaiList.map((p) => DropdownMenuItem(
+                        value: p.id as String, child: Text(p.nama as String))),
                   ],
                   onChanged: (v) => setModal(() => tempPegawaiId = v),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   initialValue: tempProyek,
-                  decoration: InputDecoration(labelText: 'Kegiatan/Proyek', hintText: 'Cari nama kegiatan...', prefixIcon: const Icon(Icons.search), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
-                  onChanged: (v) => setModal(() => tempProyek = v.isEmpty ? null : v),
+                  decoration: InputDecoration(
+                      labelText: 'Kegiatan/Proyek',
+                      hintText: 'Cari nama kegiatan...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10))),
+                  onChanged: (v) =>
+                      setModal(() => tempProyek = v.isEmpty ? null : v),
                 ),
                 const SizedBox(height: 12),
                 Row(children: [
-                  Expanded(child: InkWell(
+                  Expanded(
+                      child: InkWell(
                     onTap: () async {
-                      final p = await showDatePicker(context: ctx, initialDate: DateTime.now(), firstDate: DateTime(2020), lastDate: DateTime.now());
+                      final p = await showDatePicker(
+                          context: ctx,
+                          initialDate: DateTime.now(),
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now());
                       if (p != null) setModal(() => tempFrom = p);
                     },
                     child: InputDecorator(
-                      decoration: InputDecoration(labelText: 'Dari', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
-                      child: Text(tempFrom != null ? AppDateUtils.formatDate(tempFrom!) : 'Pilih', style: const TextStyle(fontSize: 14)),
+                      decoration: InputDecoration(
+                          labelText: 'Dari',
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10))),
+                      child: Text(
+                          tempFrom != null
+                              ? AppDateUtils.formatDate(tempFrom!)
+                              : 'Pilih',
+                          style: const TextStyle(fontSize: 14)),
                     ),
                   )),
                   const SizedBox(width: 8),
-                  Expanded(child: InkWell(
+                  Expanded(
+                      child: InkWell(
                     onTap: () async {
-                      final p = await showDatePicker(context: ctx, initialDate: DateTime.now(), firstDate: DateTime(2020), lastDate: DateTime.now());
+                      final p = await showDatePicker(
+                          context: ctx,
+                          initialDate: DateTime.now(),
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now());
                       if (p != null) setModal(() => tempTo = p);
                     },
                     child: InputDecorator(
-                      decoration: InputDecoration(labelText: 'Sampai', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
-                      child: Text(tempTo != null ? AppDateUtils.formatDate(tempTo!) : 'Pilih', style: const TextStyle(fontSize: 14)),
+                      decoration: InputDecoration(
+                          labelText: 'Sampai',
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10))),
+                      child: Text(
+                          tempTo != null
+                              ? AppDateUtils.formatDate(tempTo!)
+                              : 'Pilih',
+                          style: const TextStyle(fontSize: 14)),
                     ),
                   )),
                 ]),
                 const SizedBox(height: 20),
                 Row(children: [
-                  Expanded(child: OutlinedButton(
+                  Expanded(
+                      child: OutlinedButton(
                     onPressed: () {
-                      setState(() { _filterPegawaiId = null; _filterProyek = null; _filterFrom = null; _filterTo = null; });
-                      ref.read(adminDokumentasiNotifierProvider.notifier).applyFilter();
+                      setState(() {
+                        _filterPegawaiId = null;
+                        _filterProyek = null;
+                        _filterFrom = null;
+                        _filterTo = null;
+                      });
+                      ref
+                          .read(adminDokumentasiNotifierProvider.notifier)
+                          .applyFilter();
                       Navigator.pop(ctx);
                     },
                     child: const Text('Reset'),
                   )),
                   const SizedBox(width: 12),
-                  Expanded(child: ElevatedButton(
+                  Expanded(
+                      child: ElevatedButton(
                     onPressed: () {
-                      setState(() { _filterPegawaiId = tempPegawaiId; _filterProyek = tempProyek; _filterFrom = tempFrom; _filterTo = tempTo; });
-                      ref.read(adminDokumentasiNotifierProvider.notifier).applyFilter(fromDate: tempFrom, toDate: tempTo);
+                      setState(() {
+                        _filterPegawaiId = tempPegawaiId;
+                        _filterProyek = tempProyek;
+                        _filterFrom = tempFrom;
+                        _filterTo = tempTo;
+                      });
+                      ref
+                          .read(adminDokumentasiNotifierProvider.notifier)
+                          .applyFilter(fromDate: tempFrom, toDate: tempTo);
                       Navigator.pop(ctx);
                     },
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white),
                     child: const Text('Terapkan'),
                   )),
                 ]),
@@ -205,34 +290,46 @@ class RiwayatDokumentasiScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Riwayat Saya'),
-        actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: () => ref.read(myDokumentasiNotifierProvider.notifier).refresh())],
+        actions: [
+          IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () =>
+                  ref.read(myDokumentasiNotifierProvider.notifier).refresh())
+        ],
       ),
       body: docsAsync.when(
         loading: () => const LoadingShimmer(),
         error: (e, _) => ErrorDisplay(message: e.toString()),
         data: (list) {
           if (list.isEmpty) {
-            return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+            return Center(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
               const Icon(Icons.history, size: 64, color: AppColors.textHint),
               const SizedBox(height: 16),
-              Text('Halo, ${user?.nama ?? "Pegawai"}!', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text('Halo, ${user?.nama ?? "Pegawai"}!',
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              const Text('Belum ada riwayat dokumentasi.', style: TextStyle(color: AppColors.textSecondary)),
+              const Text('Belum ada riwayat dokumentasi.',
+                  style: TextStyle(color: AppColors.textSecondary)),
             ]));
           }
           final grouped = <DateTime, List<DokumentasiModel>>{};
           for (final doc in list) {
-            final date = DateTime(doc.tanggalKegiatan.year, doc.tanggalKegiatan.month, doc.tanggalKegiatan.day);
+            final date = DateTime(doc.tanggalKegiatan.year,
+                doc.tanggalKegiatan.month, doc.tanggalKegiatan.day);
             grouped.putIfAbsent(date, () => []).add(doc);
           }
           return RefreshIndicator(
-            onRefresh: () => ref.read(myDokumentasiNotifierProvider.notifier).refresh(),
+            onRefresh: () =>
+                ref.read(myDokumentasiNotifierProvider.notifier).refresh(),
             child: ListView.builder(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               itemCount: grouped.length,
               itemBuilder: (context, index) {
                 final entry = grouped.entries.elementAt(index);
-                return DokDateGroup(tanggal: entry.key, items: entry.value, showPegawai: false);
+                return DokDateGroup(
+                    tanggal: entry.key, items: entry.value, showPegawai: false);
               },
             ),
           );
@@ -246,7 +343,8 @@ class RiwayatDokumentasiScreen extends ConsumerWidget {
 class DokumentasiFormSheet extends ConsumerStatefulWidget {
   const DokumentasiFormSheet({super.key});
   @override
-  ConsumerState<DokumentasiFormSheet> createState() => _DokumentasiFormSheetState();
+  ConsumerState<DokumentasiFormSheet> createState() =>
+      _DokumentasiFormSheetState();
 }
 
 class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
@@ -269,11 +367,15 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    final picked = await _picker.pickImage(source: source, imageQuality: 80, maxWidth: 1920);
+    final picked = await _picker.pickImage(
+        source: source, imageQuality: 80, maxWidth: 1920);
     if (picked != null) {
       if (kIsWeb) {
         final bytes = await picked.readAsBytes();
-        setState(() { _webImageBytes = bytes; _imageFile = File(picked.path); });
+        setState(() {
+          _webImageBytes = bytes;
+          _imageFile = File(picked.path);
+        });
       } else {
         setState(() => _imageFile = File(picked.path));
       }
@@ -283,12 +385,38 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
   void _showImagePicker() {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        ListTile(leading: const Icon(Icons.camera_alt_outlined, color: AppColors.primary), title: const Text('Ambil Foto'), onTap: () { Navigator.pop(ctx); _pickImage(ImageSource.camera); }),
-        ListTile(leading: const Icon(Icons.photo_library_outlined, color: AppColors.accent), title: const Text('Pilih dari Galeri'), onTap: () { Navigator.pop(ctx); _pickImage(ImageSource.gallery); }),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+        ListTile(
+            leading:
+                const Icon(Icons.camera_alt_outlined, color: AppColors.primary),
+            title: const Text('Ambil Foto'),
+            onTap: () {
+              Navigator.pop(ctx);
+              _pickImage(ImageSource.camera);
+            }),
+        ListTile(
+            leading: const Icon(Icons.photo_library_outlined,
+                color: AppColors.accent),
+            title: const Text('Pilih dari Galeri'),
+            onTap: () {
+              Navigator.pop(ctx);
+              _pickImage(ImageSource.gallery);
+            }),
         if (_imageFile != null)
-          ListTile(leading: const Icon(Icons.delete_outline, color: AppColors.error), title: const Text('Hapus Foto', style: TextStyle(color: AppColors.error)), onTap: () { Navigator.pop(ctx); setState(() { _imageFile = null; _webImageBytes = null; }); }),
+          ListTile(
+              leading: const Icon(Icons.delete_outline, color: AppColors.error),
+              title: const Text('Hapus Foto',
+                  style: TextStyle(color: AppColors.error)),
+              onTap: () {
+                Navigator.pop(ctx);
+                setState(() {
+                  _imageFile = null;
+                  _webImageBytes = null;
+                });
+              }),
       ])),
     );
   }
@@ -296,20 +424,27 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
-    final errorMsg = await ref.read(myDokumentasiNotifierProvider.notifier).tambah(
-      proyek: _proyekController.text.trim(),
-      tanggalKegiatan: _tanggal,
-      imageFile: kIsWeb ? null : _imageFile,
-      imageBytes: kIsWeb ? _webImageBytes : null,
-      catatan: _catatanController.text.trim().isEmpty ? null : _catatanController.text.trim(),
-      link: _linkController.text.trim().isEmpty ? null : _linkController.text.trim(),
-    );
+    final errorMsg =
+        await ref.read(myDokumentasiNotifierProvider.notifier).tambah(
+              proyek: _proyekController.text.trim(),
+              tanggalKegiatan: _tanggal,
+              imageFile: kIsWeb ? null : _imageFile,
+              imageBytes: kIsWeb ? _webImageBytes : null,
+              catatan: _catatanController.text.trim().isEmpty
+                  ? null
+                  : _catatanController.text.trim(),
+              link: _linkController.text.trim().isEmpty
+                  ? null
+                  : _linkController.text.trim(),
+            );
     ref.read(adminDokumentasiNotifierProvider.notifier).refresh();
     if (mounted) {
       setState(() => _isLoading = false);
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(errorMsg == null ? 'Dokumentasi berhasil disimpan!' : 'Gagal: $errorMsg'),
+        content: Text(errorMsg == null
+            ? 'Dokumentasi berhasil disimpan!'
+            : 'Gagal: $errorMsg'),
         backgroundColor: errorMsg == null ? AppColors.success : AppColors.error,
         duration: const Duration(seconds: 4),
       ));
@@ -320,7 +455,9 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return Container(
-      decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
       child: SingleChildScrollView(
         child: Form(
@@ -329,9 +466,16 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+              Center(
+                  child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
-              const Text('Tambah Dokumentasi', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text('Tambah Dokumentasi',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 20),
               GestureDetector(
                 onTap: _showImagePicker,
@@ -340,58 +484,105 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
                   decoration: BoxDecoration(
                     color: AppColors.background,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: _imageFile != null ? AppColors.primary : AppColors.border, width: _imageFile != null ? 2 : 1),
+                    border: Border.all(
+                        color: _imageFile != null
+                            ? AppColors.primary
+                            : AppColors.border,
+                        width: _imageFile != null ? 2 : 1),
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(11),
                     child: _imageFile == null
-                        ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                            Icon(Icons.add_a_photo_outlined, size: 36, color: AppColors.primary.withValues(alpha: 0.4)),
-                            const SizedBox(height: 8),
-                            const Text('Tambah Foto (opsional)', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                          ])
+                        ? Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                                Icon(Icons.add_a_photo_outlined,
+                                    size: 36,
+                                    color: AppColors.primary
+                                        .withValues(alpha: 0.4)),
+                                const SizedBox(height: 8),
+                                const Text('Tambah Foto (opsional)',
+                                    style: TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 13)),
+                              ])
                         : (kIsWeb && _webImageBytes != null
-                            ? Image.memory(_webImageBytes!, fit: BoxFit.cover, width: double.infinity)
-                            : Image.file(_imageFile!, fit: BoxFit.cover, width: double.infinity)),
+                            ? Image.memory(_webImageBytes!,
+                                fit: BoxFit.cover, width: double.infinity)
+                            : Image.file(_imageFile!,
+                                fit: BoxFit.cover, width: double.infinity)),
                   ),
                 ),
               ),
               const SizedBox(height: 14),
               TextFormField(
                 controller: _proyekController,
-                decoration: InputDecoration(labelText: 'Proyek / Kegiatan *', hintText: 'Contoh: Rapat Koordinasi, SENYUM', prefixIcon: const Icon(Icons.work_outline), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
-                validator: (v) => v == null || v.trim().isEmpty ? 'Wajib diisi' : null,
+                decoration: InputDecoration(
+                    labelText: 'Proyek / Kegiatan *',
+                    hintText: 'Contoh: Rapat Koordinasi, SENYUM',
+                    prefixIcon: const Icon(Icons.work_outline),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10))),
+                validator: (v) =>
+                    v == null || v.trim().isEmpty ? 'Wajib diisi' : null,
               ),
               const SizedBox(height: 12),
               InkWell(
                 onTap: () async {
-                  final picked = await showDatePicker(context: context, initialDate: _tanggal, firstDate: DateTime(2020), lastDate: DateTime.now());
+                  final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _tanggal,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now());
                   if (picked != null) setState(() => _tanggal = picked);
                 },
                 child: InputDecorator(
-                  decoration: InputDecoration(labelText: 'Tanggal Kegiatan *', prefixIcon: const Icon(Icons.calendar_today_outlined), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
-                  child: Text(AppDateUtils.formatDate(_tanggal), style: const TextStyle(fontSize: 16)),
+                  decoration: InputDecoration(
+                      labelText: 'Tanggal Kegiatan *',
+                      prefixIcon: const Icon(Icons.calendar_today_outlined),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10))),
+                  child: Text(AppDateUtils.formatDate(_tanggal),
+                      style: const TextStyle(fontSize: 16)),
                 ),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _catatanController,
                 maxLines: 3,
-                decoration: InputDecoration(labelText: 'Catatan', hintText: 'Deskripsi kegiatan...', prefixIcon: const Icon(Icons.notes_outlined), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
+                decoration: InputDecoration(
+                    labelText: 'Catatan',
+                    hintText: 'Deskripsi kegiatan...',
+                    prefixIcon: const Icon(Icons.notes_outlined),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10))),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _linkController,
                 keyboardType: TextInputType.url,
-                decoration: InputDecoration(labelText: 'Link (opsional)', hintText: 'https://', prefixIcon: const Icon(Icons.link_outlined), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
+                decoration: InputDecoration(
+                    labelText: 'Link (opsional)',
+                    hintText: 'https://',
+                    prefixIcon: const Icon(Icons.link_outlined),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10))),
               ),
               const SizedBox(height: 20),
-              if (_isLoading) ...[const LinearProgressIndicator(), const SizedBox(height: 8)],
+              if (_isLoading) ...[
+                const LinearProgressIndicator(),
+                const SizedBox(height: 8)
+              ],
               ElevatedButton.icon(
                 onPressed: _isLoading ? null : _handleSubmit,
                 icon: const Icon(Icons.save_outlined),
                 label: const Text('Simpan Dokumentasi'),
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12))),
               ),
             ],
           ),
@@ -407,15 +598,27 @@ class DokDateGroup extends ConsumerWidget {
   final List<DokumentasiModel> items;
   final bool showPegawai;
 
-  const DokDateGroup({super.key, required this.tanggal, required this.items, required this.showPegawai});
+  const DokDateGroup(
+      {super.key,
+      required this.tanggal,
+      required this.items,
+      required this.showPegawai});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final now = DateTime.now();
-    final isToday = tanggal.year == now.year && tanggal.month == now.month && tanggal.day == now.day;
+    final isToday = tanggal.year == now.year &&
+        tanggal.month == now.month &&
+        tanggal.day == now.day;
     final yesterday = now.subtract(const Duration(days: 1));
-    final isYesterday = tanggal.year == yesterday.year && tanggal.month == yesterday.month && tanggal.day == yesterday.day;
-    final label = isToday ? 'Hari Ini' : isYesterday ? 'Kemarin' : DateFormat('d MMMM yyyy', 'id_ID').format(tanggal);
+    final isYesterday = tanggal.year == yesterday.year &&
+        tanggal.month == yesterday.month &&
+        tanggal.day == yesterday.day;
+    final label = isToday
+        ? 'Hari Ini'
+        : isYesterday
+            ? 'Kemarin'
+            : DateFormat('d MMMM yyyy', 'id_ID').format(tanggal);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -426,15 +629,23 @@ class DokDateGroup extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: isToday ? AppColors.primary : AppColors.primary.withValues(alpha: 0.1),
+                color: isToday
+                    ? AppColors.primary
+                    : AppColors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isToday ? Colors.white : AppColors.primary)),
+              child: Text(label,
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isToday ? Colors.white : AppColors.primary)),
             ),
             const SizedBox(width: 8),
             const Expanded(child: Divider(color: AppColors.divider, height: 1)),
             const SizedBox(width: 8),
-            Text('${items.length} entri', style: const TextStyle(fontSize: 11, color: AppColors.textHint)),
+            Text('${items.length} entri',
+                style:
+                    const TextStyle(fontSize: 11, color: AppColors.textHint)),
           ]),
         ),
         ...items.map((doc) => DokCard(doc: doc, showPegawai: showPegawai)),
@@ -466,11 +677,17 @@ class DokCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             GestureDetector(
-              onTap: doc.imageUrl != null ? () => _showFullImage(context, doc.imageUrl!) : null,
+              onTap: doc.imageUrl != null
+                  ? () => _showFullImage(context, doc.imageUrl!)
+                  : null,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: doc.imageUrl != null
-                    ? DriveImage(imageUrl: doc.imageUrl, width: 60, height: 60, fit: BoxFit.cover)
+                    ? DriveImage(
+                        imageUrl: doc.imageUrl,
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover)
                     : _noImage(),
               ),
             ),
@@ -480,26 +697,45 @@ class DokCard extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (showPegawai && doc.pegawaiNama != null)
-                    Text(doc.pegawaiNama!, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.primary)),
-                  Text(doc.proyek, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    Text(doc.pegawaiNama!,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            color: AppColors.primary)),
+                  Text(doc.proyek,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 14)),
                   if (doc.catatan != null)
-                    Text(doc.catatan!, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                    Text(doc.catatan!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.textSecondary)),
                   const SizedBox(height: 4),
                   Row(children: [
-                    const Icon(Icons.access_time, size: 11, color: AppColors.textHint),
+                    const Icon(Icons.access_time,
+                        size: 11, color: AppColors.textHint),
                     const SizedBox(width: 3),
-                    Text(DateFormat('HH:mm').format(doc.createdAt.toLocal()), style: const TextStyle(fontSize: 11, color: AppColors.textHint)),
+                    Text(DateFormat('HH:mm').format(doc.createdAt.toLocal()),
+                        style: const TextStyle(
+                            fontSize: 11, color: AppColors.textHint)),
                     if (doc.link != null) ...[
                       const SizedBox(width: 8),
                       GestureDetector(
                         onTap: () async {
                           final uri = Uri.parse(doc.link!);
-                          if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          if (await canLaunchUrl(uri))
+                            await launchUrl(uri,
+                                mode: LaunchMode.externalApplication);
                         },
                         child: const Row(children: [
                           Icon(Icons.link, size: 11, color: AppColors.primary),
                           SizedBox(width: 2),
-                          Text('Link', style: TextStyle(fontSize: 11, color: AppColors.primary, decoration: TextDecoration.underline)),
+                          Text('Link',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.primary,
+                                  decoration: TextDecoration.underline)),
                         ]),
                       ),
                     ],
@@ -511,15 +747,27 @@ class DokCard extends ConsumerWidget {
               PopupMenuButton<String>(
                 onSelected: (value) async {
                   if (value == 'hapus') {
-                    final confirm = await showConfirmDialog(context, title: 'Hapus Dokumentasi', message: 'Hapus dokumentasi "\${doc.proyek}"?');
+                    final confirm = await showConfirmDialog(context,
+                        title: 'Hapus Dokumentasi',
+                        message: 'Hapus dokumentasi "\${doc.proyek}"?');
                     if (confirm == true && context.mounted) {
-                      await ref.read(myDokumentasiNotifierProvider.notifier).hapus(doc.id);
-                      ref.read(adminDokumentasiNotifierProvider.notifier).refresh();
+                      await ref
+                          .read(myDokumentasiNotifierProvider.notifier)
+                          .hapus(doc.id);
+                      ref
+                          .read(adminDokumentasiNotifierProvider.notifier)
+                          .refresh();
                     }
                   }
                 },
-                itemBuilder: (_) => [const PopupMenuItem(value: 'hapus', child: Text('Hapus', style: TextStyle(color: AppColors.error)))],
-                icon: const Icon(Icons.more_vert, size: 18, color: AppColors.textHint),
+                itemBuilder: (_) => [
+                  const PopupMenuItem(
+                      value: 'hapus',
+                      child: Text('Hapus',
+                          style: TextStyle(color: AppColors.error)))
+                ],
+                icon: const Icon(Icons.more_vert,
+                    size: 18, color: AppColors.textHint),
               ),
           ],
         ),
@@ -528,10 +776,14 @@ class DokCard extends ConsumerWidget {
   }
 
   Widget _noImage() => Container(
-    width: 60, height: 60,
-    decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(8)),
-    child: const Icon(Icons.image_outlined, color: AppColors.textHint, size: 24),
-  );
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(8)),
+        child: const Icon(Icons.image_outlined,
+            color: AppColors.textHint, size: 24),
+      );
 
   void _showFullImage(BuildContext context, String imageUrl) {
     showDialog(
@@ -540,8 +792,18 @@ class DokCard extends ConsumerWidget {
         backgroundColor: Colors.black,
         insetPadding: EdgeInsets.zero,
         child: Stack(children: [
-          InteractiveViewer(child: DriveImage(imageUrl: imageUrl, width: double.infinity, height: double.infinity, fit: BoxFit.contain)),
-          Positioned(top: 40, right: 16, child: IconButton(icon: const Icon(Icons.close, color: Colors.white, size: 28), onPressed: () => Navigator.pop(context))),
+          InteractiveViewer(
+              child: DriveImage(
+                  imageUrl: imageUrl,
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.contain)),
+          Positioned(
+              top: 40,
+              right: 16,
+              child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                  onPressed: () => Navigator.pop(context))),
         ]),
       ),
     );

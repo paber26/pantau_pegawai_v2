@@ -30,7 +30,8 @@ class KegiatanRepositoryImpl implements KegiatanRepository {
           .select('kegiatan(*)')
           .eq('user_id', userId);
       return (data as List)
-          .map((e) => KegiatanModel.fromMap(e['kegiatan'] as Map<String, dynamic>))
+          .map((e) =>
+              KegiatanModel.fromMap(e['kegiatan'] as Map<String, dynamic>))
           .toList();
     } catch (e) {
       throw AppException('Gagal memuat kegiatan: ${e.toString()}');
@@ -44,7 +45,7 @@ class KegiatanRepositoryImpl implements KegiatanRepository {
           await _client.from('kegiatan').select().eq('id', id).single();
       return KegiatanModel.fromMap(data);
     } catch (e) {
-      throw AppException('Kegiatan tidak ditemukan');
+      throw const AppException('Kegiatan tidak ditemukan');
     }
   }
 

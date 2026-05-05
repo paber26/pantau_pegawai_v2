@@ -7,7 +7,6 @@ import '../../../core/utils/date_utils.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../laporan/presentation/laporan_provider.dart';
 import '../../laporan/domain/laporan_model.dart';
-import '../../laporan/presentation/laporan_detail_screen.dart';
 import 'kegiatan_provider.dart';
 
 class KegiatanDetailScreen extends ConsumerWidget {

@@ -48,7 +48,7 @@ class LaporanListScreen extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.description_outlined,
+                  const Icon(Icons.description_outlined,
                       size: 64, color: AppColors.textHint),
                   const SizedBox(height: 16),
                   Text(

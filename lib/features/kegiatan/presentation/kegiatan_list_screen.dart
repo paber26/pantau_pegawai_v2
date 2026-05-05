@@ -8,7 +8,6 @@ import '../../../core/utils/date_utils.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
-import '../../auth/presentation/auth_provider.dart';
 import '../../laporan/presentation/laporan_provider.dart';
 import '../domain/kegiatan_model.dart';
 import 'kegiatan_provider.dart';
