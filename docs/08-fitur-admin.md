@@ -14,6 +14,7 @@ Menu sidebar:
 - Kegiatan
 - Laporan
 - Dokumentasi
+- Import Data
 - Keluar
 
 ## 8.2 Dashboard Statistik
@@ -65,7 +66,27 @@ Detail laporan menampilkan:
 
 Menu **Dokumentasi** di sidebar admin menampilkan semua dokumentasi harian dari semua pegawai, dengan filter tanggal.
 
-## 8.7 Realtime Update
+## 8.7 Import Data Spreadsheet
+
+Menu **Import Data** di sidebar admin memungkinkan admin mengimpor data historis dari Google Spreadsheet (AppSheet lama) ke Supabase.
+
+Wizard 5 langkah:
+
+1. **Konfigurasi** — masukkan URL atau ID Google Spreadsheet
+2. **Pratinjau** — pilih sheet dan lihat sampel data
+3. **Pemetaan Kolom** — hubungkan kolom spreadsheet ke kolom tabel Supabase
+4. **Validasi** — sistem memeriksa format data sebelum impor
+5. **Hasil** — laporan berhasil/gagal per baris
+
+Untuk migrasi data sekali jalan, gunakan script:
+
+```bash
+SUPABASE_SERVICE_ROLE_KEY=xxx node scripts/migrate-from-sheets.js
+```
+
+Script ini membaca sheet `DOKUMENTASI HARIAN` dari spreadsheet dan menginsert langsung ke tabel `dokumentasi`. URL foto Google Drive disimpan as-is ke kolom `image_url` tanpa perlu upload ulang.
+
+## 8.8 Realtime Update
 
 Dashboard menggunakan `Supabase.stream()` untuk laporan terbaru:
 

@@ -137,6 +137,8 @@ supabase functions deploy admin-create-user --project-ref glywzqbifjordhwulpbw
 supabase functions deploy admin-delete-user --project-ref glywzqbifjordhwulpbw
 supabase functions deploy admin-reset-password --project-ref glywzqbifjordhwulpbw
 supabase functions deploy upload-to-drive --project-ref glywzqbifjordhwulpbw
+supabase functions deploy image-proxy --project-ref glywzqbifjordhwulpbw
+supabase functions deploy import-from-sheets --project-ref glywzqbifjordhwulpbw
 ```
 
 ---
@@ -220,6 +222,29 @@ flutter build ios --release
 flutter build apk --release
 # Output: build/app/outputs/flutter-apk/app-release.apk
 ```
+
+---
+
+## Migrasi Data dari AppSheet (Sekali Jalan)
+
+Untuk mengimpor data historis dari Google Spreadsheet lama ke Supabase:
+
+```bash
+# Install dependency (sekali saja)
+npm install @supabase/supabase-js
+
+# Jalankan migrasi
+SUPABASE_SERVICE_ROLE_KEY=xxx node scripts/migrate-from-sheets.js
+```
+
+Script ini akan:
+
+1. Membaca sheet `DOKUMENTASI HARIAN` dari spreadsheet AppSheet lama
+2. Mencocokkan nama pegawai ke akun Supabase
+3. Menginsert semua data ke tabel `dokumentasi`
+4. URL foto Google Drive disimpan as-is ke `image_url` (tidak perlu upload ulang)
+
+Lihat `scripts/migrate-from-sheets.js` untuk konfigurasi Spreadsheet ID dan mapping nama pegawai.
 
 ---
 

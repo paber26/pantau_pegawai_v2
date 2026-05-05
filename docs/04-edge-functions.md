@@ -4,12 +4,14 @@ Edge Functions adalah server-side code yang berjalan di Deno runtime. Digunakan 
 
 ## Daftar Edge Functions
 
-| Function               | Path                                 | Kegunaan                    |
-| ---------------------- | ------------------------------------ | --------------------------- |
-| `admin-create-user`    | `/functions/v1/admin-create-user`    | Buat akun pegawai baru      |
-| `admin-delete-user`    | `/functions/v1/admin-delete-user`    | Hapus akun pegawai          |
-| `admin-reset-password` | `/functions/v1/admin-reset-password` | Ubah password pegawai       |
-| `upload-to-drive`      | `/functions/v1/upload-to-drive`      | Upload foto ke Google Drive |
+| Function               | Path                                 | Kegunaan                            |
+| ---------------------- | ------------------------------------ | ----------------------------------- |
+| `admin-create-user`    | `/functions/v1/admin-create-user`    | Buat akun pegawai baru              |
+| `admin-delete-user`    | `/functions/v1/admin-delete-user`    | Hapus akun pegawai                  |
+| `admin-reset-password` | `/functions/v1/admin-reset-password` | Ubah password pegawai               |
+| `upload-to-drive`      | `/functions/v1/upload-to-drive`      | Upload foto ke Google Drive         |
+| `image-proxy`          | `/functions/v1/image-proxy`          | Proxy gambar dari Google Drive      |
+| `import-from-sheets`   | `/functions/v1/import-from-sheets`   | Import data dari Google Spreadsheet |
 
 ## Cara Deploy (Via Browser)
 
@@ -144,3 +146,56 @@ if (response.status != 200) {
   throw AppException(data?['error'] ?? 'Gagal');
 }
 ```
+
+## 4.5 image-proxy
+
+**File:** `supabase/functions/image-proxy/index.ts`
+
+**Alur:**
+
+1. Terima query param `?id=<google_drive_file_id>`
+2. Ambil access token via OAuth refresh token
+3. Fetch file dari Google Drive API
+4. Stream balik ke client sebagai response
+
+**Kegunaan:** Menampilkan gambar Google Drive di Flutter Web (menghindari CORS).
+
+## 4.6 import-from-sheets
+
+**File:** `supabase/functions/import-from-sheets/index.ts`
+
+**Alur:**
+
+1. Verifikasi JWT caller → cek role = 'admin'
+2. Parse body: `{ targetTable, rows[] }`
+3. Validasi `targetTable` hanya boleh: `users`, `kegiatan`, `laporan`, `dokumentasi`
+4. Upsert setiap baris ke tabel tujuan, tangkap error per baris
+5. Return statistik: `{ success, imported, failed, errors[] }`
+
+**Request:**
+
+```json
+POST /functions/v1/import-from-sheets
+Authorization: Bearer <jwt_token>
+
+{
+  "targetTable": "dokumentasi",
+  "rows": [
+    {
+      "user_id": "uuid",
+      "proyek": "Nama Proyek",
+      "tanggal_kegiatan": "2025-07-07",
+      "catatan": "...",
+      "image_url": "https://drive.google.com/..."
+    }
+  ]
+}
+```
+
+**Response:**
+
+```json
+{ "success": true, "imported": 95, "failed": 5, "errors": [...] }
+```
+
+**Catatan:** Digunakan oleh fitur Import Data Spreadsheet (admin-only) dan script migrasi `scripts/migrate-from-sheets.js`.

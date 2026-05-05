@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../features/auth/presentation/auth_provider.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/dashboard/presentation/admin_dashboard_screen.dart';
+import '../../features/import_sheets/presentation/import_sheets_screen.dart';
 import '../../features/dokumentasi/presentation/dokumentasi_screen.dart';
 import '../../features/dokumentasi/presentation/admin_dokumentasi_screen.dart';
 import '../../features/kegiatan/presentation/kegiatan_form_screen.dart';
@@ -96,6 +97,10 @@ GoRouter appRouter(Ref ref) {
           GoRoute(
             path: '/admin/dokumentasi',
             builder: (context, state) => const AdminDokumentasiScreen(),
+          ),
+          GoRoute(
+            path: '/admin/import-sheets',
+            builder: (context, state) => const ImportSheetsScreen(),
           ),
         ],
       ),

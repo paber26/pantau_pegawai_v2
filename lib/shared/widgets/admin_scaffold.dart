@@ -142,6 +142,12 @@ class _AdminSidebar extends ConsumerWidget {
             route: '/admin/dokumentasi',
             isActive: currentLocation.startsWith('/admin/dokumentasi'),
           ),
+          _NavItem(
+            icon: Icons.upload_file_outlined,
+            label: 'Import Data',
+            route: '/admin/import-sheets',
+            isActive: currentLocation.startsWith('/admin/import-sheets'),
+          ),
 
           const Spacer(),
           const Divider(color: Colors.white24, height: 1),
