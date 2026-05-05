@@ -5,7 +5,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_utils.dart';
+import '../../../core/utils/image_url_utils.dart';
 import '../../../shared/widgets/admin_scaffold.dart';
+import '../../../shared/widgets/drive_image.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../domain/dokumentasi_model.dart';
@@ -228,17 +230,17 @@ class _AdminDokCard extends StatelessWidget {
             // Foto
             GestureDetector(
               onTap: doc.imageUrl != null
-                  ? () => _showFullImage(context, doc.imageUrl!)
+                  ? () => _showFullImage(
+                      context, ImageUrlUtils.toDisplayUrl(doc.imageUrl)!)
                   : null,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: doc.imageUrl != null
-                    ? Image.network(doc.imageUrl!,
-                        width: 64,
-                        height: 64,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _noImage())
-                    : _noImage(),
+                child: DriveImage(
+                  imageUrl: doc.imageUrl,
+                  width: 64,
+                  height: 64,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -298,17 +300,6 @@ class _AdminDokCard extends StatelessWidget {
       ),
     );
   }
-
-  Widget _noImage() => Container(
-        width: 64,
-        height: 64,
-        decoration: BoxDecoration(
-          color: AppColors.background,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: const Icon(Icons.image_outlined,
-            color: AppColors.textHint, size: 24),
-      );
 
   void _showFullImage(BuildContext context, String imageUrl) {
     showDialog(
