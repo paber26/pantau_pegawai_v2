@@ -151,14 +151,50 @@ if (response.status != 200) {
 
 **File:** `supabase/functions/image-proxy/index.ts`
 
+**Deploy command (wajib pakai `--no-verify-jwt`):**
+
+```bash
+supabase functions deploy image-proxy --no-verify-jwt --project-ref <project_ref>
+```
+
+> ⚠️ **Penting:** Flag `--no-verify-jwt` wajib digunakan. Tanpa flag ini, Supabase Gateway akan memblokir semua request tanpa Authorization header dengan 401, meskipun kode function tidak mewajibkan auth.
+
 **Alur:**
 
 1. Terima query param `?id=<google_drive_file_id>`
-2. Ambil access token via OAuth refresh token
-3. Fetch file dari Google Drive API
-4. Stream balik ke client sebagai response
+2. Auth opsional — jika ada token (header atau `?token=`), diverifikasi; jika tidak ada, tetap dilayani
+3. Ambil Google access token via OAuth refresh token (service account)
+4. Fetch file dari Google Drive API menggunakan service account
+5. Return bytes gambar ke client dengan `Cache-Control: public, max-age=86400`
 
-**Kegunaan:** Menampilkan gambar Google Drive di Flutter Web (menghindari CORS).
+**Kegunaan:**
+
+- Menampilkan gambar Google Drive di Flutter Web (menghindari CORS)
+- Mengakses file yang tidak di-share publik (service account punya akses ke semua file di Drive)
+- Cache 1 hari di CDN Cloudflare
+
+**Cara pemanggilan dari Flutter:**
+
+```dart
+// Semua gambar diakses via proxy — tidak perlu auth header
+final proxyUrl = '${SupabaseConstants.imageProxyUrl}?id=$fileId';
+Image.network(proxyUrl, ...);
+```
+
+**Secrets yang dibutuhkan:**
+
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GOOGLE_REFRESH_TOKEN`
+
+**Kenapa tidak pakai `lh3.googleusercontent.com` atau `uc?export=view`:**
+
+| Metode                                    | Masalah                                                                      |
+| ----------------------------------------- | ---------------------------------------------------------------------------- |
+| `lh3.googleusercontent.com/d/{ID}`        | Rate limit 429 saat banyak gambar dimuat sekaligus                           |
+| `drive.google.com/uc?export=view&id={ID}` | CORS error di Flutter Web — Google redirect ke domain lain tanpa CORS header |
+| `image-proxy` (tanpa `--no-verify-jwt`)   | 401 dari Supabase Gateway sebelum masuk ke function                          |
+| `image-proxy` (dengan `--no-verify-jwt`)  | ✅ Berfungsi — tidak ada CORS, tidak ada rate limit, bisa akses file private |
 
 ## 4.6 import-from-sheets
 

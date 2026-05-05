@@ -172,3 +172,55 @@ const { data } = await adminClient.from("users").update({...}).eq("id", userId)
 **Gejala:** Warning `'withOpacity' is deprecated and shouldn't be used`
 
 **Solusi:** Ganti `color.withOpacity(0.1)` menjadi `color.withValues(alpha: 0.1)`.
+
+---
+
+## ❌ Gambar dokumentasi tidak muncul (hanya milik sendiri)
+
+**Gejala:** Di halaman Dokumentasi, hanya gambar milik user yang login yang muncul. Gambar pegawai lain tidak tampil (placeholder icon).
+
+**Penyebab:** RLS policy `dokumentasi_self` hanya mengizinkan `auth.uid() = user_id`, sehingga pegawai tidak bisa membaca dokumentasi milik orang lain. Selain itu, JOIN ke tabel `users` juga dibatasi RLS sehingga `pegawaiNama` selalu null untuk dokumentasi orang lain.
+
+**Solusi:**
+
+1. Tambah kolom `pegawai_nama` di tabel `dokumentasi` dan isi dari data `users`
+2. Update RLS `dokumentasi` agar semua authenticated user bisa baca semua dokumentasi
+3. Update RLS `users` agar semua authenticated user bisa baca semua profil
+
+Lihat SQL lengkap di `02-database-schema.md` bagian 2.4.
+
+---
+
+## ❌ Gambar dokumentasi 429 Too Many Requests
+
+**Gejala:** Gambar tidak muncul, DevTools Network menunjukkan status 429 dari `lh3.googleusercontent.com`.
+
+**Penyebab:** Saat halaman Dokumentasi memuat banyak gambar sekaligus, Google membatasi request dari satu IP (rate limiting). URL format `lh3.googleusercontent.com/d/{FILE_ID}=s800` rentan kena rate limit.
+
+**Solusi:** Gunakan `image-proxy` Supabase untuk semua gambar. Proxy fetch dari Google Drive menggunakan service account (bukan browser langsung), sehingga tidak ada rate limit dari sisi client.
+
+---
+
+## ❌ Gambar dokumentasi CORS error (`uc?export=view`)
+
+**Gejala:** Console browser menampilkan `Access to XMLHttpRequest ... has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header`.
+
+**Penyebab:** URL `drive.google.com/uc?export=view&id=...` melakukan redirect ke `drive.usercontent.google.com` yang tidak punya CORS header. Browser memblokir ini untuk request dari `Image.network` di Flutter Web.
+
+**Solusi:** Gunakan `image-proxy` Supabase — proxy berjalan di server, tidak ada CORS issue.
+
+---
+
+## ❌ image-proxy 401 Unauthorized (`UNAUTHORIZED_NO_AUTH_HEADER`)
+
+**Gejala:** Request ke `image-proxy` mengembalikan 401 meskipun kode function tidak mewajibkan auth.
+
+**Penyebab:** Supabase Edge Functions secara default memerlukan JWT di level **platform** (Supabase Gateway), bukan hanya di kode function. Meskipun kode function tidak cek auth, Gateway tetap memblokir request tanpa token.
+
+**Solusi:** Deploy function dengan flag `--no-verify-jwt`:
+
+```bash
+supabase functions deploy image-proxy --no-verify-jwt --project-ref <project_ref>
+```
+
+> ⚠️ Jangan lupa flag ini setiap kali re-deploy `image-proxy`. Tanpa flag ini, gambar tidak akan muncul di Flutter Web.

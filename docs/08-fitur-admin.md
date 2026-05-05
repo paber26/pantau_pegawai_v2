@@ -14,6 +14,7 @@ Menu sidebar:
 - Kegiatan
 - Laporan
 - Dokumentasi
+- Rekap Upload
 - Import Data
 - Keluar
 

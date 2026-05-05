@@ -8,13 +8,14 @@ Terinspirasi dari aplikasi AppSheet sebelumnya (https://s.bps.go.id/pantau_pegaw
 
 ## 7.2 Field Dokumentasi
 
-| Field            | Tipe | Wajib | Keterangan                         |
-| ---------------- | ---- | ----- | ---------------------------------- |
-| proyek           | TEXT | ✅    | Nama proyek/kegiatan (bebas input) |
-| tanggal_kegiatan | DATE | ✅    | Default: hari ini                  |
-| image_url        | TEXT | ❌    | URL foto di Google Drive           |
-| catatan          | TEXT | ❌    | Deskripsi kegiatan                 |
-| link             | TEXT | ❌    | Link referensi                     |
+| Field            | Tipe | Wajib | Keterangan                          |
+| ---------------- | ---- | ----- | ----------------------------------- |
+| pegawai_nama     | TEXT | ❌    | Nama pegawai (disimpan saat insert) |
+| proyek           | TEXT | ✅    | Nama proyek/kegiatan (bebas input)  |
+| tanggal_kegiatan | DATE | ✅    | Default: hari ini                   |
+| image_url        | TEXT | ❌    | URL image-proxy Supabase            |
+| catatan          | TEXT | ❌    | Deskripsi kegiatan                  |
+| link             | TEXT | ❌    | Link referensi                      |
 
 ## 7.3 Halaman Dokumentasi (Tab 1)
 
@@ -79,7 +80,30 @@ Foto bersifat opsional — dokumentasi bisa disimpan tanpa foto.
 
 Admin bisa melihat semua dokumentasi dari menu **Dokumentasi** di sidebar admin, dengan filter tanggal.
 
-## 7.9 Masalah yang Ditemui
+## 7.9 Rekap Upload (Admin)
+
+Menu **Rekap Upload** di sidebar admin menampilkan rekapitulasi jumlah upload dokumentasi per pegawai.
+
+Fitur:
+
+- Daftar pegawai diurutkan dari yang paling banyak upload
+- Breakdown per bulan (Januari–Desember) untuk setiap pegawai
+- Filter tahun (2024 hingga tahun berjalan)
+- Grand total keseluruhan upload di bagian atas
+- Tampilkan nama, jabatan, dan unit kerja setiap pegawai
+
+Route: `/admin/rekap-upload`
+
+## 7.10 Import Proyek Massal (Admin)
+
+Di halaman **Kegiatan** admin, tersedia tombol **Import Proyek** di AppBar.
+
+- Memasukkan 65 proyek/kegiatan sekaligus ke database
+- Bersifat idempotent — proyek yang sudah ada dilewati, tidak dibuat duplikat
+- Deadline default: 31 Desember 2026
+- Notifikasi hasil: jumlah berhasil diimport dan jumlah yang dilewati
+
+## 7.11 Masalah yang Ditemui
 
 ### LocaleDataException
 

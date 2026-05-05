@@ -27,9 +27,9 @@ Dokumen ini merangkum seluruh tahapan pembangunan aplikasi **PantauPegawai** dar
 | `04-edge-functions.md`            | Semua Edge Functions yang di-deploy ke Supabase                    |
 | `05-fitur-auth.md`                | Implementasi login/logout, role-based redirect                     |
 | `06-fitur-pegawai.md`             | CRUD pegawai, ubah password                                        |
-| `07-fitur-dokumentasi.md`         | Dokumentasi harian: upload foto, filter, riwayat                   |
-| `08-fitur-admin.md`               | Dashboard admin, CRUD kegiatan, assign, laporan                    |
-| `09-troubleshooting.md`           | Masalah yang ditemui dan solusinya                                 |
+| `07-fitur-dokumentasi.md`         | Dokumentasi harian: upload foto, filter, riwayat, rekap upload     |
+| `08-fitur-admin.md`               | Dashboard admin, CRUD kegiatan, assign, laporan, rekap upload      |
+| `09-troubleshooting.md`           | Masalah yang ditemui dan solusinya (termasuk CORS & image-proxy)   |
 | `10-cara-menjalankan.md`          | Panduan menjalankan aplikasi                                       |
 | `11-install-ios-android.md`       | Panduan install ke iPhone dan Android                              |
 | `12-panduan-instalasi-lengkap.md` | **Panduan instalasi end-to-end** (Supabase + DB + Drive + Flutter) |
