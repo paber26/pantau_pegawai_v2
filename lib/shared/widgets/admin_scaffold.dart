@@ -209,8 +209,11 @@ class _NavItem extends StatelessWidget {
           ),
         ),
         onTap: () {
-          // Tutup drawer dulu jika terbuka (mode mobile)
-          Navigator.of(context).pop();
+          // Tutup drawer hanya jika sedang terbuka (mode mobile)
+          final scaffold = Scaffold.maybeOf(context);
+          if (scaffold != null && scaffold.isDrawerOpen) {
+            Navigator.of(context).pop();
+          }
           context.go(route);
         },
         dense: true,
