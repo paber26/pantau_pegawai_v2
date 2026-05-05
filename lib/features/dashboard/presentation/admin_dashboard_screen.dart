@@ -41,43 +41,52 @@ class AdminDashboardScreen extends ConsumerWidget {
               statsAsync.when(
                 loading: () => const _StatsShimmer(),
                 error: (e, _) => Text('Error: $e'),
-                data: (stats) => GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 1.4,
-                  children: [
-                    StatCard(
-                      title: 'Total Pegawai',
-                      value: stats.totalPegawai.toString(),
-                      icon: Icons.people_outline,
-                      color: AppColors.primary,
-                      onTap: () => context.push('/admin/pegawai'),
-                    ),
-                    StatCard(
-                      title: 'Kegiatan Aktif',
-                      value: stats.kegiatanAktif.toString(),
-                      icon: Icons.assignment_outlined,
-                      color: AppColors.accent,
-                      onTap: () => context.push('/admin/kegiatan'),
-                    ),
-                    StatCard(
-                      title: 'Total Laporan',
-                      value: stats.totalLaporan.toString(),
-                      icon: Icons.description_outlined,
-                      color: AppColors.success,
-                      onTap: () => context.push('/admin/laporan'),
-                    ),
-                    StatCard(
-                      title: 'Belum Upload',
-                      value: stats.pegawaiBelumUpload.toString(),
-                      icon: Icons.warning_amber_outlined,
-                      color: AppColors.warning,
-                    ),
-                  ],
-                ),
+                data: (stats) {
+                  // Hitung aspect ratio berdasarkan lebar layar
+                  // Layar sempit butuh rasio lebih besar agar konten tidak overflow
+                  final screenWidth = MediaQuery.of(context).size.width;
+                  final cardWidth =
+                      (screenWidth - 32 - 12) / 2; // padding + gap
+                  final aspectRatio = cardWidth < 150 ? 1.6 : 1.4;
+
+                  return GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: aspectRatio,
+                    children: [
+                      StatCard(
+                        title: 'Total Pegawai',
+                        value: stats.totalPegawai.toString(),
+                        icon: Icons.people_outline,
+                        color: AppColors.primary,
+                        onTap: () => context.push('/admin/pegawai'),
+                      ),
+                      StatCard(
+                        title: 'Kegiatan Aktif',
+                        value: stats.kegiatanAktif.toString(),
+                        icon: Icons.assignment_outlined,
+                        color: AppColors.accent,
+                        onTap: () => context.push('/admin/kegiatan'),
+                      ),
+                      StatCard(
+                        title: 'Total Laporan',
+                        value: stats.totalLaporan.toString(),
+                        icon: Icons.description_outlined,
+                        color: AppColors.success,
+                        onTap: () => context.push('/admin/laporan'),
+                      ),
+                      StatCard(
+                        title: 'Belum Upload',
+                        value: stats.pegawaiBelumUpload.toString(),
+                        icon: Icons.warning_amber_outlined,
+                        color: AppColors.warning,
+                      ),
+                    ],
+                  );
+                },
               ),
 
               const SizedBox(height: 24),
@@ -211,13 +220,17 @@ class _StatsShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardWidth = (screenWidth - 32 - 12) / 2;
+    final aspectRatio = cardWidth < 150 ? 1.6 : 1.4;
+
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: 12,
       mainAxisSpacing: 12,
-      childAspectRatio: 1.4,
+      childAspectRatio: aspectRatio,
       children: List.generate(
         4,
         (_) => Container(
