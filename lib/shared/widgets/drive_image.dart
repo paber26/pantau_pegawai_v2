@@ -1,21 +1,28 @@
+import 'dart:typed_data';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/supabase_constants.dart';
 import '../../core/utils/image_url_utils.dart';
 
-/// Provider untuk fetch image bytes via image-proxy dengan auth header.
-/// Diperlukan di web karena CachedNetworkImage tidak support custom headers.
+/// Provider untuk fetch image bytes via image-proxy dengan Authorization header.
 final _imageProvider =
     FutureProvider.family<Uint8List?, String>((ref, fileId) async {
-  // Sertakan apikey di URL agar Supabase gateway mengizinkan tanpa Authorization header
-  final proxyUrl = Uri.parse(
-      '${SupabaseConstants.imageProxyUrl}?id=$fileId&apikey=${SupabaseConstants.anonKey}');
+  final proxyUrl = Uri.parse('${SupabaseConstants.imageProxyUrl}?id=$fileId');
 
-  final response = await http.get(proxyUrl);
+  // Gunakan session token jika tersedia, fallback ke anon key
+  final session = Supabase.instance.client.auth.currentSession;
+  final token = session?.accessToken ?? SupabaseConstants.anonKey;
+
+  final response = await http.get(
+    proxyUrl,
+    headers: {'Authorization': 'Bearer $token'},
+  );
 
   if (response.statusCode == 200) {
     return response.bodyBytes;
