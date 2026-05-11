@@ -273,12 +273,17 @@ class _AdminDokCard extends StatelessWidget {
                         style: const TextStyle(
                             fontSize: 11, color: AppColors.textHint),
                       ),
-                      if (doc.link != null) ...[
+                      if (doc.link != null || doc.imageUrl != null) ...[
                         const SizedBox(width: 8),
                         GestureDetector(
                           onTap: () async {
+                            final rawUrl = doc.link ?? doc.imageUrl ?? '';
+                            final fileId = ImageUrlUtils.extractFileId(rawUrl);
+                            final driveUrl = fileId != null
+                                ? 'https://drive.google.com/file/d/$fileId/view'
+                                : rawUrl;
                             await Clipboard.setData(
-                                ClipboardData(text: doc.link!));
+                                ClipboardData(text: driveUrl));
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(

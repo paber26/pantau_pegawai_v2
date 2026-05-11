@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_utils.dart';
+import '../../../core/utils/image_url_utils.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/drive_image.dart';
 import '../../../shared/widgets/error_display.dart';
@@ -727,12 +728,18 @@ class DokCard extends ConsumerWidget {
                     Text(DateFormat('HH:mm').format(doc.createdAt.toLocal()),
                         style: const TextStyle(
                             fontSize: 11, color: AppColors.textHint)),
-                    if (doc.link != null) ...[
+                    if (doc.link != null || doc.imageUrl != null) ...[
                       const SizedBox(width: 8),
                       GestureDetector(
                         onTap: () async {
+                          // Konversi ke URL Google Drive yang bisa dibuka langsung
+                          final rawUrl = doc.link ?? doc.imageUrl ?? '';
+                          final fileId = ImageUrlUtils.extractFileId(rawUrl);
+                          final driveUrl = fileId != null
+                              ? 'https://drive.google.com/file/d/$fileId/view'
+                              : rawUrl;
                           await Clipboard.setData(
-                              ClipboardData(text: doc.link!));
+                              ClipboardData(text: driveUrl));
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
