@@ -1,20 +1,16 @@
 /**
  * Supabase Edge Function: image-proxy
  *
- * Proxy gambar dari Google Drive agar bisa ditampilkan di browser
- * tanpa masalah CORS dan permission.
- *
- * Auth tidak wajib — keamanan dijaga oleh obscurity file ID
- * (hanya yang tahu file ID yang bisa akses).
+ * Proxy gambar dari Google Drive menggunakan Service Account.
+ * Service Account tidak pernah expired — lebih reliable dari OAuth refresh token.
  *
  * Usage: GET /functions/v1/image-proxy?id=GOOGLE_DRIVE_FILE_ID
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
-const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID")!
-const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET")!
-const GOOGLE_REFRESH_TOKEN = Deno.env.get("GOOGLE_REFRESH_TOKEN")!
+const SERVICE_ACCOUNT_EMAIL = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_EMAIL")!
+const PRIVATE_KEY = Deno.env.get("GOOGLE_PRIVATE_KEY")!
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,18 +18,66 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Authorization, Content-Type"
 }
 
+// Buat JWT untuk Service Account Google
+async function createServiceAccountJWT(): Promise<string> {
+  const now = Math.floor(Date.now() / 1000)
+  const header = { alg: "RS256", typ: "JWT" }
+  const payload = {
+    iss: SERVICE_ACCOUNT_EMAIL,
+    scope: "https://www.googleapis.com/auth/drive.readonly",
+    aud: "https://oauth2.googleapis.com/token",
+    exp: now + 3600,
+    iat: now
+  }
+
+  const encode = (obj: object) => btoa(JSON.stringify(obj)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
+
+  const headerB64 = encode(header)
+  const payloadB64 = encode(payload)
+  const signingInput = `${headerB64}.${payloadB64}`
+
+  // Import private key
+  const pemKey = PRIVATE_KEY.replace(/\\n/g, "\n")
+  const keyData = pemKey
+    .replace("-----BEGIN PRIVATE KEY-----", "")
+    .replace("-----END PRIVATE KEY-----", "")
+    .replace(/\s/g, "")
+
+  const binaryKey = Uint8Array.from(atob(keyData), (c) => c.charCodeAt(0))
+  const cryptoKey = await crypto.subtle.importKey(
+    "pkcs8",
+    binaryKey,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"]
+  )
+
+  const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", cryptoKey, new TextEncoder().encode(signingInput))
+
+  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "")
+
+  return `${signingInput}.${signatureB64}`
+}
+
 async function getAccessToken(): Promise<string> {
+  const jwt = await createServiceAccountJWT()
+
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      client_id: GOOGLE_CLIENT_ID,
-      client_secret: GOOGLE_CLIENT_SECRET,
-      refresh_token: GOOGLE_REFRESH_TOKEN,
-      grant_type: "refresh_token"
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: jwt
     })
   })
+
   const data = await response.json()
+  if (!data.access_token) {
+    throw new Error(`Failed to get access token: ${JSON.stringify(data)}`)
+  }
   return data.access_token as string
 }
 
@@ -45,12 +89,12 @@ serve(async (req: Request) => {
   try {
     const url = new URL(req.url)
     const fileId = url.searchParams.get("id")
+    // Support apikey as query param untuk akses langsung dari browser
+    // tanpa perlu Authorization header
     if (!fileId) {
       return new Response("Missing id parameter", { status: 400, headers: corsHeaders })
     }
 
-    // Fetch gambar dari Google Drive menggunakan service account
-    // Service account punya akses ke semua file di Drive
     const accessToken = await getAccessToken()
     const driveRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
       headers: { Authorization: `Bearer ${accessToken}` }
