@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>ERD Database — PantauPegawai</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Segoe UI", system-ui, sans-serif;
+        background: #0f1923;
+        color: #e8eaf6;
+        min-height: 100vh;
+        padding: 0;
+      }
+
+      header {
+        background: linear-gradient(135deg, #1565c0, #0d47a1);
+        padding: 28px 40px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+      header img {
+        width: 52px;
+        height: 52px;
+        background: #fff;
+        border-radius: 10px;
+        padding: 5px;
+        object-fit: contain;
+      }
+      header h1 {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: #fff;
+      }
+      header p {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.75);
+        margin-top: 3px;
+      }
+
+      .canvas-wrap {
+        padding: 40px 24px 80px;
+        overflow-x: auto;
+      }
+      .canvas {
+        position: relative;
+        min-width: 1000px;
+        min-height: 680px;
+      }
+
+      /* ── TABLE BOXES ── */
+      .erd-table {
+        position: absolute;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+        min-width: 200px;
+      }
+      .erd-table .t-head {
+        padding: 10px 16px;
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .erd-table .t-body {
+        background: #1e2d3d;
+      }
+      .erd-table .t-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 7px 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        font-size: 0.8rem;
+        gap: 16px;
+      }
+      .erd-table .t-row:last-child {
+        border-bottom: none;
+      }
+      .erd-table .t-row:hover {
+        background: rgba(255, 255, 255, 0.04);
+      }
+      .col-name {
+        color: #e8eaf6;
+        font-family: monospace;
+      }
+      .col-type {
+        color: #78909c;
+        font-size: 0.72rem;
+        font-family: monospace;
+      }
+      .col-name.pk {
+        color: #ffd54f;
+        font-weight: 700;
+      }
+      .col-name.fk {
+        color: #80cbc4;
+      }
+      .col-name.uk {
+        color: #ce93d8;
+      }
+      .badge-pk {
+        background: #f57f17;
+        color: #fff;
+        font-size: 0.6rem;
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-weight: 700;
+      }
+      .badge-fk {
+        background: #00695c;
+        color: #fff;
+        font-size: 0.6rem;
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-weight: 700;
+      }
+      .badge-uk {
+        background: #6a1b9a;
+        color: #fff;
+        font-size: 0.6rem;
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-weight: 700;
+      }
+      .badge-nn {
+        background: #37474f;
+        color: #b0bec5;
+        font-size: 0.6rem;
+        padding: 1px 6px;
+        border-radius: 3px;
+      }
+
+      /* Table color themes */
+      .tbl-users .t-head {
+        background: #1565c0;
+      }
+      .tbl-kegiatan .t-head {
+        background: #2e7d32;
+      }
+      .tbl-dokumentasi .t-head {
+        background: #6a1b9a;
+      }
+      .tbl-penugasan .t-head {
+        background: #00695c;
+      }
+      .tbl-laporan .t-head {
+        background: #e65100;
+      }
+
+      /* ── SVG LINES ── */
+      svg.lines {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        overflow: visible;
+      }
+      .rel-line {
+        stroke: #455a64;
+        stroke-width: 1.5;
+        fill: none;
+        stroke-dasharray: 6 3;
+      }
+      .rel-line.solid {
+        stroke-dasharray: none;
+        stroke: #546e7a;
+      }
+      .rel-label {
+        font-size: 10px;
+        fill: #78909c;
+        font-family: monospace;
+      }
+
+      /* ── LEGEND ── */
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        padding: 0 24px 32px;
+        justify-content: center;
+      }
+      .leg-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.78rem;
+        color: #90a4ae;
+      }
+      .leg-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+      }
+
+      /* ── NOTATION ── */
+      .notation {
+        background: #1a2332;
+        border-radius: 12px;
+        margin: 0 24px 40px;
+        padding: 20px 24px;
+      }
+      .notation h3 {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #90a4ae;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 14px;
+      }
+      .notation-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 12px;
+      }
+      .not-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.8rem;
+        color: #b0bec5;
+      }
+      .not-badge {
+        font-size: 0.65rem;
+        padding: 2px 8px;
+        border-radius: 3px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+
+      /* ── RELATIONS TABLE ── */
+      .rel-table-wrap {
+        margin: 0 24px 40px;
+        background: #1a2332;
+        border-radius: 12px;
+        padding: 20px 24px;
+        overflow-x: auto;
+      }
+      .rel-table-wrap h3 {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #90a4ae;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 14px;
+      }
+      table.rel {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.82rem;
+      }
+      table.rel th {
+        background: #263238;
+        color: #90a4ae;
+        padding: 9px 14px;
+        text-align: left;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+      }
+      table.rel td {
+        padding: 9px 14px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        color: #b0bec5;
+        font-family: monospace;
+      }
+      table.rel tr:hover td {
+        background: rgba(255, 255, 255, 0.03);
+      }
+      table.rel .hl {
+        color: #80cbc4;
+      }
+
+      footer {
+        text-align: center;
+        padding: 24px;
+        font-size: 0.78rem;
+        color: #546e7a;
+        border-top: 1px solid #1a2332;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <img src="../assets/images/Logo-BPS.png" alt="BPS" onerror="this.style.display = 'none'" />
+      <div>
+        <h1>Entity Relationship Diagram — PantauPegawai</h1>
+        <p>Skema database Supabase (PostgreSQL) · BPS Kabupaten Minahasa Selatan · 2026</p>
+      </div>
+    </header>
+
+    <!-- LEGEND -->
+    <div class="legend">
+      <div class="leg-item">
+        <div class="leg-dot" style="background: #1565c0"></div>
+        users
+      </div>
+      <div class="leg-item">
+        <div class="leg-dot" style="background: #2e7d32"></div>
+        kegiatan
+      </div>
+      <div class="leg-item">
+        <div class="leg-dot" style="background: #6a1b9a"></div>
+        dokumentasi
+      </div>
+      <div class="leg-item">
+        <div class="leg-dot" style="background: #00695c"></div>
+        penugasan
+      </div>
+      <div class="leg-item">
+        <div class="leg-dot" style="background: #e65100"></div>
+        laporan
+      </div>
+      <div class="leg-item" style="margin-left: 16px">
+        <svg width="30" height="12">
+          <line x1="0" y1="6" x2="30" y2="6" stroke="#546E7A" stroke-width="1.5" stroke-dasharray="5 3" />
+        </svg>
+        Relasi FK
+      </div>
+    </div>
+
+    <!-- ERD CANVAS -->
+    <div class="canvas-wrap">
+      <div class="canvas" id="canvas">
+        <!-- SVG RELATION LINES -->
+        <svg class="lines" id="svglines">
+          <!-- users → dokumentasi (user_id) -->
+          <line class="rel-line solid" x1="220" y1="120" x2="420" y2="200" marker-end="url(#arrow)" />
+          <!-- users → penugasan (user_id) -->
+          <line class="rel-line solid" x1="220" y1="140" x2="420" y2="460" marker-end="url(#arrow)" />
+          <!-- users → laporan (user_id) -->
+          <line class="rel-line solid" x1="220" y1="160" x2="760" y2="380" marker-end="url(#arrow)" />
+          <!-- kegiatan → penugasan (kegiatan_id) -->
+          <line class="rel-line solid" x1="620" y1="200" x2="560" y2="440" marker-end="url(#arrow)" />
+          <!-- kegiatan → laporan (kegiatan_id) -->
+          <line class="rel-line solid" x1="660" y1="220" x2="800" y2="360" marker-end="url(#arrow)" />
+
+          <!-- Cardinality labels -->
+          <text class="rel-label" x="290" y="155">1</text>
+          <text class="rel-label" x="410" y="195">N</text>
+          <text class="rel-label" x="270" y="290">1</text>
+          <text class="rel-label" x="415" y="455">N</text>
+          <text class="rel-label" x="630" y="310">1</text>
+          <text class="rel-label" x="555" y="438">N</text>
+          <text class="rel-label" x="490" y="270">1</text>
+          <text class="rel-label" x="755" y="375">N</text>
+
+          <defs>
+            <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#546E7A" />
+            </marker>
+          </defs>
+        </svg>
+
+        <!-- TABLE: users -->
+        <div class="erd-table tbl-users" style="left: 20px; top: 60px; width: 220px">
+          <div class="t-head">👤 users</div>
+          <div class="t-body">
+            <div class="t-row">
+              <span class="col-name pk">id</span>
+              <span style="display: flex; gap: 4px; align-items: center">
+                <span class="badge-pk">PK</span>
+                <span class="col-type">UUID</span>
+              </span>
+            </div>
+            <div class="t-row">
+              <span class="col-name">nama</span>
+              <span style="display: flex; gap: 4px; align-items: center">
+                <span class="badge-nn">NN</span>
+                <span class="col-type">TEXT</span>
+              </span>
+            </div>
+            <div class="t-row">
+              <span class="col-name">email</span>
+              <span style="display: flex; gap: 4px; align-items: center">
+                <span class="badge-uk">UK</span>
+                <span class="col-type">TEXT</span>
+              </span>
+            </div>
+            <div class="t-row">
+              <span class="col-name">jabatan</span>
+              <span class="col-type">TEXT</span>
+            </div>
+            <div class="t-row">
+              <span class="col-name">unit_kerja</span>
+              <span class="col-type">TEXT</span>
+            </div>
+            <div class="t-row">
+              <span class="col-name">role</span>
+              <span style="display: flex; gap: 4px; align-items: center">
+                <span class="badge-nn">NN</span>
+                <span class="col-type">TEXT</span>
+              </span>
+            </div>
+            <div class="t-row">
+              <span class="col-name">created_at</span>
+              <span class="col-type">TIMESTAMPTZ</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABLE: kegiatan -->
+        <div class="erd-table tbl-kegiatan" style="left: 440px; top: 60px; width: 220px">
+          <div class="t-head">📁 kegiatan</div>
+          <div class="t-body">
+            <div class="t-row">
+              <span class="col-name pk">id</span>
+              <span style="display: flex; gap: 4px; align-items: center">
+                <span class="badge-pk">PK</span>
+                <span class="col-type">UUID</span>
+              </span>
+            </div>
+            <div class="t-row">
+              <span class="col-name">judul</span>
+              <span style="display: flex; gap: 4px; align-items: center">
+                <span class="badge-nn">NN</span>
+                <span class="col-type">TEXT</span>
+              </span>
+            </div>
+            <div class="t-row">
+              <span class="col-name">deskripsi</span>
+              <span class="col-type">TEXT?</span>
+            </div>
+            <div class="t-row">
+              <span class="col-name">deadline</span>
+              <span style="display: flex; gap: 4px; align-items: center">
+                <span class="badge-nn">NN</span>
+                <span class="col-type">DATE</span>
+              </span>
+            </div>
+            <div class="t-row">
+              <span class="col-name">created_at</span>
+              <span class="col-type">TIMESTAMPTZ</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABLE: dokumentasi -->
+        <div class="erd-table tbl-dokumentasi" style="left: 420px; top: 240px; width: 240px">
+          <div class="t-head">📸 dokumentasi</div>
+          <div class="t-body">
+            <div class="t-row">
+              <span class="col-name pk">id</span>
+              <span style="display: flex; gap: 4px; align-items: center">
+                <span class="badge-pk">PK</span>
+                <span class="col-type">UUID</span>
+              </span>
+            </div>
+            <div class="t-row">
+              <span class="col-name fk">user_id</span>
+              <span style="display: flex; gap: 4px; align-items: center">
+                <span class="badge-fk">FK</span>
+                <span class="col-type">UUID</span>
+              </span>
+            </div>
+            <div class="t-row">
+              <span class="col-name">pegawai_nama</span>
+              <span class="col-type">TEXT</span>
+            </div>
+            <div class="t-row">
+              <span class="col-name">proyek</span>
+              <span style="display: flex; gap: 4px; align-items: center">
+                <span class="badge-nn">NN</span>
+                <span class="col-type">TEXT</span>
+              </span>
+            </div>
+            <div class="t-row">
+              <span class="col-name">tanggal_kegiatan</span>
+              <span style="display: flex; gap: 4px; align-items: center">
+                <span class="badge-nn">NN</span>
+                <span class="col-type">DATE</span>
+              </span>
+            </div>
+            <div class="t-row">
+              <span class="col-name">image_url</span>
+              <span class="col-type">TEXT?</span>
+            </div>
+            <div class="t-row">
+              <span class="col-name">link</span>
+              <span class="col-type">TEXT?</span>
+            </div>
+            <div class="t-row">
+              <span class="col-name">catatan</span>
+              <span class="col-type">TEXT?</span>
+            </div>
+            <div class="t-row">
+              <span class="col-name">created_at</span>
+              <span class="col-type">TIMESTAMPTZ</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABLE: penugasan -->
+        <div class="erd-table tbl-penugasan" style="left: 420px; top: 500px; width: 240px">
+          <div class="t-head">🔗 penugasan</div>
+          <div class="t-body">
+            <div class="t-row">
+              <span class="col-name pk">id</span>
+              <span style="display: flex; gap: 4px; align-items: center">
+                <span class="badge-pk">PK</span>
+                <span class="col-type">UUID</span>
+              </span>
+            </div>
+            <div class="t-row">
+              <span class="col-name fk">user_id</span>
+              <span style="display: flex; gap: 4px; align-items: center">
+                <span class="badge-fk">FK</span>
+                <span class="col-type">UUID</span>
+              </span>
+            </div>
+            <div class="t-row">
+              <span class="col-name fk">kegiatan_id</span>
+              <span style="display: flex; gap: 4px; align-items: center">
+                <span class="badge-fk">FK</span>
+                <span class="col-type">UUID</span>
+              </span>
+            </div>
+            <div class="t-row">
+              <span class="col-name">created_at</span>
+              <span class="col-type">TIMESTAMPTZ</span>
+            </div>
+            <div class="t-row" style="padding: 5px 16px">
+              <span style="font-size: 0.7rem; color: #546e7a; font-style: italic">UNIQUE(user_id, kegiatan_id)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABLE: laporan -->
+        <div class="erd-table tbl-laporan" style="left: 760px; top: 380px; width: 220px">
+          <div class="t-head">📋 laporan</div>
+          <div class="t-body">
+            <div class="t-row">
+              <span class="col-name pk">id</span>
+              <span style="display: flex; gap: 4px; align-items: center">
+                <span class="badge-pk">PK</span>
+                <span class="col-type">UUID</span>
+              </span>
+            </div>
+            <div class="t-row">
+              <span class="col-name fk">user_id</span>
+              <span style="display: flex; gap: 4px; align-items: center">
+                <span class="badge-fk">FK</span>
+                <span class="col-type">UUID</span>
+              </span>
+            </div>
+            <div class="t-row">
+              <span class="col-name fk">kegiatan_id</span>
+              <span style="display: flex; gap: 4px; align-items: center">
+                <span class="badge-fk">FK</span>
+                <span class="col-type">UUID</span>
+              </span>
+            </div>
+            <div class="t-row">
+              <span class="col-name">image_url</span>
+              <span style="display: flex; gap: 4px; align-items: center">
+                <span class="badge-nn">NN</span>
+                <span class="col-type">TEXT</span>
+              </span>
+            </div>
+            <div class="t-row">
+              <span class="col-name">deskripsi</span>
+              <span class="col-type">TEXT?</span>
+            </div>
+            <div class="t-row">
+              <span class="col-name">created_at</span>
+              <span class="col-type">TIMESTAMPTZ</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- /canvas -->
+    </div>
+    <!-- /canvas-wrap -->
+
+    <!-- NOTATION -->
+    <div class="notation">
+      <h3>Keterangan Notasi</h3>
+      <div class="notation-grid">
+        <div class="not-item">
+          <span class="not-badge" style="background: #f57f17; color: #fff">PK</span>
+          Primary Key — identifikasi unik baris
+        </div>
+        <div class="not-item">
+          <span class="not-badge" style="background: #00695c; color: #fff">FK</span>
+          Foreign Key — referensi ke tabel lain
+        </div>
+        <div class="not-item">
+          <span class="not-badge" style="background: #6a1b9a; color: #fff">UK</span>
+          Unique Key — nilai tidak boleh duplikat
+        </div>
+        <div class="not-item">
+          <span class="not-badge" style="background: #37474f; color: #b0bec5">NN</span>
+          Not Null — wajib diisi
+        </div>
+        <div class="not-item">
+          <span style="font-family: monospace; color: #78909c; font-size: 0.8rem">TEXT?</span>
+          &nbsp;Nullable — boleh kosong
+        </div>
+        <div class="not-item">
+          <span style="font-family: monospace; color: #80cbc4; font-size: 0.8rem">1 → N</span>
+          &nbsp;Relasi One-to-Many
+        </div>
+      </div>
+    </div>
+
+    <!-- RELATIONS TABLE -->
+    <div class="rel-table-wrap">
+      <h3>Daftar Relasi Antar Tabel</h3>
+      <table class="rel">
+        <thead>
+          <tr>
+            <th>Tabel Asal</th>
+            <th>Kolom FK</th>
+            <th>Tabel Tujuan</th>
+            <th>Kolom PK</th>
+            <th>Kardinalitas</th>
+            <th>ON DELETE</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="hl">dokumentasi</td>
+            <td>user_id</td>
+            <td class="hl">users</td>
+            <td>id</td>
+            <td>N : 1</td>
+            <td>CASCADE</td>
+          </tr>
+          <tr>
+            <td class="hl">penugasan</td>
+            <td>user_id</td>
+            <td class="hl">users</td>
+            <td>id</td>
+            <td>N : 1</td>
+            <td>CASCADE</td>
+          </tr>
+          <tr>
+            <td class="hl">penugasan</td>
+            <td>kegiatan_id</td>
+            <td class="hl">kegiatan</td>
+            <td>id</td>
+            <td>N : 1</td>
+            <td>CASCADE</td>
+          </tr>
+          <tr>
+            <td class="hl">laporan</td>
+            <td>user_id</td>
+            <td class="hl">users</td>
+            <td>id</td>
+            <td>N : 1</td>
+            <td>CASCADE</td>
+          </tr>
+          <tr>
+            <td class="hl">laporan</td>
+            <td>kegiatan_id</td>
+            <td class="hl">kegiatan</td>
+            <td>id</td>
+            <td>N : 1</td>
+            <td>CASCADE</td>
+          </tr>
+          <tr>
+            <td class="hl">users</td>
+            <td>id</td>
+            <td class="hl">auth.users</td>
+            <td>id</td>
+            <td>1 : 1</td>
+            <td>CASCADE</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- RLS SUMMARY -->
+    <div class="rel-table-wrap">
+      <h3>Row Level Security (RLS) — Ringkasan Kebijakan</h3>
+      <table class="rel">
+        <thead>
+          <tr>
+            <th>Tabel</th>
+            <th>Operasi</th>
+            <th>Pegawai</th>
+            <th>Admin</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="hl">users</td>
+            <td>SELECT</td>
+            <td>Semua baris (untuk tampil nama)</td>
+            <td>Semua baris</td>
+          </tr>
+          <tr>
+            <td class="hl">users</td>
+            <td>UPDATE</td>
+            <td>Hanya milik sendiri</td>
+            <td>Semua baris</td>
+          </tr>
+          <tr>
+            <td class="hl">kegiatan</td>
+            <td>SELECT</td>
+            <td>Semua baris</td>
+            <td>Semua baris</td>
+          </tr>
+          <tr>
+            <td class="hl">kegiatan</td>
+            <td>INSERT/UPDATE/DELETE</td>
+            <td>Dilarang</td>
+            <td>Diizinkan</td>
+          </tr>
+          <tr>
+            <td class="hl">dokumentasi</td>
+            <td>SELECT</td>
+            <td>Semua baris</td>
+            <td>Semua baris</td>
+          </tr>
+          <tr>
+            <td class="hl">dokumentasi</td>
+            <td>INSERT</td>
+            <td>Hanya milik sendiri (user_id = auth.uid())</td>
+            <td>Diizinkan</td>
+          </tr>
+          <tr>
+            <td class="hl">dokumentasi</td>
+            <td>DELETE</td>
+            <td>Hanya milik sendiri</td>
+            <td>Semua baris</td>
+          </tr>
+          <tr>
+            <td class="hl">penugasan</td>
+            <td>SELECT</td>
+            <td>Hanya milik sendiri</td>
+            <td>Semua baris</td>
+          </tr>
+          <tr>
+            <td class="hl">laporan</td>
+            <td>SELECT/INSERT/UPDATE</td>
+            <td>Hanya milik sendiri</td>
+            <td>Semua baris</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer>
+      &copy; 2026 BPS Kabupaten Minahasa Selatan &nbsp;·&nbsp; PantauPegawai v1.0.0 &nbsp;·&nbsp; ERD Database
+    </footer>
+  </body>
+</html>

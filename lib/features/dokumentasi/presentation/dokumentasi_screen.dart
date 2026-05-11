@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
@@ -12,6 +12,7 @@ import '../../../shared/widgets/drive_image.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../../auth/presentation/auth_provider.dart';
+import '../../kegiatan/presentation/kegiatan_provider.dart';
 import '../../pegawai/presentation/pegawai_provider.dart';
 import '../domain/dokumentasi_model.dart';
 import 'dokumentasi_provider.dart';
@@ -64,8 +65,9 @@ class _DokumentasiScreenState extends ConsumerState<DokumentasiScreen> {
                 ref.read(adminDokumentasiNotifierProvider.notifier).refresh()),
         data: (allList) {
           var list = allList;
-          if (_filterPegawaiId != null)
+          if (_filterPegawaiId != null) {
             list = list.where((d) => d.userId == _filterPegawaiId).toList();
+          }
           if (_filterProyek != null && _filterProyek!.isNotEmpty) {
             list = list
                 .where((d) => d.proyek
@@ -349,9 +351,8 @@ class DokumentasiFormSheet extends ConsumerStatefulWidget {
 
 class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
   final _formKey = GlobalKey<FormState>();
-  final _proyekController = TextEditingController();
   final _catatanController = TextEditingController();
-  final _linkController = TextEditingController();
+  String? _selectedProyek;
   DateTime _tanggal = DateTime.now();
   File? _imageFile;
   Uint8List? _webImageBytes;
@@ -360,9 +361,7 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
 
   @override
   void dispose() {
-    _proyekController.dispose();
     _catatanController.dispose();
-    _linkController.dispose();
     super.dispose();
   }
 
@@ -426,16 +425,13 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
     setState(() => _isLoading = true);
     final errorMsg =
         await ref.read(myDokumentasiNotifierProvider.notifier).tambah(
-              proyek: _proyekController.text.trim(),
+              proyek: _selectedProyek!,
               tanggalKegiatan: _tanggal,
               imageFile: kIsWeb ? null : _imageFile,
               imageBytes: kIsWeb ? _webImageBytes : null,
               catatan: _catatanController.text.trim().isEmpty
                   ? null
                   : _catatanController.text.trim(),
-              link: _linkController.text.trim().isEmpty
-                  ? null
-                  : _linkController.text.trim(),
             );
     ref.read(adminDokumentasiNotifierProvider.notifier).refresh();
     if (mounted) {
@@ -515,17 +511,53 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
                 ),
               ),
               const SizedBox(height: 14),
-              TextFormField(
-                controller: _proyekController,
-                decoration: InputDecoration(
-                    labelText: 'Proyek / Kegiatan *',
-                    hintText: 'Contoh: Rapat Koordinasi, SENYUM',
-                    prefixIcon: const Icon(Icons.work_outline),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10))),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Wajib diisi' : null,
-              ),
+              ref.watch(kegiatanListProvider).when(
+                    loading: () => DropdownButtonFormField<String>(
+                      items: const [],
+                      onChanged: null,
+                      decoration: InputDecoration(
+                        labelText: 'Proyek / Kegiatan *',
+                        prefixIcon: const Icon(Icons.work_outline),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        suffixIcon: const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: Padding(
+                            padding: EdgeInsets.all(12),
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      ),
+                    ),
+                    error: (e, _) => Text(
+                      'Gagal memuat proyek: $e',
+                      style: const TextStyle(color: AppColors.error),
+                    ),
+                    data: (list) => DropdownButtonFormField<String>(
+                      initialValue: _selectedProyek,
+                      decoration: InputDecoration(
+                        labelText: 'Proyek / Kegiatan *',
+                        prefixIcon: const Icon(Icons.work_outline),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                      hint: list.isEmpty
+                          ? const Text('Belum ada proyek tersedia')
+                          : const Text('Pilih proyek...'),
+                      items: list
+                          .map((k) => DropdownMenuItem(
+                                value: k.judul,
+                                child: Text(k.judul,
+                                    overflow: TextOverflow.ellipsis),
+                              ))
+                          .toList(),
+                      onChanged: list.isEmpty
+                          ? null
+                          : (v) => setState(() => _selectedProyek = v),
+                      validator: (v) => v == null ? 'Wajib pilih proyek' : null,
+                    ),
+                  ),
               const SizedBox(height: 12),
               InkWell(
                 onTap: () async {
@@ -554,17 +586,6 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
                     labelText: 'Catatan',
                     hintText: 'Deskripsi kegiatan...',
                     prefixIcon: const Icon(Icons.notes_outlined),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10))),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _linkController,
-                keyboardType: TextInputType.url,
-                decoration: InputDecoration(
-                    labelText: 'Link (opsional)',
-                    hintText: 'https://',
-                    prefixIcon: const Icon(Icons.link_outlined),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10))),
               ),
@@ -723,19 +744,24 @@ class DokCard extends ConsumerWidget {
                       const SizedBox(width: 8),
                       GestureDetector(
                         onTap: () async {
-                          final uri = Uri.parse(doc.link!);
-                          if (await canLaunchUrl(uri))
-                            await launchUrl(uri,
-                                mode: LaunchMode.externalApplication);
+                          await Clipboard.setData(
+                              ClipboardData(text: doc.link!));
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Link berhasil disalin!'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
                         },
                         child: const Row(children: [
-                          Icon(Icons.link, size: 11, color: AppColors.primary),
+                          Icon(Icons.copy_outlined,
+                              size: 11, color: AppColors.primary),
                           SizedBox(width: 2),
-                          Text('Link',
+                          Text('Copy Link',
                               style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.primary,
-                                  decoration: TextDecoration.underline)),
+                                  fontSize: 11, color: AppColors.primary)),
                         ]),
                       ),
                     ],

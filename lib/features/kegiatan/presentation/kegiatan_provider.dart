@@ -99,3 +99,10 @@ Future<List<KegiatanModel>> myKegiatan(Ref ref) async {
   if (user == null) return [];
   return ref.read(kegiatanRepositoryProvider).getByUserId(user.id);
 }
+
+/// Daftar semua kegiatan/proyek untuk dropdown di form dokumentasi
+/// Terpisah dari KegiatanNotifier agar pegawai tidak memicu state management admin
+@riverpod
+Future<List<KegiatanModel>> kegiatanList(Ref ref) async {
+  return ref.read(kegiatanRepositoryProvider).getAll();
+}

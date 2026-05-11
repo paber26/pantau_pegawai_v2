@@ -12,7 +12,6 @@ abstract class DokumentasiRepository {
     File? imageFile,
     List<int>? imageBytes, // untuk Flutter Web
     String? catatan,
-    String? link,
   });
   Future<List<DokumentasiModel>> getByYear(int year);
   Future<void> delete(String id);

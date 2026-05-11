@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_utils.dart';
@@ -277,17 +277,25 @@ class _AdminDokCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         GestureDetector(
                           onTap: () async {
-                            final uri = Uri.parse(doc.link!);
-                            if (await canLaunchUrl(uri)) {
-                              await launchUrl(uri,
-                                  mode: LaunchMode.externalApplication);
+                            await Clipboard.setData(
+                                ClipboardData(text: doc.link!));
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Link berhasil disalin!'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
                             }
                           },
-                          child: const Text('Link',
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.primary,
-                                  decoration: TextDecoration.underline)),
+                          child: const Row(children: [
+                            Icon(Icons.copy_outlined,
+                                size: 11, color: AppColors.primary),
+                            SizedBox(width: 2),
+                            Text('Copy Link',
+                                style: TextStyle(
+                                    fontSize: 11, color: AppColors.primary)),
+                          ]),
                         ),
                       ],
                     ],

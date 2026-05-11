@@ -1,13 +1,13 @@
 class DashboardStatsModel {
   final int totalPegawai;
-  final int kegiatanAktif;
-  final int totalLaporan;
+  final int jumlahProyek;
+  final int totalDokumentasi;
   final int pegawaiBelumUpload;
 
   const DashboardStatsModel({
     required this.totalPegawai,
-    required this.kegiatanAktif,
-    required this.totalLaporan,
+    required this.jumlahProyek,
+    required this.totalDokumentasi,
     required this.pegawaiBelumUpload,
   });
 }

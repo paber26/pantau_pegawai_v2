@@ -42,7 +42,6 @@ class MyDokumentasiNotifier extends _$MyDokumentasiNotifier {
     File? imageFile,
     Uint8List? imageBytes, // untuk Flutter Web
     String? catatan,
-    String? link,
   }) async {
     try {
       final user = await ref.read(authStateProvider.future);
@@ -56,7 +55,6 @@ class MyDokumentasiNotifier extends _$MyDokumentasiNotifier {
             imageFile: imageFile,
             imageBytes: imageBytes,
             catatan: catatan,
-            link: link,
           );
       await refresh();
       return null;

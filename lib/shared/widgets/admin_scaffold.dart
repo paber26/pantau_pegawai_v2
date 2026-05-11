@@ -87,8 +87,8 @@ class _AdminSidebar extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.people_alt_rounded,
-                      color: Colors.white, size: 36),
+                  Image.asset('assets/images/Logo-BPS.png',
+                      width: 48, height: 48),
                   const SizedBox(height: 12),
                   const Text(
                     'PantauPegawai',
@@ -128,15 +128,9 @@ class _AdminSidebar extends ConsumerWidget {
           ),
           _NavItem(
             icon: Icons.assignment_outlined,
-            label: 'Kegiatan',
+            label: 'Proyek',
             route: '/admin/kegiatan',
             isActive: currentLocation.startsWith('/admin/kegiatan'),
-          ),
-          _NavItem(
-            icon: Icons.description_outlined,
-            label: 'Laporan',
-            route: '/admin/laporan',
-            isActive: currentLocation.startsWith('/admin/laporan'),
           ),
           _NavItem(
             icon: Icons.photo_library_outlined,

@@ -44,6 +44,26 @@ final myKegiatanProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef MyKegiatanRef = AutoDisposeFutureProviderRef<List<KegiatanModel>>;
+String _$kegiatanListHash() => r'bf79a4cf75ca3f8f351dec70befc222ed2559e16';
+
+/// Daftar semua kegiatan/proyek untuk dropdown di form dokumentasi
+/// Terpisah dari KegiatanNotifier agar pegawai tidak memicu state management admin
+///
+/// Copied from [kegiatanList].
+@ProviderFor(kegiatanList)
+final kegiatanListProvider =
+    AutoDisposeFutureProvider<List<KegiatanModel>>.internal(
+  kegiatanList,
+  name: r'kegiatanListProvider',
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$kegiatanListHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef KegiatanListRef = AutoDisposeFutureProviderRef<List<KegiatanModel>>;
 String _$kegiatanNotifierHash() => r'cc99f9baed7084dc58b3893b7b79a24871044890';
 
 /// Semua kegiatan (untuk admin)

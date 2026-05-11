@@ -12,8 +12,8 @@ build/
 *.g.dart
 *.freezed.dart
 
-# ⚠️  CREDENTIALS - JANGAN COMMIT
-lib/core/constants/supabase_constants.dart
+# ⚠️  CREDENTIALS - file ini sekarang aman di-commit karena nilai diambil dari env vars
+# lib/core/constants/supabase_constants.dart
 
 # IDE
 .idea/

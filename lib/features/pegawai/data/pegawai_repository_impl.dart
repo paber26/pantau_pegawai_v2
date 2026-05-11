@@ -1,5 +1,9 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/constants/supabase_constants.dart';
 import '../../../core/errors/app_exception.dart';
 import '../domain/pegawai_model.dart';
 import 'pegawai_repository.dart';
@@ -135,38 +139,29 @@ class PegawaiRepositoryImpl implements PegawaiRepository {
     if (session == null) throw const AppException('Sesi tidak valid');
 
     try {
-      final response = await _client.functions.invoke(
-        'admin-reset-password',
-        body: {
+      final response = await http.post(
+        Uri.parse(SupabaseConstants.adminResetPasswordUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${session.accessToken}',
+          'apikey': SupabaseConstants.anonKey,
+        },
+        body: jsonEncode({
           'user_id': userId,
           'new_password': newPassword,
-        },
+        }),
       );
 
-      // response.data bisa berupa Map atau String tergantung content-type
-      final dynamic rawData = response.data;
-      Map<String, dynamic>? data;
-      if (rawData is Map<String, dynamic>) {
-        data = rawData;
-      } else if (rawData is String) {
-        try {
-          data = Map<String, dynamic>.from(
-            (rawData.isNotEmpty ? rawData : '{}') as dynamic,
-          );
-        } catch (_) {
-          data = null;
-        }
-      }
+      final Map<String, dynamic> data =
+          jsonDecode(response.body) as Map<String, dynamic>;
 
-      if (response.status != 200) {
-        final errMsg = data?['error'] as String? ??
-            'Error ${response.status}: Gagal mengubah password';
+      if (response.statusCode != 200) {
+        final errMsg = data['error'] as String? ??
+            'Error ${response.statusCode}: Gagal mengubah password';
         throw AppException(errMsg);
       }
     } on AppException {
       rethrow;
-    } on FunctionException catch (e) {
-      throw AppException('Edge Function error: ${e.details}');
     } catch (e) {
       throw AppException('Gagal mengubah password: ${e.toString()}');
     }

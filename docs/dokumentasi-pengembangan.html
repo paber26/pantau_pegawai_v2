@@ -1,0 +1,1332 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dokumentasi Pengembangan — PantauPegawai</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family:
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: #f4f6fb;
+        color: #1e2a3a;
+        line-height: 1.6;
+      }
+
+      /* ── Header ── */
+      header {
+        background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+        color: #fff;
+        padding: 48px 40px 40px;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+      }
+      header img {
+        width: 72px;
+        height: 72px;
+        object-fit: contain;
+        background: #fff;
+        border-radius: 12px;
+        padding: 6px;
+        flex-shrink: 0;
+      }
+      header .header-text h1 {
+        font-size: 1.9rem;
+        font-weight: 700;
+        letter-spacing: -0.3px;
+      }
+      header .header-text p {
+        margin-top: 6px;
+        font-size: 0.95rem;
+        opacity: 0.85;
+      }
+      header .meta {
+        margin-top: 10px;
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+      header .meta span {
+        font-size: 0.82rem;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 20px;
+        padding: 3px 12px;
+      }
+
+      /* ── Layout ── */
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 48px 24px 80px;
+      }
+
+      /* ── Section title ── */
+      .section-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #1565c0;
+        margin-bottom: 28px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e3eaf5;
+      }
+
+      /* ── Timeline ── */
+      .timeline {
+        position: relative;
+        padding-left: 36px;
+        margin-bottom: 56px;
+      }
+      .timeline::before {
+        content: "";
+        position: absolute;
+        left: 11px;
+        top: 8px;
+        bottom: 8px;
+        width: 2px;
+        background: linear-gradient(to bottom, #1565c0, #42a5f5, #e3eaf5);
+        border-radius: 2px;
+      }
+
+      .phase {
+        position: relative;
+        margin-bottom: 36px;
+      }
+      .phase:last-child {
+        margin-bottom: 0;
+      }
+
+      .phase-dot {
+        position: absolute;
+        left: -30px;
+        top: 14px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #fff;
+        border: 3px solid #1565c0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: #1565c0;
+        z-index: 1;
+      }
+
+      .phase-card {
+        background: #fff;
+        border-radius: 14px;
+        padding: 22px 24px;
+        box-shadow: 0 2px 12px rgba(21, 101, 192, 0.07);
+        border-left: 4px solid #1565c0;
+        transition: box-shadow 0.2s;
+      }
+      .phase-card:hover {
+        box-shadow: 0 4px 20px rgba(21, 101, 192, 0.13);
+      }
+
+      .phase-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+      .phase-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+      }
+      .phase-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #1e2a3a;
+      }
+      .phase-subtitle {
+        font-size: 0.78rem;
+        color: #6b7a8d;
+        margin-top: 1px;
+      }
+
+      .phase-desc {
+        font-size: 0.9rem;
+        color: #3d4f63;
+        margin-bottom: 14px;
+      }
+
+      .phase-items {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .phase-items li {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        font-size: 0.875rem;
+        color: #3d4f63;
+      }
+      .phase-items li::before {
+        content: "✓";
+        color: #1565c0;
+        font-weight: 700;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+
+      /* Phase color variants */
+      .phase-1 .phase-card {
+        border-left-color: #1565c0;
+      }
+      .phase-1 .phase-dot {
+        border-color: #1565c0;
+        color: #1565c0;
+      }
+      .phase-1 .phase-icon {
+        background: #e3f0ff;
+      }
+
+      .phase-2 .phase-card {
+        border-left-color: #00897b;
+      }
+      .phase-2 .phase-dot {
+        border-color: #00897b;
+        color: #00897b;
+      }
+      .phase-2 .phase-icon {
+        background: #e0f5f2;
+      }
+
+      .phase-3 .phase-card {
+        border-left-color: #f57c00;
+      }
+      .phase-3 .phase-dot {
+        border-color: #f57c00;
+        color: #f57c00;
+      }
+      .phase-3 .phase-icon {
+        background: #fff3e0;
+      }
+
+      .phase-4 .phase-card {
+        border-left-color: #6a1b9a;
+      }
+      .phase-4 .phase-dot {
+        border-color: #6a1b9a;
+        color: #6a1b9a;
+      }
+      .phase-4 .phase-icon {
+        background: #f3e5f5;
+      }
+
+      .phase-5 .phase-card {
+        border-left-color: #2e7d32;
+      }
+      .phase-5 .phase-dot {
+        border-color: #2e7d32;
+        color: #2e7d32;
+      }
+      .phase-5 .phase-icon {
+        background: #e8f5e9;
+      }
+
+      /* ── Tech Stack ── */
+      .stack-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 14px;
+        margin-bottom: 56px;
+      }
+      .stack-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 16px 18px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .stack-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+      }
+      .stack-info .label {
+        font-size: 0.72rem;
+        color: #8a96a3;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .stack-info .value {
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: #1e2a3a;
+      }
+
+      /* ── Features ── */
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 14px;
+        margin-bottom: 56px;
+      }
+      .feature-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 18px 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+      }
+      .feature-card .feat-icon {
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+      }
+      .feature-card .feat-title {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #1e2a3a;
+        margin-bottom: 4px;
+      }
+      .feature-card .feat-desc {
+        font-size: 0.8rem;
+        color: #6b7a8d;
+      }
+
+      /* ── Footer ── */
+      footer {
+        text-align: center;
+        padding: 28px;
+        font-size: 0.8rem;
+        color: #8a96a3;
+        border-top: 1px solid #e3eaf5;
+      }
+
+      @media (max-width: 600px) {
+        header {
+          padding: 32px 20px;
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        main {
+          padding: 32px 16px 60px;
+        }
+        .timeline {
+          padding-left: 28px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ══════════════════════════════════════════
+     HEADER
+══════════════════════════════════════════ -->
+    <header>
+      <img src="../assets/images/Logo-BPS.png" alt="Logo BPS" onerror="this.style.display = 'none'" />
+      <div class="header-text">
+        <h1>PantauPegawai</h1>
+        <p>Dokumentasi Pengembangan Aplikasi Monitoring Aktivitas Pegawai</p>
+        <div class="meta">
+          <span>📅 Tahun 2026</span>
+          <span>🏛️ BPS Kabupaten Minahasa Selatan</span>
+          <span>📱 Flutter + Supabase</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <!-- ══════════════════════════════════════════
+       TAHAPAN PENGEMBANGAN
+  ══════════════════════════════════════════ -->
+      <div class="section-title">Tahapan Pengembangan</div>
+
+      <div class="timeline">
+        <!-- Fase 1 -->
+        <div class="phase phase-1">
+          <div class="phase-dot">1</div>
+          <div class="phase-card">
+            <div class="phase-header">
+              <div class="phase-icon">🔍</div>
+              <div>
+                <div class="phase-title">Analisis Kebutuhan</div>
+                <div class="phase-subtitle">Identifikasi proses bisnis & kebutuhan pengguna</div>
+              </div>
+            </div>
+            <p class="phase-desc">
+              Dilakukan identifikasi kebutuhan fungsional dan non-fungsional melalui observasi proses monitoring
+              aktivitas pegawai yang berjalan secara manual, serta wawancara dengan pengguna untuk memahami alur kerja
+              yang diharapkan.
+            </p>
+            <ul class="phase-items">
+              <li>Identifikasi peran pengguna: Admin dan Pegawai</li>
+              <li>Pemetaan alur pencatatan aktivitas harian pegawai</li>
+              <li>Penentuan kebutuhan penyimpanan dokumentasi foto kegiatan</li>
+              <li>Analisis kebutuhan laporan dan rekap data</li>
+              <li>Penetapan daftar proyek/kegiatan yang dipantau</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Fase 2 -->
+        <div class="phase phase-2">
+          <div class="phase-dot">2</div>
+          <div class="phase-card">
+            <div class="phase-header">
+              <div class="phase-icon">🗂️</div>
+              <div>
+                <div class="phase-title">Perancangan Sistem</div>
+                <div class="phase-subtitle">Desain database, workflow, dan antarmuka</div>
+              </div>
+            </div>
+            <p class="phase-desc">
+              Perancangan arsitektur sistem mencakup skema database di Supabase (PostgreSQL), alur autentikasi berbasis
+              role, desain antarmuka untuk Admin (web) dan Pegawai (mobile), serta integrasi penyimpanan file ke Google
+              Drive.
+            </p>
+            <ul class="phase-items">
+              <li>
+                Desain skema tabel:
+                <code>users</code>
+                ,
+                <code>kegiatan</code>
+                ,
+                <code>dokumentasi</code>
+                ,
+                <code>penugasan</code>
+              </li>
+              <li>Penerapan Row Level Security (RLS) untuk isolasi data antar pegawai</li>
+              <li>Perancangan alur upload foto via Supabase Edge Function ke Google Drive</li>
+              <li>Desain wireframe halaman Admin (Dashboard, Proyek, Dokumentasi)</li>
+              <li>Desain wireframe halaman Pegawai (Form dokumentasi, Riwayat)</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Fase 3 -->
+        <div class="phase phase-3">
+          <div class="phase-dot">3</div>
+          <div class="phase-card">
+            <div class="phase-header">
+              <div class="phase-icon">⚙️</div>
+              <div>
+                <div class="phase-title">Pengembangan</div>
+                <div class="phase-subtitle">Implementasi fitur-fitur utama aplikasi</div>
+              </div>
+            </div>
+            <p class="phase-desc">
+              Pengembangan dilakukan menggunakan Flutter dengan state management Riverpod dan navigasi go_router.
+              Backend menggunakan Supabase sebagai database dan autentikasi, serta Supabase Edge Function
+              (Deno/TypeScript) sebagai proxy upload ke Google Drive.
+            </p>
+            <ul class="phase-items">
+              <li>Autentikasi login berbasis role (Admin / Pegawai)</li>
+              <li>Pencatatan dokumentasi harian: foto, proyek, tanggal, catatan</li>
+              <li>Upload foto ke Google Drive via Edge Function dengan image caching lokal</li>
+              <li>Dashboard Admin: statistik jumlah proyek, total dokumentasi, pegawai</li>
+              <li>Manajemen proyek/kegiatan oleh Admin dengan bulk import</li>
+              <li>Dropdown proyek dinamis pada form dokumentasi pegawai</li>
+              <li>Tombol Copy Link untuk menyalin URL Drive file gambar</li>
+              <li>Rekap upload dan filter dokumentasi per pegawai/tanggal</li>
+              <li>Integrasi logo BPS sebagai identitas visual dan launcher icon</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Fase 4 -->
+        <div class="phase phase-4">
+          <div class="phase-dot">4</div>
+          <div class="phase-card">
+            <div class="phase-header">
+              <div class="phase-icon">🧪</div>
+              <div>
+                <div class="phase-title">Pengujian</div>
+                <div class="phase-subtitle">Verifikasi fungsi dan kesesuaian kebutuhan</div>
+              </div>
+            </div>
+            <p class="phase-desc">
+              Pengujian dilakukan untuk memastikan seluruh fitur berjalan sesuai kebutuhan, mencakup pengujian
+              fungsional alur utama, pengujian antarmuka pada perangkat Android dan browser web, serta validasi keamanan
+              akses data antar pengguna.
+            </p>
+            <ul class="phase-items">
+              <li>Pengujian alur login dan pemisahan hak akses Admin vs Pegawai</li>
+              <li>Pengujian upload foto dan penyimpanan ke Google Drive</li>
+              <li>Verifikasi image caching — gambar tidak diunduh ulang jika sudah tersimpan</li>
+              <li>Pengujian validasi form dokumentasi (proyek wajib dipilih)</li>
+              <li>Pengujian fungsi Copy Link pada kartu dokumentasi</li>
+              <li>Pengujian tampilan responsif di Android dan Flutter Web</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Fase 5 -->
+        <div class="phase phase-5">
+          <div class="phase-dot">5</div>
+          <div class="phase-card">
+            <div class="phase-header">
+              <div class="phase-icon">🚀</div>
+              <div>
+                <div class="phase-title">Implementasi &amp; Evaluasi</div>
+                <div class="phase-subtitle">Deployment dan penyempurnaan berdasarkan masukan</div>
+              </div>
+            </div>
+            <p class="phase-desc">
+              Aplikasi di-deploy pada lingkungan operasional: APK Android didistribusikan ke pegawai, antarmuka Admin
+              diakses melalui browser web. Evaluasi dilakukan berdasarkan masukan pengguna untuk penyempurnaan
+              berkelanjutan.
+            </p>
+            <ul class="phase-items">
+              <li>Build APK release Flutter untuk distribusi ke perangkat Android pegawai</li>
+              <li>Deployment Flutter Web untuk akses Admin via browser</li>
+              <li>Import 65 data proyek BPS Minahasa Selatan ke database</li>
+              <li>Penyempurnaan UI: hapus field tidak relevan, sederhanakan tampilan kartu proyek</li>
+              <li>Evaluasi dan iterasi berdasarkan masukan pengguna lapangan</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <!-- /timeline -->
+
+      <!-- ══════════════════════════════════════════
+       TEKNOLOGI YANG DIGUNAKAN
+  ══════════════════════════════════════════ -->
+      <div class="section-title">Teknologi yang Digunakan</div>
+
+      <div class="stack-grid">
+        <div class="stack-card">
+          <div class="stack-icon" style="background: #e3f0ff">📱</div>
+          <div class="stack-info">
+            <div class="label">Mobile &amp; Web</div>
+            <div class="value">Flutter</div>
+          </div>
+        </div>
+        <div class="stack-card">
+          <div class="stack-icon" style="background: #e0f5f2">🗄️</div>
+          <div class="stack-info">
+            <div class="label">Database &amp; Auth</div>
+            <div class="value">Supabase (PostgreSQL)</div>
+          </div>
+        </div>
+        <div class="stack-card">
+          <div class="stack-icon" style="background: #fff3e0">☁️</div>
+          <div class="stack-info">
+            <div class="label">Penyimpanan File</div>
+            <div class="value">Google Drive API</div>
+          </div>
+        </div>
+        <div class="stack-card">
+          <div class="stack-icon" style="background: #f3e5f5">⚡</div>
+          <div class="stack-info">
+            <div class="label">Backend Function</div>
+            <div class="value">Supabase Edge (Deno)</div>
+          </div>
+        </div>
+        <div class="stack-card">
+          <div class="stack-icon" style="background: #e8f5e9">🔄</div>
+          <div class="stack-info">
+            <div class="label">State Management</div>
+            <div class="value">Riverpod</div>
+          </div>
+        </div>
+        <div class="stack-card">
+          <div class="stack-icon" style="background: #fce4ec">🧭</div>
+          <div class="stack-info">
+            <div class="label">Navigasi</div>
+            <div class="value">go_router</div>
+          </div>
+        </div>
+        <div class="stack-card">
+          <div class="stack-icon" style="background: #e8eaf6">🖼️</div>
+          <div class="stack-info">
+            <div class="label">Image Cache</div>
+            <div class="value">cached_network_image</div>
+          </div>
+        </div>
+        <div class="stack-card">
+          <div class="stack-icon" style="background: #e0f7fa">🔐</div>
+          <div class="stack-info">
+            <div class="label">Keamanan Data</div>
+            <div class="value">Row Level Security</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════
+       FITUR UTAMA
+  ══════════════════════════════════════════ -->
+      <div class="section-title">Fitur Utama Aplikasi</div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feat-icon">📸</div>
+          <div class="feat-title">Dokumentasi Harian</div>
+          <div class="feat-desc">Pegawai mencatat aktivitas harian dengan foto, proyek, tanggal, dan catatan.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feat-icon">📊</div>
+          <div class="feat-title">Dashboard Admin</div>
+          <div class="feat-desc">Ringkasan statistik jumlah proyek, total dokumentasi, dan data pegawai.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feat-icon">📁</div>
+          <div class="feat-title">Manajemen Proyek</div>
+          <div class="feat-desc">Admin mengelola daftar proyek/kegiatan yang dapat dipilih pegawai saat input.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feat-icon">☁️</div>
+          <div class="feat-title">Upload ke Drive</div>
+          <div class="feat-desc">Foto otomatis tersimpan ke Google Drive terorganisir per pegawai dan tanggal.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feat-icon">⚡</div>
+          <div class="feat-title">Image Caching</div>
+          <div class="feat-desc">Gambar di-cache lokal di perangkat sehingga tidak perlu diunduh berulang kali.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feat-icon">🔗</div>
+          <div class="feat-title">Copy Link Drive</div>
+          <div class="feat-desc">Salin URL Google Drive file gambar dengan satu ketukan dari kartu dokumentasi.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feat-icon">📋</div>
+          <div class="feat-title">Rekap Upload</div>
+          <div class="feat-desc">Admin memantau status upload dokumentasi seluruh pegawai dengan filter tanggal.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feat-icon">🔒</div>
+          <div class="feat-title">Keamanan Akses</div>
+          <div class="feat-desc">RLS memastikan pegawai hanya dapat mengakses data milik sendiri.</div>
+        </div>
+      </div>
+      <!-- ══════════════════════════════════════════
+       ARSITEKTUR SISTEM
+  ══════════════════════════════════════════ -->
+      <div class="section-title">Arsitektur Sistem</div>
+
+      <!-- Diagram Lapisan -->
+      <div class="arch-overview">
+        <div class="arch-label">Gambaran Umum Arsitektur Berlapis</div>
+        <div class="arch-layers">
+          <!-- CLIENT LAYER -->
+          <div class="arch-layer layer-client">
+            <div class="layer-title">CLIENT LAYER</div>
+            <div class="layer-boxes">
+              <div class="layer-box">
+                <div class="box-icon">📱</div>
+                <div class="box-name">Flutter Android</div>
+                <div class="box-sub">Pegawai App</div>
+              </div>
+              <div class="layer-box">
+                <div class="box-icon">🖥️</div>
+                <div class="box-name">Flutter Web</div>
+                <div class="box-sub">Admin Dashboard</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="arch-arrow">▼</div>
+
+          <!-- PRESENTATION LAYER -->
+          <div class="arch-layer layer-presentation">
+            <div class="layer-title">PRESENTATION LAYER — Widgets &amp; Screens</div>
+            <div class="layer-boxes">
+              <div class="layer-box">
+                <div class="box-icon">🏠</div>
+                <div class="box-name">AdminScaffold</div>
+                <div class="box-sub">Sidebar + Layout</div>
+              </div>
+              <div class="layer-box">
+                <div class="box-icon">📊</div>
+                <div class="box-name">DashboardScreen</div>
+                <div class="box-sub">Statistik Admin</div>
+              </div>
+              <div class="layer-box">
+                <div class="box-icon">📸</div>
+                <div class="box-name">DokumentasiFormSheet</div>
+                <div class="box-sub">Form Input Pegawai</div>
+              </div>
+              <div class="layer-box">
+                <div class="box-icon">🃏</div>
+                <div class="box-name">DokCard</div>
+                <div class="box-sub">Kartu + Copy Link</div>
+              </div>
+              <div class="layer-box">
+                <div class="box-icon">🖼️</div>
+                <div class="box-name">DriveImage</div>
+                <div class="box-sub">Image + Cache</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="arch-arrow">▼</div>
+
+          <!-- PROVIDER LAYER -->
+          <div class="arch-layer layer-provider">
+            <div class="layer-title">PROVIDER LAYER — Riverpod State Management</div>
+            <div class="layer-boxes">
+              <div class="layer-box">
+                <div class="box-icon">🔐</div>
+                <div class="box-name">authNotifier</div>
+                <div class="box-sub">Session &amp; Role</div>
+              </div>
+              <div class="layer-box">
+                <div class="box-icon">📈</div>
+                <div class="box-name">dashboardStats</div>
+                <div class="box-sub">Statistik Query</div>
+              </div>
+              <div class="layer-box">
+                <div class="box-icon">📁</div>
+                <div class="box-name">kegiatanList</div>
+                <div class="box-sub">Dropdown Proyek</div>
+              </div>
+              <div class="layer-box">
+                <div class="box-icon">📝</div>
+                <div class="box-name">myDokumentasiNotifier</div>
+                <div class="box-sub">CRUD Dokumentasi</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="arch-arrow">▼</div>
+
+          <!-- REPOSITORY LAYER -->
+          <div class="arch-layer layer-repository">
+            <div class="layer-title">REPOSITORY LAYER — Data Access</div>
+            <div class="layer-boxes">
+              <div class="layer-box">
+                <div class="box-icon">👤</div>
+                <div class="box-name">PegawaiRepository</div>
+                <div class="box-sub">CRUD Pegawai</div>
+              </div>
+              <div class="layer-box">
+                <div class="box-icon">📋</div>
+                <div class="box-name">KegiatanRepository</div>
+                <div class="box-sub">CRUD Proyek</div>
+              </div>
+              <div class="layer-box">
+                <div class="box-icon">🗂️</div>
+                <div class="box-name">DokumentasiRepository</div>
+                <div class="box-sub">Create + Upload</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="arch-arrow">▼</div>
+
+          <!-- BACKEND LAYER -->
+          <div class="arch-layer layer-backend">
+            <div class="layer-title">BACKEND — Supabase</div>
+            <div class="layer-boxes">
+              <div class="layer-box">
+                <div class="box-icon">🔑</div>
+                <div class="box-name">Auth</div>
+                <div class="box-sub">JWT + RLS</div>
+              </div>
+              <div class="layer-box">
+                <div class="box-icon">🗄️</div>
+                <div class="box-name">PostgreSQL</div>
+                <div class="box-sub">users, kegiatan, dokumentasi</div>
+              </div>
+              <div class="layer-box">
+                <div class="box-icon">⚡</div>
+                <div class="box-name">Edge Function</div>
+                <div class="box-sub">upload-to-drive, image-proxy</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="arch-arrow">▼</div>
+
+          <!-- STORAGE LAYER -->
+          <div class="arch-layer layer-storage">
+            <div class="layer-title">STORAGE</div>
+            <div class="layer-boxes">
+              <div class="layer-box">
+                <div class="box-icon">☁️</div>
+                <div class="box-name">Google Drive</div>
+                <div class="box-sub">File Foto Dokumentasi</div>
+              </div>
+              <div class="layer-box">
+                <div class="box-icon">💾</div>
+                <div class="box-name">Device Storage</div>
+                <div class="box-sub">Image Cache Lokal</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alur Data Upload -->
+      <div class="flow-section">
+        <div class="flow-title">Alur Upload Dokumentasi</div>
+        <div class="flow-steps">
+          <div class="flow-step">
+            <div class="flow-num">1</div>
+            <div class="flow-content">
+              <div class="flow-name">Pegawai Pilih Foto</div>
+              <div class="flow-detail">ImagePicker → File/Bytes di device</div>
+            </div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-num">2</div>
+            <div class="flow-content">
+              <div class="flow-name">DokumentasiRepository.create()</div>
+              <div class="flow-detail">Kirim bytes ke Edge Function via HTTP multipart</div>
+            </div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-num">3</div>
+            <div class="flow-content">
+              <div class="flow-name">upload-to-drive (Deno)</div>
+              <div class="flow-detail">Service Account upload ke folder Drive pegawai/tanggal</div>
+            </div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-num">4</div>
+            <div class="flow-content">
+              <div class="flow-name">Simpan ke Supabase</div>
+              <div class="flow-detail">INSERT dokumentasi: image_url + link = Drive URL</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alur Tampil Gambar -->
+      <div class="flow-section">
+        <div class="flow-title">Alur Tampil Gambar dengan Cache</div>
+        <div class="flow-steps">
+          <div class="flow-step">
+            <div class="flow-num">1</div>
+            <div class="flow-content">
+              <div class="flow-name">DriveImage Widget</div>
+              <div class="flow-detail">Ekstrak File ID dari Drive URL</div>
+            </div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="flow-num">2</div>
+            <div class="flow-content">
+              <div class="flow-name">CachedNetworkImage</div>
+              <div class="flow-detail">Cek cache lokal berdasarkan proxy URL</div>
+            </div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step flow-branch">
+            <div class="flow-num">3a</div>
+            <div class="flow-content">
+              <div class="flow-name">Cache Hit ✓</div>
+              <div class="flow-detail">Tampil dari device storage — tanpa request jaringan</div>
+            </div>
+          </div>
+          <div class="flow-arrow">|</div>
+          <div class="flow-step flow-branch-alt">
+            <div class="flow-num">3b</div>
+            <div class="flow-content">
+              <div class="flow-name">Cache Miss</div>
+              <div class="flow-detail">Fetch via image-proxy → simpan ke cache → tampil</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabel Komponen -->
+      <div class="comp-table-wrap">
+        <div class="flow-title">Komponen Utama &amp; Tanggung Jawab</div>
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th>Komponen</th>
+              <th>File</th>
+              <th>Tanggung Jawab</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>AdminScaffold</code></td>
+              <td>shared/widgets/admin_scaffold.dart</td>
+              <td>Layout admin, sidebar navigasi, logo BPS</td>
+            </tr>
+            <tr>
+              <td><code>DriveImage</code></td>
+              <td>shared/widgets/drive_image.dart</td>
+              <td>Tampil gambar Drive via proxy + cache lokal</td>
+            </tr>
+            <tr>
+              <td><code>DokumentasiFormSheet</code></td>
+              <td>features/dokumentasi/presentation/</td>
+              <td>Form input dokumentasi harian pegawai</td>
+            </tr>
+            <tr>
+              <td><code>DokCard</code></td>
+              <td>features/dokumentasi/presentation/</td>
+              <td>Kartu dokumentasi + tombol Copy Link</td>
+            </tr>
+            <tr>
+              <td><code>dashboardStatsProvider</code></td>
+              <td>features/dashboard/presentation/</td>
+              <td>Query paralel statistik admin</td>
+            </tr>
+            <tr>
+              <td><code>kegiatanListProvider</code></td>
+              <td>features/kegiatan/presentation/</td>
+              <td>Fetch daftar proyek untuk dropdown</td>
+            </tr>
+            <tr>
+              <td><code>DokumentasiRepositoryImpl</code></td>
+              <td>features/dokumentasi/data/</td>
+              <td>Create dokumentasi + upload Drive + auto-save link</td>
+            </tr>
+            <tr>
+              <td><code>upload-to-drive</code></td>
+              <td>supabase/functions/upload-to-drive/</td>
+              <td>Edge Function: upload foto ke Google Drive</td>
+            </tr>
+            <tr>
+              <td><code>image-proxy</code></td>
+              <td>supabase/functions/image-proxy/</td>
+              <td>Edge Function: proxy akses gambar Drive (bypass CORS)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Skema Database -->
+      <div class="db-section">
+        <div class="flow-title">Skema Database (Supabase PostgreSQL)</div>
+        <div class="db-grid">
+          <div class="db-table">
+            <div class="db-table-name">👤 users</div>
+            <div class="db-cols">
+              <div class="db-col pk">
+                id
+                <span>UUID PK</span>
+              </div>
+              <div class="db-col">
+                email
+                <span>TEXT</span>
+              </div>
+              <div class="db-col">
+                nama
+                <span>TEXT</span>
+              </div>
+              <div class="db-col">
+                jabatan
+                <span>TEXT</span>
+              </div>
+              <div class="db-col">
+                unit_kerja
+                <span>TEXT</span>
+              </div>
+              <div class="db-col">
+                role
+                <span>admin | pegawai</span>
+              </div>
+            </div>
+          </div>
+          <div class="db-table">
+            <div class="db-table-name">📁 kegiatan</div>
+            <div class="db-cols">
+              <div class="db-col pk">
+                id
+                <span>UUID PK</span>
+              </div>
+              <div class="db-col">
+                judul
+                <span>TEXT</span>
+              </div>
+              <div class="db-col">
+                deskripsi
+                <span>TEXT?</span>
+              </div>
+              <div class="db-col">
+                deadline
+                <span>DATE</span>
+              </div>
+              <div class="db-col">
+                created_at
+                <span>TIMESTAMPTZ</span>
+              </div>
+            </div>
+          </div>
+          <div class="db-table">
+            <div class="db-table-name">📸 dokumentasi</div>
+            <div class="db-cols">
+              <div class="db-col pk">
+                id
+                <span>UUID PK</span>
+              </div>
+              <div class="db-col fk">
+                user_id
+                <span>FK → users</span>
+              </div>
+              <div class="db-col">
+                pegawai_nama
+                <span>TEXT</span>
+              </div>
+              <div class="db-col">
+                proyek
+                <span>TEXT</span>
+              </div>
+              <div class="db-col">
+                tanggal_kegiatan
+                <span>DATE</span>
+              </div>
+              <div class="db-col">
+                image_url
+                <span>TEXT?</span>
+              </div>
+              <div class="db-col">
+                link
+                <span>TEXT? (Drive URL)</span>
+              </div>
+              <div class="db-col">
+                catatan
+                <span>TEXT?</span>
+              </div>
+              <div class="db-col">
+                created_at
+                <span>TIMESTAMPTZ</span>
+              </div>
+            </div>
+          </div>
+          <div class="db-table">
+            <div class="db-table-name">🔗 penugasan</div>
+            <div class="db-cols">
+              <div class="db-col pk">
+                id
+                <span>UUID PK</span>
+              </div>
+              <div class="db-col fk">
+                user_id
+                <span>FK → users</span>
+              </div>
+              <div class="db-col fk">
+                kegiatan_id
+                <span>FK → kegiatan</span>
+              </div>
+              <div class="db-col">
+                created_at
+                <span>TIMESTAMPTZ</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <style>
+      /* ── Architecture ── */
+      .arch-overview {
+        background: #fff;
+        border-radius: 16px;
+        padding: 28px 24px;
+        box-shadow: 0 2px 12px rgba(21, 101, 192, 0.07);
+        margin-bottom: 32px;
+      }
+      .arch-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #6b7a8d;
+        text-align: center;
+        margin-bottom: 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .arch-layers {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+      .arch-layer {
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin-bottom: 4px;
+      }
+      .layer-title {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin-bottom: 10px;
+        opacity: 0.75;
+      }
+      .layer-boxes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .layer-box {
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 8px;
+        padding: 8px 12px;
+        text-align: center;
+        min-width: 110px;
+        flex: 1;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+      }
+      .box-icon {
+        font-size: 1.1rem;
+        margin-bottom: 3px;
+      }
+      .box-name {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #1e2a3a;
+      }
+      .box-sub {
+        font-size: 0.68rem;
+        color: #6b7a8d;
+        margin-top: 2px;
+      }
+
+      .layer-client {
+        background: #e3f0ff;
+      }
+      .layer-client .layer-title {
+        color: #1565c0;
+      }
+      .layer-presentation {
+        background: #e8f5e9;
+      }
+      .layer-presentation .layer-title {
+        color: #2e7d32;
+      }
+      .layer-provider {
+        background: #fff3e0;
+      }
+      .layer-provider .layer-title {
+        color: #e65100;
+      }
+      .layer-repository {
+        background: #f3e5f5;
+      }
+      .layer-repository .layer-title {
+        color: #6a1b9a;
+      }
+      .layer-backend {
+        background: #e0f5f2;
+      }
+      .layer-backend .layer-title {
+        color: #00695c;
+      }
+      .layer-storage {
+        background: #fce4ec;
+      }
+      .layer-storage .layer-title {
+        color: #880e4f;
+      }
+
+      .arch-arrow {
+        text-align: center;
+        font-size: 1.2rem;
+        color: #b0bec5;
+        line-height: 1;
+        margin: 2px 0;
+      }
+
+      /* ── Flow ── */
+      .flow-section {
+        background: #fff;
+        border-radius: 14px;
+        padding: 22px 24px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        margin-bottom: 20px;
+      }
+      .flow-title {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #1e2a3a;
+        margin-bottom: 16px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #f0f4fa;
+      }
+      .flow-steps {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .flow-step {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        background: #f4f6fb;
+        border-radius: 10px;
+        padding: 10px 14px;
+        flex: 1;
+        min-width: 160px;
+      }
+      .flow-branch {
+        border-top: 2px solid #43a047;
+      }
+      .flow-branch-alt {
+        border-top: 2px solid #fb8c00;
+      }
+      .flow-num {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #1565c0;
+        color: #fff;
+        font-size: 0.72rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .flow-branch .flow-num {
+        background: #43a047;
+      }
+      .flow-branch-alt .flow-num {
+        background: #fb8c00;
+      }
+      .flow-name {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #1e2a3a;
+      }
+      .flow-detail {
+        font-size: 0.75rem;
+        color: #6b7a8d;
+        margin-top: 2px;
+      }
+      .flow-arrow {
+        font-size: 1.1rem;
+        color: #b0bec5;
+        flex-shrink: 0;
+      }
+
+      /* ── Component Table ── */
+      .comp-table-wrap {
+        background: #fff;
+        border-radius: 14px;
+        padding: 22px 24px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        margin-bottom: 20px;
+        overflow-x: auto;
+      }
+      .comp-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+        margin-top: 12px;
+      }
+      .comp-table th {
+        background: #f4f6fb;
+        padding: 10px 14px;
+        text-align: left;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6b7a8d;
+        border-bottom: 2px solid #e3eaf5;
+      }
+      .comp-table td {
+        padding: 10px 14px;
+        border-bottom: 1px solid #f0f4fa;
+        color: #3d4f63;
+        vertical-align: top;
+      }
+      .comp-table tr:last-child td {
+        border-bottom: none;
+      }
+      .comp-table tr:hover td {
+        background: #f9fbff;
+      }
+      .comp-table code {
+        background: #e8eaf6;
+        color: #3949ab;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+      }
+
+      /* ── Database Schema ── */
+      .db-section {
+        background: #fff;
+        border-radius: 14px;
+        padding: 22px 24px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        margin-bottom: 56px;
+      }
+      .db-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 14px;
+        margin-top: 14px;
+      }
+      .db-table {
+        border: 1px solid #e3eaf5;
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .db-table-name {
+        background: #1565c0;
+        color: #fff;
+        padding: 8px 12px;
+        font-size: 0.82rem;
+        font-weight: 700;
+      }
+      .db-cols {
+        padding: 8px 0;
+      }
+      .db-col {
+        display: flex;
+        justify-content: space-between;
+        padding: 4px 12px;
+        font-size: 0.78rem;
+        color: #3d4f63;
+        border-bottom: 1px solid #f4f6fb;
+      }
+      .db-col:last-child {
+        border-bottom: none;
+      }
+      .db-col span {
+        color: #8a96a3;
+        font-size: 0.72rem;
+      }
+      .db-col.pk {
+        font-weight: 700;
+        color: #1565c0;
+      }
+      .db-col.fk {
+        color: #00897b;
+      }
+      .db-col.pk span {
+        color: #90caf9;
+      }
+      .db-col.fk span {
+        color: #80cbc4;
+      }
+    </style>
+
+    <footer>&copy; 2026 BPS Kabupaten Minahasa Selatan &nbsp;·&nbsp; PantauPegawai v1.0.0</footer>
+  </body>
+</html>

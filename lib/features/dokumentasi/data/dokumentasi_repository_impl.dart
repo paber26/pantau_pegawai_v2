@@ -69,7 +69,6 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
     File? imageFile,
     List<int>? imageBytes,
     String? catatan,
-    String? link,
   }) async {
     try {
       String? imageUrl;
@@ -98,7 +97,7 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
                 tanggalKegiatan.toIso8601String().split('T').first,
             'image_url': imageUrl,
             'catatan': catatan,
-            'link': link,
+            'link': imageUrl, // auto-set ke Drive URL yang sama
           })
           .select('*, users(nama, jabatan, unit_kerja)')
           .single();

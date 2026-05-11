@@ -1,0 +1,887 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Dokumentasi Teknis — PantauPegawai</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --blue: #1565c0;
+        --blue-dark: #0d47a1;
+        --blue-light: #e3f0ff;
+        --green: #2e7d32;
+        --green-light: #e8f5e9;
+        --orange: #e65100;
+        --orange-light: #fff3e0;
+        --purple: #6a1b9a;
+        --purple-light: #f3e5f5;
+        --teal: #00695c;
+        --teal-light: #e0f5f2;
+        --red: #b71c1c;
+        --red-light: #ffebee;
+        --gray: #455a64;
+        --gray-light: #f4f6fb;
+        --text: #1e2a3a;
+        --text2: #3d4f63;
+        --text3: #6b7a8d;
+        --border: #e3eaf5;
+        --shadow: 0 2px 12px rgba(21, 101, 192, 0.08);
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family:
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: var(--gray-light);
+        color: var(--text);
+        line-height: 1.65;
+        font-size: 15px;
+      }
+
+      /* ── NAV ── */
+      nav {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: var(--blue-dark);
+        padding: 0 24px;
+        display: flex;
+        align-items: center;
+        gap: 0;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+      nav a {
+        color: rgba(255, 255, 255, 0.8);
+        text-decoration: none;
+        font-size: 0.78rem;
+        font-weight: 500;
+        padding: 14px 14px;
+        display: inline-block;
+        border-bottom: 2px solid transparent;
+        transition: 0.2s;
+      }
+      nav a:hover,
+      nav a.active {
+        color: #fff;
+        border-bottom-color: #64b5f6;
+      }
+
+      /* ── HEADER ── */
+      header {
+        background: linear-gradient(135deg, var(--blue) 0%, var(--blue-dark) 100%);
+        color: #fff;
+        padding: 52px 40px 44px;
+        display: flex;
+        align-items: center;
+        gap: 28px;
+      }
+      header img {
+        width: 80px;
+        height: 80px;
+        object-fit: contain;
+        background: #fff;
+        border-radius: 14px;
+        padding: 8px;
+        flex-shrink: 0;
+      }
+      .h-title {
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+      }
+      .h-sub {
+        margin-top: 6px;
+        font-size: 1rem;
+        opacity: 0.85;
+      }
+      .h-meta {
+        margin-top: 12px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .h-meta span {
+        font-size: 0.78rem;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 20px;
+        padding: 4px 14px;
+      }
+
+      /* ── LAYOUT ── */
+      .wrap {
+        max-width: 1060px;
+        margin: 0 auto;
+        padding: 48px 24px 100px;
+      }
+
+      /* ── SECTION ── */
+      .sec {
+        margin-bottom: 72px;
+      }
+      .sec-title {
+        font-size: 1.45rem;
+        font-weight: 800;
+        color: var(--blue);
+        margin-bottom: 6px;
+        padding-bottom: 12px;
+        border-bottom: 3px solid var(--blue-light);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .sec-title .num {
+        background: var(--blue);
+        color: #fff;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .sub-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text);
+        margin: 28px 0 12px;
+        padding-left: 12px;
+        border-left: 3px solid var(--blue);
+      }
+
+      /* ── CARD ── */
+      .card {
+        background: #fff;
+        border-radius: 14px;
+        padding: 24px 28px;
+        box-shadow: var(--shadow);
+        margin-bottom: 20px;
+      }
+
+      /* ── TABLE ── */
+      .tbl-wrap {
+        overflow-x: auto;
+        margin-bottom: 20px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+      }
+      thead tr {
+        background: var(--blue);
+        color: #fff;
+      }
+      thead th {
+        padding: 11px 14px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.8rem;
+        letter-spacing: 0.3px;
+      }
+      tbody tr:nth-child(even) {
+        background: #f8faff;
+      }
+      tbody tr:hover {
+        background: var(--blue-light);
+      }
+      tbody td {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border);
+        color: var(--text2);
+        vertical-align: top;
+      }
+      .badge {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 20px;
+        font-size: 0.72rem;
+        font-weight: 700;
+      }
+      .badge-high {
+        background: #ffebee;
+        color: #c62828;
+      }
+      .badge-med {
+        background: #fff3e0;
+        color: #e65100;
+      }
+      .badge-low {
+        background: #e8f5e9;
+        color: #2e7d32;
+      }
+      .badge-ok {
+        background: #e8f5e9;
+        color: #2e7d32;
+      }
+      .badge-blue {
+        background: var(--blue-light);
+        color: var(--blue);
+      }
+
+      /* ── CODE ── */
+      pre {
+        background: #1a2332;
+        color: #e8eaf6;
+        border-radius: 10px;
+        padding: 18px 20px;
+        overflow-x: auto;
+        font-size: 0.82rem;
+        line-height: 1.6;
+        margin-bottom: 16px;
+      }
+      code {
+        font-family: "Cascadia Code", "Fira Code", monospace;
+      }
+      .inline-code {
+        background: #e8eaf6;
+        color: #3949ab;
+        padding: 2px 7px;
+        border-radius: 4px;
+        font-size: 0.82rem;
+        font-family: monospace;
+      }
+
+      /* ── TOC ── */
+      .toc {
+        background: #fff;
+        border-radius: 14px;
+        padding: 24px 28px;
+        box-shadow: var(--shadow);
+        margin-bottom: 48px;
+      }
+      .toc-title {
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--text3);
+        margin-bottom: 14px;
+      }
+      .toc ol {
+        padding-left: 20px;
+      }
+      .toc li {
+        margin-bottom: 6px;
+      }
+      .toc a {
+        color: var(--blue);
+        text-decoration: none;
+        font-size: 0.9rem;
+      }
+      .toc a:hover {
+        text-decoration: underline;
+      }
+      .toc ol ol {
+        margin-top: 4px;
+      }
+      .toc ol ol li {
+        margin-bottom: 3px;
+      }
+      .toc ol ol a {
+        font-size: 0.83rem;
+        color: var(--text3);
+      }
+
+      /* ── INFO BOX ── */
+      .info-box {
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin-bottom: 16px;
+        font-size: 0.875rem;
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+      }
+      .info-box.blue {
+        background: var(--blue-light);
+        border-left: 4px solid var(--blue);
+      }
+      .info-box.green {
+        background: var(--green-light);
+        border-left: 4px solid var(--green);
+      }
+      .info-box.orange {
+        background: var(--orange-light);
+        border-left: 4px solid var(--orange);
+      }
+      .info-box .ib-icon {
+        font-size: 1.1rem;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .info-box p {
+        color: var(--text2);
+      }
+
+      /* ── ROLE CARDS ── */
+      .role-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+      .role-card {
+        border-radius: 12px;
+        padding: 20px;
+        border: 2px solid;
+      }
+      .role-card.admin {
+        border-color: var(--blue);
+        background: var(--blue-light);
+      }
+      .role-card.pegawai {
+        border-color: var(--green);
+        background: var(--green-light);
+      }
+      .role-card h4 {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+      .role-card.admin h4 {
+        color: var(--blue);
+      }
+      .role-card.pegawai h4 {
+        color: var(--green);
+      }
+      .role-card ul {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .role-card ul li {
+        font-size: 0.85rem;
+        color: var(--text2);
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+      }
+      .role-card ul li::before {
+        content: "•";
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .role-card.admin ul li::before {
+        color: var(--blue);
+      }
+      .role-card.pegawai ul li::before {
+        color: var(--green);
+      }
+
+      /* ── STACK GRID ── */
+      .stack-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 14px;
+        margin-bottom: 20px;
+      }
+      .stack-item {
+        background: #fff;
+        border-radius: 12px;
+        padding: 16px 18px;
+        box-shadow: var(--shadow);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .stack-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+      }
+      .stack-label {
+        font-size: 0.72rem;
+        color: var(--text3);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+      .stack-val {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      /* ── FOLDER TREE ── */
+      .tree {
+        background: #1a2332;
+        color: #cfd8dc;
+        border-radius: 10px;
+        padding: 20px 24px;
+        font-family: monospace;
+        font-size: 0.82rem;
+        line-height: 1.8;
+        overflow-x: auto;
+        margin-bottom: 16px;
+      }
+      .tree .dir {
+        color: #64b5f6;
+        font-weight: 700;
+      }
+      .tree .file {
+        color: #a5d6a7;
+      }
+      .tree .comment {
+        color: #546e7a;
+      }
+
+      /* ── RESPONSIVE ── */
+      @media (max-width: 640px) {
+        header {
+          padding: 32px 20px;
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .h-title {
+          font-size: 1.5rem;
+        }
+        .role-grid {
+          grid-template-columns: 1fr;
+        }
+        .wrap {
+          padding: 32px 16px 80px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav id="topnav">
+      <a href="#pendahuluan">1. Pendahuluan</a>
+      <a href="#analisis">2. Analisis</a>
+      <a href="#perancangan">3. Perancangan</a>
+      <a href="#pengembangan">4. Pengembangan</a>
+      <a href="#pengujian">5. Pengujian</a>
+      <a href="#deployment">6. Deployment</a>
+      <a href="#evaluasi">7. Evaluasi</a>
+    </nav>
+
+    <header>
+      <img src="../assets/images/Logo-BPS.png" alt="Logo BPS" onerror="this.style.display = 'none'" />
+      <div>
+        <div class="h-title">PantauPegawai</div>
+        <div class="h-sub">Dokumentasi Teknis Pengembangan Aplikasi Monitoring Aktivitas Pegawai</div>
+        <div class="h-meta">
+          <span>📅 2026</span>
+          <span>🏛️ BPS Kabupaten Minahasa Selatan</span>
+          <span>📱 Flutter + Supabase + Google Drive</span>
+          <span>v1.0.0</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="wrap">
+      <!-- TOC -->
+      <div class="toc">
+        <div class="toc-title">Daftar Isi</div>
+        <ol>
+          <li>
+            <a href="#pendahuluan">Pendahuluan</a>
+            <ol>
+              <li><a href="#latar">Latar Belakang</a></li>
+              <li><a href="#tujuan">Tujuan</a></li>
+              <li><a href="#ruang-lingkup">Ruang Lingkup</a></li>
+            </ol>
+          </li>
+          <li>
+            <a href="#analisis">Analisis Kebutuhan</a>
+            <ol>
+              <li><a href="#keb-fungsional">Kebutuhan Fungsional</a></li>
+              <li><a href="#keb-nonfungsional">Kebutuhan Non-Fungsional</a></li>
+              <li><a href="#pengguna">Identifikasi Pengguna</a></li>
+            </ol>
+          </li>
+          <li>
+            <a href="#perancangan">Perancangan Sistem</a>
+            <ol>
+              <li><a href="#arsitektur">Arsitektur Sistem</a></li>
+              <li><a href="#alur-upload">Alur Upload Foto</a></li>
+              <li><a href="#alur-gambar">Alur Tampil Gambar</a></li>
+              <li><a href="#alur-auth">Alur Autentikasi</a></li>
+              <li><a href="#database">Skema Database</a></li>
+            </ol>
+          </li>
+          <li>
+            <a href="#pengembangan">Pengembangan</a>
+            <ol>
+              <li><a href="#stack">Stack Teknologi</a></li>
+              <li><a href="#struktur">Struktur Proyek</a></li>
+              <li><a href="#fitur">Implementasi Fitur</a></li>
+            </ol>
+          </li>
+          <li><a href="#pengujian">Pengujian</a></li>
+          <li><a href="#deployment">Implementasi &amp; Deployment</a></li>
+          <li><a href="#evaluasi">Evaluasi &amp; Penyempurnaan</a></li>
+        </ol>
+      </div>
+    </div>
+  </body>
+</html>
+
+<!-- ═══════════════════════════════════════════════════
+     SEKSI 1 — PENDAHULUAN
+═══════════════════════════════════════════════════ -->
+<section class="sec" id="pendahuluan">
+  <div class="sec-title">
+    <span class="num">1</span>
+    Pendahuluan
+  </div>
+
+  <div id="latar">
+    <div class="sub-title">1.1 Latar Belakang</div>
+    <div class="card">
+      <p style="color: var(--text2); margin-bottom: 12px">
+        BPS Kabupaten Minahasa Selatan sebelumnya menggunakan platform
+        <strong>AppSheet</strong>
+        berbasis Google Sheets untuk memantau aktivitas harian pegawai. Pendekatan ini memiliki sejumlah keterbatasan
+        operasional:
+      </p>
+      <ul style="list-style: none; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px">
+        <li style="display: flex; gap: 10px; font-size: 0.875rem; color: var(--text2)">
+          <span style="color: #c62828; font-weight: 700">✗</span>
+          Ketergantungan penuh pada koneksi internet untuk setiap aksi
+        </li>
+        <li style="display: flex; gap: 10px; font-size: 0.875rem; color: var(--text2)">
+          <span style="color: #c62828; font-weight: 700">✗</span>
+          Tidak ada pemisahan hak akses yang granular antar pegawai
+        </li>
+        <li style="display: flex; gap: 10px; font-size: 0.875rem; color: var(--text2)">
+          <span style="color: #c62828; font-weight: 700">✗</span>
+          Performa lambat saat data bertambah banyak
+        </li>
+        <li style="display: flex; gap: 10px; font-size: 0.875rem; color: var(--text2)">
+          <span style="color: #c62828; font-weight: 700">✗</span>
+          Tampilan tidak optimal di perangkat mobile
+        </li>
+        <li style="display: flex; gap: 10px; font-size: 0.875rem; color: var(--text2)">
+          <span style="color: #c62828; font-weight: 700">✗</span>
+          Tidak ada mekanisme caching gambar — setiap buka halaman mengunduh ulang semua foto
+        </li>
+      </ul>
+      <p style="color: var(--text2); font-size: 0.875rem">
+        Berdasarkan kondisi tersebut, dikembangkan aplikasi
+        <strong>PantauPegawai</strong>
+        sebagai pengganti yang dibangun secara native menggunakan Flutter, dengan backend Supabase dan penyimpanan file
+        di Google Drive.
+      </p>
+    </div>
+  </div>
+
+  <div id="tujuan">
+    <div class="sub-title">1.2 Tujuan</div>
+    <div class="card">
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Tujuan</th>
+              <th>Indikator Keberhasilan</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td>Menyediakan platform pencatatan aktivitas harian pegawai yang mudah digunakan</td>
+              <td>Pegawai dapat input dokumentasi dalam &lt; 1 menit</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>Memungkinkan admin memantau seluruh aktivitas pegawai secara real-time</td>
+              <td>Dashboard menampilkan data terkini tanpa refresh manual</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>Mengurangi penggunaan data internet dengan image caching</td>
+              <td>Gambar yang sudah diunduh tidak diunduh ulang</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td>Menyimpan dokumentasi foto secara terorganisir di Google Drive</td>
+              <td>Foto tersimpan dalam struktur folder pegawai/tanggal</td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td>Menerapkan keamanan akses data berbasis role</td>
+              <td>Pegawai tidak dapat mengakses data pegawai lain</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="ruang-lingkup">
+    <div class="sub-title">1.3 Ruang Lingkup</div>
+    <div class="card">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px">
+        <div>
+          <p style="font-weight: 700; color: var(--green); margin-bottom: 8px">✓ Dalam Lingkup</p>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 6px">
+            <li style="font-size: 0.875rem; color: var(--text2)">• Aplikasi mobile Android untuk pegawai</li>
+            <li style="font-size: 0.875rem; color: var(--text2)">• Aplikasi web untuk admin</li>
+            <li style="font-size: 0.875rem; color: var(--text2)">• Pencatatan dokumentasi harian dengan foto</li>
+            <li style="font-size: 0.875rem; color: var(--text2)">• Manajemen proyek/kegiatan</li>
+            <li style="font-size: 0.875rem; color: var(--text2)">• Dashboard statistik admin</li>
+            <li style="font-size: 0.875rem; color: var(--text2)">• Upload dan penyimpanan foto ke Google Drive</li>
+            <li style="font-size: 0.875rem; color: var(--text2)">• Rekap upload per pegawai</li>
+          </ul>
+        </div>
+        <div>
+          <p style="font-weight: 700; color: var(--red); margin-bottom: 8px">✗ Di Luar Lingkup</p>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 6px">
+            <li style="font-size: 0.875rem; color: var(--text2)">• Aplikasi iOS (belum dalam rencana)</li>
+            <li style="font-size: 0.875rem; color: var(--text2)">• Sistem penggajian</li>
+            <li style="font-size: 0.875rem; color: var(--text2)">• Absensi berbasis GPS/biometrik</li>
+            <li style="font-size: 0.875rem; color: var(--text2)">• Notifikasi push</li>
+            <li style="font-size: 0.875rem; color: var(--text2)">• Integrasi SIMPEG BPS Pusat</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SEKSI 2 — ANALISIS KEBUTUHAN
+═══════════════════════════════════════════════════ -->
+<section class="sec" id="analisis">
+  <div class="sec-title">
+    <span class="num">2</span>
+    Analisis Kebutuhan
+  </div>
+
+  <div id="keb-fungsional">
+    <div class="sub-title">2.1 Kebutuhan Fungsional</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Kode</th>
+            <th>Kebutuhan</th>
+            <th>Aktor</th>
+            <th>Prioritas</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>KF-01</td>
+            <td>Login dengan email dan password</td>
+            <td>Admin, Pegawai</td>
+            <td><span class="badge badge-high">Tinggi</span></td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>KF-02</td>
+            <td>Redirect otomatis berdasarkan role setelah login</td>
+            <td>Sistem</td>
+            <td><span class="badge badge-high">Tinggi</span></td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>KF-03</td>
+            <td>Input dokumentasi harian: foto, proyek, tanggal, catatan</td>
+            <td>Pegawai</td>
+            <td><span class="badge badge-high">Tinggi</span></td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>KF-04</td>
+            <td>Upload foto ke Google Drive secara otomatis</td>
+            <td>Sistem</td>
+            <td><span class="badge badge-high">Tinggi</span></td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>KF-05</td>
+            <td>Tampil daftar dokumentasi harian dengan filter tanggal dan pegawai</td>
+            <td>Admin, Pegawai</td>
+            <td><span class="badge badge-high">Tinggi</span></td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>KF-06</td>
+            <td>Dashboard statistik: jumlah proyek, total dokumentasi, total pegawai</td>
+            <td>Admin</td>
+            <td><span class="badge badge-high">Tinggi</span></td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>KF-07</td>
+            <td>Manajemen proyek/kegiatan (tambah, edit, hapus)</td>
+            <td>Admin</td>
+            <td><span class="badge badge-high">Tinggi</span></td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>KF-08</td>
+            <td>Dropdown proyek dinamis pada form dokumentasi</td>
+            <td>Pegawai</td>
+            <td><span class="badge badge-high">Tinggi</span></td>
+          </tr>
+          <tr>
+            <td>9</td>
+            <td>KF-09</td>
+            <td>Tombol Copy Link untuk menyalin URL Drive gambar</td>
+            <td>Admin, Pegawai</td>
+            <td><span class="badge badge-med">Sedang</span></td>
+          </tr>
+          <tr>
+            <td>10</td>
+            <td>KF-10</td>
+            <td>Manajemen pegawai: tambah, edit, reset password, hapus</td>
+            <td>Admin</td>
+            <td><span class="badge badge-high">Tinggi</span></td>
+          </tr>
+          <tr>
+            <td>11</td>
+            <td>KF-11</td>
+            <td>Rekap upload dokumentasi per pegawai</td>
+            <td>Admin</td>
+            <td><span class="badge badge-med">Sedang</span></td>
+          </tr>
+          <tr>
+            <td>12</td>
+            <td>KF-12</td>
+            <td>Import data dari Google Sheets</td>
+            <td>Admin</td>
+            <td><span class="badge badge-low">Rendah</span></td>
+          </tr>
+          <tr>
+            <td>13</td>
+            <td>KF-13</td>
+            <td>Hapus dokumentasi milik sendiri</td>
+            <td>Pegawai</td>
+            <td><span class="badge badge-med">Sedang</span></td>
+          </tr>
+          <tr>
+            <td>14</td>
+            <td>KF-14</td>
+            <td>Lihat riwayat dokumentasi pribadi</td>
+            <td>Pegawai</td>
+            <td><span class="badge badge-high">Tinggi</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="keb-nonfungsional">
+    <div class="sub-title">2.2 Kebutuhan Non-Fungsional</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Kategori</th>
+            <th>Kebutuhan</th>
+            <th>Target</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Performa</td>
+            <td>Waktu muat halaman utama</td>
+            <td>&lt; 3 detik pada jaringan 4G</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Performa</td>
+            <td>Image caching — gambar yang sudah diunduh tidak diunduh ulang</td>
+            <td>0 request jaringan untuk gambar yang sudah di-cache</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Keamanan</td>
+            <td>Isolasi data antar pegawai menggunakan RLS</td>
+            <td>Pegawai tidak dapat membaca/mengubah data pegawai lain</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Keamanan</td>
+            <td>Credentials Google Service Account tidak tersimpan di client</td>
+            <td>Hanya ada di Edge Function secrets</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>Ketersediaan</td>
+            <td>Uptime backend Supabase</td>
+            <td>99.9% (SLA Supabase)</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Kompatibilitas</td>
+            <td>Platform Android minimum</td>
+            <td>Android 5.0 (API 21)</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>Usability</td>
+            <td>Input dokumentasi dapat diselesaikan tanpa pelatihan khusus</td>
+            <td>Onboarding &lt; 5 menit</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>Skalabilitas</td>
+            <td>Jumlah pegawai yang dapat ditangani</td>
+            <td>Hingga 100 pegawai aktif</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="pengguna">
+    <div class="sub-title">2.3 Identifikasi Pengguna</div>
+    <div class="role-grid">
+      <div class="role-card admin">
+        <h4>👔 Admin</h4>
+        <ul>
+          <li>Melihat dashboard statistik seluruh pegawai</li>
+          <li>Mengelola daftar proyek/kegiatan</li>
+          <li>Mengelola akun pegawai (CRUD + reset password)</li>
+          <li>Melihat semua dokumentasi harian</li>
+          <li>Filter dokumentasi per pegawai dan tanggal</li>
+          <li>Melihat rekap upload</li>
+          <li>Import data dari Google Sheets</li>
+          <li>Mengakses via Flutter Web (browser)</li>
+        </ul>
+      </div>
+      <div class="role-card pegawai">
+        <h4>👤 Pegawai</h4>
+        <ul>
+          <li>Login dengan akun yang dibuat admin</li>
+          <li>Input dokumentasi harian (foto + proyek + catatan)</li>
+          <li>Memilih proyek dari dropdown yang disediakan admin</li>
+          <li>Melihat riwayat dokumentasi pribadi</li>
+          <li>Menghapus dokumentasi milik sendiri</li>
+          <li>Menyalin link Drive foto dengan tombol Copy Link</li>
+          <li>Mengakses via aplikasi Android</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+test

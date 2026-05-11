@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -38,23 +39,18 @@ class DriveImage extends ConsumerWidget {
     // Semua gambar via image-proxy — tidak ada CORS issue, tidak butuh auth header
     final proxyUrl = '${SupabaseConstants.imageProxyUrl}?id=$fileId';
 
-    return Image.network(
-      proxyUrl,
+    return CachedNetworkImage(
+      imageUrl: proxyUrl,
       width: width,
       height: height,
       fit: fit,
-      errorBuilder: (_, __, ___) => _placeholder(),
-      loadingBuilder: (context, child, progress) {
-        if (progress == null) return child;
-        return Container(
-          width: width,
-          height: height,
-          color: AppColors.background,
-          child: const Center(
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        );
-      },
+      placeholder: (context, url) => Container(
+        width: width,
+        height: height,
+        color: AppColors.background,
+        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      ),
+      errorWidget: (context, url, error) => _placeholder(),
     );
   }
 
