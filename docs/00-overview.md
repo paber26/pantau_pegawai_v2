@@ -4,18 +4,18 @@ Dokumen ini merangkum seluruh tahapan pembangunan aplikasi **PantauPegawai** dar
 
 ## Stack Teknologi
 
-| Layer               | Teknologi                                 |
-| ------------------- | ----------------------------------------- |
-| Mobile (Pegawai)    | Flutter Android                           |
-| Web/Desktop (Admin) | Flutter Web                               |
-| Auth & Database     | Supabase (PostgreSQL + RLS)               |
-| Realtime            | Supabase Realtime                         |
-| File Storage        | Google Drive via Service Account          |
-| Upload Proxy        | Supabase Edge Functions (Deno/TypeScript) |
-| State Management    | Riverpod (riverpod_annotation)            |
-| Navigation          | go_router                                 |
-| HTTP Client         | http package                              |
-| Image Picker        | image_picker                              |
+| Layer            | Teknologi                                       |
+| ---------------- | ----------------------------------------------- |
+| Mobile (Pegawai) | Flutter Android / iOS                           |
+| Web (Admin)      | Flutter Web — deploy via Vercel                 |
+| Auth & Database  | Supabase (PostgreSQL + RLS)                     |
+| Realtime         | Supabase Realtime                               |
+| File Storage     | Google Drive via Service Account                |
+| Upload Proxy     | Supabase Edge Functions (Deno/TypeScript)       |
+| State Management | Riverpod (riverpod_annotation)                  |
+| Navigation       | go_router                                       |
+| HTTP Client      | http package                                    |
+| Image Picker     | image_picker (XFile/Uint8List — web compatible) |
 
 ## Daftar Dokumen
 
@@ -30,7 +30,7 @@ Dokumen ini merangkum seluruh tahapan pembangunan aplikasi **PantauPegawai** dar
 | `07-fitur-dokumentasi.md`         | Dokumentasi harian: upload foto, filter, riwayat, rekap upload     |
 | `08-fitur-admin.md`               | Dashboard admin, CRUD kegiatan, assign, laporan, rekap upload      |
 | `09-troubleshooting.md`           | Masalah yang ditemui dan solusinya (termasuk CORS & image-proxy)   |
-| `10-cara-menjalankan.md`          | Panduan menjalankan aplikasi                                       |
+| `10-cara-menjalankan.md`          | Panduan menjalankan dan deploy aplikasi (termasuk Vercel)          |
 | `11-install-ios-android.md`       | Panduan install ke iPhone dan Android                              |
 | `12-panduan-instalasi-lengkap.md` | **Panduan instalasi end-to-end** (Supabase + DB + Drive + Flutter) |
 

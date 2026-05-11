@@ -20,17 +20,16 @@ cd pantau_pegawai
 
 ### 2. Buat file credentials (WAJIB)
 
-Buat file `lib/core/constants/supabase_constants.dart`:
+File `lib/core/constants/supabase_constants.dart` sekarang membaca dari environment variables saat build — **tidak perlu dibuat manual**. Nilai diisi via `--dart-define` saat build atau via Vercel Environment Variables.
 
-```dart
-class SupabaseConstants {
-  SupabaseConstants._();
+Untuk development lokal, jalankan dengan:
 
-  static const String url = 'https://glywzqbifjordhwulpbw.supabase.co';
-  static const String anonKey = 'eyJhbGci...'; // Legacy anon key dari Supabase
-  static const String uploadDriveFunctionUrl =
-      '$url/functions/v1/upload-to-drive';
-}
+```bash
+flutter run -d chrome \
+  --dart-define=SUPABASE_URL=https://glywzqbifjordhwulpbw.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=eyJhbGci... \
+  --dart-define=GOOGLE_SHEETS_API_KEY=your_key \
+  --web-browser-flag "--disable-web-security"
 ```
 
 ### 3. Install dependencies
@@ -70,10 +69,11 @@ WHERE email = 'admin@instansi.go.id';
 
 ```bash
 # Development (dengan CORS disabled untuk localhost)
-flutter run -d chrome --web-browser-flag "--disable-web-security"
-
-# Atau buat alias di ~/.zshrc:
-alias flutter-web='flutter run -d chrome --web-browser-flag "--disable-web-security"'
+flutter run -d chrome \
+  --dart-define=SUPABASE_URL=https://glywzqbifjordhwulpbw.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=eyJhbGci... \
+  --dart-define=GOOGLE_SHEETS_API_KEY=your_key \
+  --web-browser-flag "--disable-web-security"
 ```
 
 ### Flutter iOS (Pegawai App)
@@ -148,66 +148,42 @@ supabase functions deploy import-from-sheets --project-ref glywzqbifjordhwulpbw
 ### Web
 
 ```bash
-flutter build web --release
+flutter build web --release \
+  --dart-define=SUPABASE_URL=https://glywzqbifjordhwulpbw.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=eyJhbGci... \
+  --dart-define=GOOGLE_SHEETS_API_KEY=your_key
 # Output: build/web/
 ```
 
 Output berupa file HTML/CSS/JS statis di folder `build/web/` yang siap di-hosting.
 
-#### Cara Membuka Hasil Build Web
+#### Deploy ke Vercel (Production — Recommended)
 
-> ⚠️ **Jangan** buka `index.html` langsung dengan double-click atau via file path
-> (`127.0.0.1:5500/build/web/index.html`). Flutter web butuh HTTP server yang
-> serve dari root folder `build/web/`, bukan dari subfolder.
+Aplikasi web sudah dikonfigurasi untuk deploy otomatis ke Vercel via GitHub.
 
-**Cara 1 — Python HTTP Server (paling mudah, sudah ada di Mac/Linux):**
+**Setup awal (sekali saja):**
 
-```bash
-cd build/web
-python3 -m http.server 8080
-```
+1. Push repo ke GitHub
+2. Buka [vercel.com](https://vercel.com) → New Project → Import repo
+3. Vercel otomatis baca `vercel.json` — tidak perlu konfigurasi manual
+4. Di **Settings → Environment Variables**, tambahkan:
 
-Buka: `http://localhost:8080`
+| Name                    | Value                                      |
+| ----------------------- | ------------------------------------------ |
+| `SUPABASE_URL`          | `https://glywzqbifjordhwulpbw.supabase.co` |
+| `SUPABASE_ANON_KEY`     | Legacy anon key (`eyJhbGci...`)            |
+| `GOOGLE_SHEETS_API_KEY` | API key Google Sheets                      |
 
-**Cara 2 — Flutter langsung (direkomendasikan untuk development):**
+5. Klik Deploy
 
-```bash
-flutter run -d chrome --release
-```
+**Deploy selanjutnya:** Otomatis setiap `git push` ke branch `main`.
 
-Flutter otomatis handle server dan buka Chrome.
+**File konfigurasi Vercel:**
 
-**Cara 3 — VS Code Live Server (perlu konfigurasi tambahan):**
+- `vercel.json` — build command, output directory, SPA routing rewrite
+- `build.sh` — install Flutter 3.41.8, enable web, pub get, build_runner, flutter build web
 
-Live Server secara default serve dari root project, bukan dari `build/web/`.
-Akibatnya semua asset (flutter.js, manifest.json, dll) gagal load dengan 404.
-
-Fix: tambahkan ke `.vscode/settings.json`:
-
-```json
-{
-  "liveServer.settings.root": "/build/web"
-}
-```
-
-Setelah itu klik kanan `build/web/index.html` → **Open with Live Server**.
-URL akan menjadi `127.0.0.1:5500/index.html` (tanpa prefix `build/web/`).
-
-> Catatan: Live Server kurang ideal untuk Flutter web karena setiap rebuild
-> kamu harus restart Live Server. Cara 2 lebih praktis untuk development.
-
-#### Hosting Production
-
-| Platform             | Cara                                                                          |
-| -------------------- | ----------------------------------------------------------------------------- |
-| **Netlify**          | Drag & drop folder `build/web/` ke https://netlify.com/drop                   |
-| **Firebase Hosting** | `firebase init hosting` (public dir: `build/web`) → `firebase deploy`         |
-| **Nginx/VPS**        | Copy `build/web/` ke `/var/www/html/`, tambahkan `try_files $uri /index.html` |
-
-Setelah deploy, update di Supabase → **Authentication → URL Configuration**:
-
-- **Site URL**: `https://domain-kamu.com`
-- **Redirect URLs**: `https://domain-kamu.com/**`
+> ⚠️ Gunakan **Legacy anon key** (format `eyJhbGci...`), bukan Publishable key (format `sb_publishable_...`). Supabase Edge Functions hanya menerima legacy key.
 
 ### iOS (butuh Apple Developer Account)
 

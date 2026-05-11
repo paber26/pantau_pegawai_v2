@@ -215,12 +215,74 @@ Lihat SQL lengkap di `02-database-schema.md` bagian 2.4.
 
 **Gejala:** Request ke `image-proxy` mengembalikan 401 meskipun kode function tidak mewajibkan auth.
 
-**Penyebab:** Supabase Edge Functions secara default memerlukan JWT di level **platform** (Supabase Gateway), bukan hanya di kode function. Meskipun kode function tidak cek auth, Gateway tetap memblokir request tanpa token.
+**Penyebab:** Supabase Edge Functions memerlukan JWT di level **platform** (Supabase Gateway). Request tanpa `Authorization` header diblokir sebelum masuk ke function.
 
-**Solusi:** Deploy function dengan flag `--no-verify-jwt`:
+**Solusi:** Kirim `Authorization: Bearer <token>` di setiap request ke `image-proxy`. Di Flutter Web, gunakan `http.get` dengan header manual karena `CachedNetworkImage` tidak support custom headers di web:
 
-```bash
-supabase functions deploy image-proxy --no-verify-jwt --project-ref <project_ref>
+```dart
+final response = await http.get(
+  Uri.parse('${SupabaseConstants.imageProxyUrl}?id=$fileId'),
+  headers: {'Authorization': 'Bearer ${session?.accessToken ?? anonKey}'},
+);
 ```
 
-> ⚠️ Jangan lupa flag ini setiap kali re-deploy `image-proxy`. Tanpa flag ini, gambar tidak akan muncul di Flutter Web.
+Widget `DriveImage` sudah menangani ini otomatis via `_WebDriveImage`.
+
+> ⚠️ Gunakan **Legacy anon key** (`eyJhbGci...`), bukan Publishable key (`sb_publishable_...`). Supabase Edge Functions hanya menerima legacy key.
+
+---
+
+## ❌ Flutter Web — `dart:io` tidak tersedia
+
+**Gejala:** Build web gagal dengan error `Failed to compile application for the Web` saat menggunakan `dart:io`.
+
+**Penyebab:** `dart:io` tidak tersedia di platform web. Class `File`, `SocketException`, dll tidak bisa digunakan.
+
+**Solusi:**
+
+- Ganti `File` dengan `Uint8List` (bytes) untuk handle file upload
+- Ganti `SocketException` dengan string matching atau `catch (e)` generic
+- Gunakan `XFile.readAsBytes()` dari `image_picker` untuk mendapatkan bytes
+- Gunakan `Image.memory(bytes)` bukan `Image.file(file)` untuk preview
+
+---
+
+## ❌ image-proxy `Drive error: 401` (Google Drive menolak)
+
+**Gejala:** Edge Function bisa diakses, tapi mengembalikan `Drive error: 401`.
+
+**Penyebab:** Google OAuth refresh token expired. Refresh token bisa expired jika tidak digunakan dalam waktu lama atau jika ada perubahan di Google OAuth consent screen.
+
+**Solusi:** Ganti implementasi dari OAuth refresh token ke **Service Account JWT**:
+
+```typescript
+// Buat JWT untuk Service Account
+const jwt = await createServiceAccountJWT()
+const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+  method: "POST",
+  body: new URLSearchParams({
+    grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+    assertion: jwt
+  })
+})
+```
+
+Service Account tidak pernah expired. Secrets yang dibutuhkan: `GOOGLE_SERVICE_ACCOUNT_EMAIL` dan `GOOGLE_PRIVATE_KEY`.
+
+---
+
+## ❌ Vercel build gagal — `Failed to compile application for the Web`
+
+**Gejala:** Build di Vercel gagal dengan error kompilasi Dart.
+
+**Penyebab umum:**
+
+1. Ada `dart:io` import di kode
+2. Versi Flutter di Vercel berbeda dengan lokal
+3. File `.g.dart` tidak ter-generate
+
+**Solusi:**
+
+1. Hapus semua `import 'dart:io'` — ganti dengan `dart:typed_data` dan `Uint8List`
+2. Pin versi Flutter di `build.sh`: `git clone ... -b "3.41.8"`
+3. Tambahkan `dart run build_runner build --delete-conflicting-outputs` di `build.sh`

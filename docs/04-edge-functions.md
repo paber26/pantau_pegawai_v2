@@ -151,50 +151,61 @@ if (response.status != 200) {
 
 **File:** `supabase/functions/image-proxy/index.ts`
 
-**Deploy command (wajib pakai `--no-verify-jwt`):**
+**Deploy command:**
 
 ```bash
-supabase functions deploy image-proxy --no-verify-jwt --project-ref <project_ref>
+supabase functions deploy image-proxy --project-ref <project_ref>
 ```
 
-> ⚠️ **Penting:** Flag `--no-verify-jwt` wajib digunakan. Tanpa flag ini, Supabase Gateway akan memblokir semua request tanpa Authorization header dengan 401, meskipun kode function tidak mewajibkan auth.
+> ℹ️ JWT verification dimatikan via Supabase Dashboard → Edge Functions → image-proxy → Settings → **Verify JWT with legacy secret: OFF**. Request tetap membutuhkan `Authorization: Bearer <token>` yang dikirim dari Flutter.
 
 **Alur:**
 
 1. Terima query param `?id=<google_drive_file_id>`
-2. Auth opsional — jika ada token (header atau `?token=`), diverifikasi; jika tidak ada, tetap dilayani
-3. Ambil Google access token via OAuth refresh token (service account)
-4. Fetch file dari Google Drive API menggunakan service account
+2. Verifikasi `Authorization: Bearer <token>` header (anon key atau session token)
+3. Generate Google access token via **Service Account JWT** (bukan OAuth refresh token)
+4. Fetch file dari Google Drive API menggunakan access token tersebut
 5. Return bytes gambar ke client dengan `Cache-Control: public, max-age=86400`
 
 **Kegunaan:**
 
 - Menampilkan gambar Google Drive di Flutter Web (menghindari CORS)
 - Mengakses file yang tidak di-share publik (service account punya akses ke semua file di Drive)
-- Cache 1 hari di CDN Cloudflare
+- Cache 1 hari
 
 **Cara pemanggilan dari Flutter:**
 
 ```dart
-// Semua gambar diakses via proxy — tidak perlu auth header
+// Mobile: Image.network dengan header Authorization
 final proxyUrl = '${SupabaseConstants.imageProxyUrl}?id=$fileId';
-Image.network(proxyUrl, ...);
+Image.network(proxyUrl, headers: {'Authorization': 'Bearer $token'}, ...);
+
+// Web: fetch manual via http.get dengan Authorization header
+// (CachedNetworkImage tidak support custom headers di web)
+final response = await http.get(
+  Uri.parse('${SupabaseConstants.imageProxyUrl}?id=$fileId'),
+  headers: {'Authorization': 'Bearer $token'},
+);
+Image.memory(response.bodyBytes, ...);
 ```
+
+Widget `DriveImage` menangani perbedaan ini secara otomatis — di web menggunakan `_WebDriveImage` yang fetch manual, di mobile menggunakan `Image.network`.
 
 **Secrets yang dibutuhkan:**
 
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `GOOGLE_REFRESH_TOKEN`
+- `GOOGLE_SERVICE_ACCOUNT_EMAIL`
+- `GOOGLE_PRIVATE_KEY`
+
+> ⚠️ Sebelumnya menggunakan OAuth refresh token (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`). Sudah diganti ke Service Account karena refresh token bisa expired.
 
 **Kenapa tidak pakai `lh3.googleusercontent.com` atau `uc?export=view`:**
 
-| Metode                                    | Masalah                                                                      |
-| ----------------------------------------- | ---------------------------------------------------------------------------- |
-| `lh3.googleusercontent.com/d/{ID}`        | Rate limit 429 saat banyak gambar dimuat sekaligus                           |
-| `drive.google.com/uc?export=view&id={ID}` | CORS error di Flutter Web — Google redirect ke domain lain tanpa CORS header |
-| `image-proxy` (tanpa `--no-verify-jwt`)   | 401 dari Supabase Gateway sebelum masuk ke function                          |
-| `image-proxy` (dengan `--no-verify-jwt`)  | ✅ Berfungsi — tidak ada CORS, tidak ada rate limit, bisa akses file private |
+| Metode                                      | Masalah                                                                      |
+| ------------------------------------------- | ---------------------------------------------------------------------------- |
+| `lh3.googleusercontent.com/d/{ID}`          | Rate limit 429 saat banyak gambar dimuat sekaligus                           |
+| `drive.google.com/uc?export=view&id={ID}`   | CORS error di Flutter Web — Google redirect ke domain lain tanpa CORS header |
+| `image-proxy` tanpa auth header             | 401 dari Supabase Gateway                                                    |
+| `image-proxy` dengan `Authorization` header | ✅ Berfungsi — tidak ada CORS, tidak ada rate limit, bisa akses file private |
 
 ## 4.6 import-from-sheets
 
