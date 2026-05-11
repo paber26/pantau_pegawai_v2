@@ -1,7 +1,6 @@
-import 'dart:io';
 import 'dart:convert';
+import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -66,22 +65,15 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
     required String pegawaiNama,
     required String proyek,
     required DateTime tanggalKegiatan,
-    File? imageFile,
-    List<int>? imageBytes,
+    Uint8List? imageBytes,
     String? catatan,
   }) async {
     try {
       String? imageUrl;
 
-      // Tentukan bytes yang akan diupload
-      List<int>? bytesToUpload = imageBytes;
-      if (bytesToUpload == null && imageFile != null && !kIsWeb) {
-        bytesToUpload = await imageFile.readAsBytes();
-      }
-
-      if (bytesToUpload != null) {
+      if (imageBytes != null) {
         imageUrl = await _uploadToGoogleDrive(
-          imageBytes: bytesToUpload,
+          imageBytes: imageBytes,
           pegawaiNama: pegawaiNama,
           tanggal: AppDateUtils.toFolderDate(tanggalKegiatan),
         );
@@ -97,7 +89,7 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
                 tanggalKegiatan.toIso8601String().split('T').first,
             'image_url': imageUrl,
             'catatan': catatan,
-            'link': imageUrl, // auto-set ke Drive URL yang sama
+            'link': imageUrl,
           })
           .select('*, users(nama, jabatan, unit_kerja)')
           .single();
@@ -134,7 +126,7 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
   }
 
   Future<String> _uploadToGoogleDrive({
-    required List<int> imageBytes,
+    required Uint8List imageBytes,
     required String pegawaiNama,
     required String tanggal,
   }) async {
@@ -154,7 +146,6 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
     request.fields['tanggal'] = tanggal;
     request.fields['filename'] = filename;
 
-    // Gunakan fromBytes — kompatibel dengan web dan mobile
     request.files.add(
       http.MultipartFile.fromBytes(
         'file',

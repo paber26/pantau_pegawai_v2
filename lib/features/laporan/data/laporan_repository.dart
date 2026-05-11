@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import '../domain/laporan_model.dart';
 
 abstract class LaporanRepository {
@@ -13,7 +13,7 @@ abstract class LaporanRepository {
   Future<LaporanModel> create({
     required String userId,
     required String kegiatanId,
-    required File imageFile,
+    required Uint8List imageBytes,
     required String pegawaiNama,
     String? deskripsi,
   });

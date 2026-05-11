@@ -1,6 +1,5 @@
-import 'dart:io';
+import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -39,8 +38,7 @@ class MyDokumentasiNotifier extends _$MyDokumentasiNotifier {
   Future<String?> tambah({
     required String proyek,
     required DateTime tanggalKegiatan,
-    File? imageFile,
-    Uint8List? imageBytes, // untuk Flutter Web
+    Uint8List? imageBytes,
     String? catatan,
   }) async {
     try {
@@ -52,7 +50,6 @@ class MyDokumentasiNotifier extends _$MyDokumentasiNotifier {
             pegawaiNama: user.nama,
             proyek: proyek,
             tanggalKegiatan: tanggalKegiatan,
-            imageFile: imageFile,
             imageBytes: imageBytes,
             catatan: catatan,
           );

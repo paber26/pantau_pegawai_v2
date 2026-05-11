@@ -1,7 +1,6 @@
-import 'dart:io';
 import 'dart:convert';
+import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart'
     hide AuthException, StorageException;
@@ -116,14 +115,14 @@ class LaporanRepositoryImpl implements LaporanRepository {
   Future<LaporanModel> create({
     required String userId,
     required String kegiatanId,
-    required File imageFile,
+    required Uint8List imageBytes,
     required String pegawaiNama,
     String? deskripsi,
   }) async {
     try {
       // 1. Upload foto ke Google Drive via Edge Function
       final imageUrl = await _uploadToGoogleDrive(
-        imageFile: imageFile,
+        imageBytes: imageBytes,
         pegawaiNama: pegawaiNama,
       );
 
@@ -146,7 +145,7 @@ class LaporanRepositoryImpl implements LaporanRepository {
   }
 
   Future<String> _uploadToGoogleDrive({
-    required File imageFile,
+    required Uint8List imageBytes,
     required String pegawaiNama,
   }) async {
     final session = _client.auth.currentSession;
@@ -167,16 +166,9 @@ class LaporanRepositoryImpl implements LaporanRepository {
     request.fields['tanggal'] = tanggal;
     request.fields['filename'] = filename;
 
-    if (kIsWeb) {
-      final bytes = await imageFile.readAsBytes();
-      request.files.add(
-        http.MultipartFile.fromBytes('file', bytes, filename: filename),
-      );
-    } else {
-      request.files.add(
-        await http.MultipartFile.fromPath('file', imageFile.path),
-      );
-    }
+    request.files.add(
+      http.MultipartFile.fromBytes('file', imageBytes, filename: filename),
+    );
 
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);

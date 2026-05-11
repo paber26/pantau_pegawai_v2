@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import '../domain/dokumentasi_model.dart';
 
 abstract class DokumentasiRepository {
@@ -9,8 +9,7 @@ abstract class DokumentasiRepository {
     required String pegawaiNama,
     required String proyek,
     required DateTime tanggalKegiatan,
-    File? imageFile,
-    List<int>? imageBytes, // untuk Flutter Web
+    Uint8List? imageBytes,
     String? catatan,
   });
   Future<List<DokumentasiModel>> getByYear(int year);

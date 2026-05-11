@@ -1,5 +1,5 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -354,8 +354,7 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
   final _catatanController = TextEditingController();
   String? _selectedProyek;
   DateTime _tanggal = DateTime.now();
-  File? _imageFile;
-  Uint8List? _webImageBytes;
+  Uint8List? _imageBytes;
   bool _isLoading = false;
   final _picker = ImagePicker();
 
@@ -369,15 +368,8 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
     final picked = await _picker.pickImage(
         source: source, imageQuality: 80, maxWidth: 1920);
     if (picked != null) {
-      if (kIsWeb) {
-        final bytes = await picked.readAsBytes();
-        setState(() {
-          _webImageBytes = bytes;
-          _imageFile = File(picked.path);
-        });
-      } else {
-        setState(() => _imageFile = File(picked.path));
-      }
+      final bytes = await picked.readAsBytes();
+      setState(() => _imageBytes = bytes);
     }
   }
 
@@ -404,7 +396,7 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
               Navigator.pop(ctx);
               _pickImage(ImageSource.gallery);
             }),
-        if (_imageFile != null)
+        if (_imageBytes != null)
           ListTile(
               leading: const Icon(Icons.delete_outline, color: AppColors.error),
               title: const Text('Hapus Foto',
@@ -412,8 +404,7 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
               onTap: () {
                 Navigator.pop(ctx);
                 setState(() {
-                  _imageFile = null;
-                  _webImageBytes = null;
+                  _imageBytes = null;
                 });
               }),
       ])),
@@ -427,8 +418,7 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
         await ref.read(myDokumentasiNotifierProvider.notifier).tambah(
               proyek: _selectedProyek!,
               tanggalKegiatan: _tanggal,
-              imageFile: kIsWeb ? null : _imageFile,
-              imageBytes: kIsWeb ? _webImageBytes : null,
+              imageBytes: _imageBytes,
               catatan: _catatanController.text.trim().isEmpty
                   ? null
                   : _catatanController.text.trim(),
@@ -481,14 +471,14 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
                     color: AppColors.background,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                        color: _imageFile != null
+                        color: _imageBytes != null
                             ? AppColors.primary
                             : AppColors.border,
-                        width: _imageFile != null ? 2 : 1),
+                        width: _imageBytes != null ? 2 : 1),
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(11),
-                    child: _imageFile == null
+                    child: _imageBytes == null
                         ? Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -502,11 +492,8 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
                                         color: AppColors.textSecondary,
                                         fontSize: 13)),
                               ])
-                        : (kIsWeb && _webImageBytes != null
-                            ? Image.memory(_webImageBytes!,
-                                fit: BoxFit.cover, width: double.infinity)
-                            : Image.file(_imageFile!,
-                                fit: BoxFit.cover, width: double.infinity)),
+                        : Image.memory(_imageBytes!,
+                            fit: BoxFit.cover, width: double.infinity),
                   ),
                 ),
               ),

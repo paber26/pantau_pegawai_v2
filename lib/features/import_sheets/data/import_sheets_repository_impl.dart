@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 
 import '../../../core/constants/supabase_constants.dart';
@@ -188,11 +188,16 @@ class ImportSheetsRepositoryImpl implements ImportSheetsRepository {
         'Koneksi ke server timeout. Silakan coba lagi.',
         code: 'timeout',
       );
-    } on SocketException {
-      throw const AppException(
-        'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.',
-        code: 'network_error',
-      );
+    } catch (e) {
+      if (e.toString().contains('SocketException') ||
+          e.toString().contains('Failed host lookup') ||
+          e.toString().contains('Connection refused')) {
+        throw const AppException(
+          'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.',
+          code: 'network_error',
+        );
+      }
+      rethrow;
     }
 
     if (response.statusCode == 200 || response.statusCode == 201) {
@@ -245,9 +250,17 @@ Future<T> _withRetry<T>(
     } on TimeoutException {
       if (attempt == maxAttempts) rethrow;
       await Future.delayed(delay);
-    } on SocketException {
-      if (attempt == maxAttempts) rethrow;
-      await Future.delayed(delay);
+    } catch (e) {
+      if (e.toString().contains('SocketException') ||
+          e.toString().contains('Failed host lookup') ||
+          e.toString().contains('Connection refused')) {
+        if (attempt == maxAttempts) {
+          throw AppException('Gagal setelah $maxAttempts percobaan');
+        }
+        await Future.delayed(delay);
+      } else {
+        rethrow;
+      }
     }
   }
   throw AppException('Gagal setelah $maxAttempts percobaan');

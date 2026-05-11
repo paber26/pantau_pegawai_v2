@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -71,7 +71,7 @@ class UploadLaporanNotifier extends _$UploadLaporanNotifier {
 
   Future<bool> upload({
     required String kegiatanId,
-    required File imageFile,
+    required Uint8List imageBytes,
     required String pegawaiNama,
     String? deskripsi,
   }) async {
@@ -86,7 +86,7 @@ class UploadLaporanNotifier extends _$UploadLaporanNotifier {
       () => ref.read(laporanRepositoryProvider).create(
             userId: user.id,
             kegiatanId: kegiatanId,
-            imageFile: imageFile,
+            imageBytes: imageBytes,
             pegawaiNama: pegawaiNama,
             deskripsi: deskripsi,
           ),

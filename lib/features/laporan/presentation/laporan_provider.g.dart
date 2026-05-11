@@ -63,7 +63,7 @@ final adminLaporanNotifierProvider = AutoDisposeAsyncNotifierProvider<
 
 typedef _$AdminLaporanNotifier = AutoDisposeAsyncNotifier<List<LaporanModel>>;
 String _$uploadLaporanNotifierHash() =>
-    r'1ea26707b271e599624afc4778fb0860786cf4ae';
+    r'3bb6d7389abb41fefff934e82f6d67803fe88f39';
 
 /// Upload laporan baru
 ///

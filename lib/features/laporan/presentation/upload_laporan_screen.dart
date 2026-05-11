@@ -1,6 +1,5 @@
-import 'dart:io';
+import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,8 +25,7 @@ class UploadLaporanScreen extends ConsumerStatefulWidget {
 
 class _UploadLaporanScreenState extends ConsumerState<UploadLaporanScreen> {
   final _deskripsiController = TextEditingController();
-  File? _selectedImage;
-  Uint8List? _webImageBytes; // untuk web preview
+  Uint8List? _imageBytes;
   final _picker = ImagePicker();
 
   @override
@@ -43,15 +41,8 @@ class _UploadLaporanScreenState extends ConsumerState<UploadLaporanScreen> {
       maxWidth: 1920,
     );
     if (picked != null) {
-      if (kIsWeb) {
-        final bytes = await picked.readAsBytes();
-        setState(() {
-          _webImageBytes = bytes;
-          _selectedImage = File(picked.path);
-        });
-      } else {
-        setState(() => _selectedImage = File(picked.path));
-      }
+      final bytes = await picked.readAsBytes();
+      setState(() => _imageBytes = bytes);
     }
   }
 
@@ -127,7 +118,7 @@ class _UploadLaporanScreenState extends ConsumerState<UploadLaporanScreen> {
   }
 
   Future<void> _handleSubmit() async {
-    if (_selectedImage == null) {
+    if (_imageBytes == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Pilih foto terlebih dahulu'),
@@ -142,7 +133,7 @@ class _UploadLaporanScreenState extends ConsumerState<UploadLaporanScreen> {
 
     final ok = await ref.read(uploadLaporanNotifierProvider.notifier).upload(
           kegiatanId: widget.kegiatanId,
-          imageFile: _selectedImage!,
+          imageBytes: _imageBytes!,
           pegawaiNama: user.nama,
           deskripsi: _deskripsiController.text.trim().isEmpty
               ? null
@@ -238,15 +229,14 @@ class _UploadLaporanScreenState extends ConsumerState<UploadLaporanScreen> {
                 duration: const Duration(milliseconds: 200),
                 height: 220,
                 decoration: BoxDecoration(
-                  color: _selectedImage != null
-                      ? Colors.black
-                      : AppColors.background,
+                  color:
+                      _imageBytes != null ? Colors.black : AppColors.background,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: _selectedImage != null
+                    color: _imageBytes != null
                         ? AppColors.primary
                         : AppColors.border,
-                    width: _selectedImage != null ? 2 : 1,
+                    width: _imageBytes != null ? 2 : 1,
                   ),
                 ),
                 child: ClipRRect(
@@ -256,7 +246,7 @@ class _UploadLaporanScreenState extends ConsumerState<UploadLaporanScreen> {
               ),
             ),
 
-            if (_selectedImage != null) ...[
+            if (_imageBytes != null) ...[
               const SizedBox(height: 8),
               Center(
                 child: TextButton.icon(
@@ -314,7 +304,7 @@ class _UploadLaporanScreenState extends ConsumerState<UploadLaporanScreen> {
   }
 
   Widget _buildImagePreview() {
-    if (_selectedImage == null) {
+    if (_imageBytes == null) {
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -343,17 +333,8 @@ class _UploadLaporanScreenState extends ConsumerState<UploadLaporanScreen> {
       );
     }
 
-    if (kIsWeb && _webImageBytes != null) {
-      return Image.memory(
-        _webImageBytes!,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        height: double.infinity,
-      );
-    }
-
-    return Image.file(
-      _selectedImage!,
+    return Image.memory(
+      _imageBytes!,
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,
