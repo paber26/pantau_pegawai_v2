@@ -1,10 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-// OAuth2 credentials (set via Supabase secrets)
-const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID")!
-const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET")!
-const GOOGLE_REFRESH_TOKEN = Deno.env.get("GOOGLE_REFRESH_TOKEN")!
+// Service Account credentials (set via Supabase secrets)
+const SERVICE_ACCOUNT_EMAIL = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_EMAIL")!
+const PRIVATE_KEY = Deno.env.get("GOOGLE_PRIVATE_KEY")!
 const ROOT_FOLDER_ID = Deno.env.get("GOOGLE_DRIVE_ROOT_FOLDER_ID")!
 
 const corsHeaders = {
@@ -13,25 +12,66 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Authorization, Content-Type"
 }
 
-// Dapatkan access token baru dari refresh token
+// Buat JWT untuk Service Account Google
+async function createServiceAccountJWT(): Promise<string> {
+  const now = Math.floor(Date.now() / 1000)
+  const header = { alg: "RS256", typ: "JWT" }
+  const payload = {
+    iss: SERVICE_ACCOUNT_EMAIL,
+    scope: "https://www.googleapis.com/auth/drive",
+    aud: "https://oauth2.googleapis.com/token",
+    exp: now + 3600,
+    iat: now
+  }
+
+  const encode = (obj: object) => btoa(JSON.stringify(obj)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
+
+  const headerB64 = encode(header)
+  const payloadB64 = encode(payload)
+  const signingInput = `${headerB64}.${payloadB64}`
+
+  const pemKey = PRIVATE_KEY.replace(/\\n/g, "\n")
+  const keyData = pemKey
+    .replace("-----BEGIN PRIVATE KEY-----", "")
+    .replace("-----END PRIVATE KEY-----", "")
+    .replace(/\s/g, "")
+
+  const binaryKey = Uint8Array.from(atob(keyData), (c) => c.charCodeAt(0))
+  const cryptoKey = await crypto.subtle.importKey(
+    "pkcs8",
+    binaryKey,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"]
+  )
+
+  const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", cryptoKey, new TextEncoder().encode(signingInput))
+
+  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "")
+
+  return `${signingInput}.${signatureB64}`
+}
+
+// Dapatkan access token via Service Account JWT
 async function getAccessToken(): Promise<string> {
+  const jwt = await createServiceAccountJWT()
+
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      client_id: GOOGLE_CLIENT_ID,
-      client_secret: GOOGLE_CLIENT_SECRET,
-      refresh_token: GOOGLE_REFRESH_TOKEN,
-      grant_type: "refresh_token"
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: jwt
     })
   })
 
-  if (!response.ok) {
-    const err = await response.text()
-    throw new Error(`Gagal refresh access token: ${err}`)
-  }
-
   const data = await response.json()
+  if (!data.access_token) {
+    throw new Error(`Gagal refresh access token: ${JSON.stringify(data)}`)
+  }
   return data.access_token as string
 }
 
@@ -135,7 +175,7 @@ async function uploadFile(
     body: JSON.stringify({ role: "reader", type: "anyone" })
   })
 
-  // Return URL proxy Supabase (bukan URL Drive langsung) agar bisa ditampilkan di browser
+  // Return URL proxy Supabase
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!
   return `${supabaseUrl}/functions/v1/image-proxy?id=${fileId}`
 }
@@ -190,7 +230,7 @@ serve(async (req: Request) => {
 
     const fileBytes = new Uint8Array(await file.arrayBuffer())
 
-    // Dapatkan access token via refresh token
+    // Dapatkan access token via Service Account
     const accessToken = await getAccessToken()
 
     // Buat struktur folder: ROOT/{nama_pegawai}/{yyyy-mm-dd}/

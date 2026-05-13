@@ -500,9 +500,7 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
               ),
               const SizedBox(height: 14),
               ref.watch(kegiatanListProvider).when(
-                    loading: () => DropdownButtonFormField<String>(
-                      items: const [],
-                      onChanged: null,
+                    loading: () => InputDecorator(
                       decoration: InputDecoration(
                         labelText: 'Proyek / Kegiatan *',
                         prefixIcon: const Icon(Icons.work_outline),
@@ -517,34 +515,97 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
                           ),
                         ),
                       ),
+                      child: const Text('Memuat proyek...',
+                          style: TextStyle(color: AppColors.textHint)),
                     ),
                     error: (e, _) => Text(
                       'Gagal memuat proyek: $e',
                       style: const TextStyle(color: AppColors.error),
                     ),
-                    data: (list) => DropdownButtonFormField<String>(
-                      initialValue: _selectedProyek,
-                      decoration: InputDecoration(
-                        labelText: 'Proyek / Kegiatan *',
-                        prefixIcon: const Icon(Icons.work_outline),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                      ),
-                      hint: list.isEmpty
-                          ? const Text('Belum ada proyek tersedia')
-                          : const Text('Pilih proyek...'),
-                      items: list
-                          .map((k) => DropdownMenuItem(
-                                value: k.judul,
-                                child: Text(k.judul,
-                                    overflow: TextOverflow.ellipsis),
-                              ))
-                          .toList(),
-                      onChanged: list.isEmpty
-                          ? null
-                          : (v) => setState(() => _selectedProyek = v),
-                      validator: (v) => v == null ? 'Wajib pilih proyek' : null,
-                    ),
+                    data: (list) {
+                      // Urutkan proyek secara abjad
+                      final sortedList = List.of(list)
+                        ..sort((a, b) => a.judul
+                            .toLowerCase()
+                            .compareTo(b.judul.toLowerCase()));
+                      final proyekNames =
+                          sortedList.map((k) => k.judul).toList();
+
+                      return Autocomplete<String>(
+                        initialValue: _selectedProyek != null
+                            ? TextEditingValue(text: _selectedProyek!)
+                            : TextEditingValue.empty,
+                        optionsBuilder: (textEditingValue) {
+                          if (textEditingValue.text.isEmpty) {
+                            return proyekNames;
+                          }
+                          return proyekNames.where((p) => p
+                              .toLowerCase()
+                              .contains(textEditingValue.text.toLowerCase()));
+                        },
+                        onSelected: (value) =>
+                            setState(() => _selectedProyek = value),
+                        fieldViewBuilder:
+                            (context, controller, focusNode, onFieldSubmitted) {
+                          return TextFormField(
+                            controller: controller,
+                            focusNode: focusNode,
+                            decoration: InputDecoration(
+                              labelText: 'Proyek / Kegiatan *',
+                              hintText: 'Ketik untuk mencari proyek...',
+                              prefixIcon: const Icon(Icons.work_outline),
+                              suffixIcon: _selectedProyek != null
+                                  ? IconButton(
+                                      icon: const Icon(Icons.clear, size: 18),
+                                      onPressed: () {
+                                        controller.clear();
+                                        setState(() => _selectedProyek = null);
+                                      },
+                                    )
+                                  : const Icon(Icons.arrow_drop_down),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10)),
+                            ),
+                            validator: (_) => _selectedProyek == null
+                                ? 'Wajib pilih proyek'
+                                : null,
+                            onChanged: (value) {
+                              // Jika user mengetik tapi belum pilih dari list
+                              if (!proyekNames.contains(value)) {
+                                setState(() => _selectedProyek = null);
+                              }
+                            },
+                          );
+                        },
+                        optionsViewBuilder: (context, onSelected, options) {
+                          return Align(
+                            alignment: Alignment.topLeft,
+                            child: Material(
+                              elevation: 4,
+                              borderRadius: BorderRadius.circular(10),
+                              child: ConstrainedBox(
+                                constraints:
+                                    const BoxConstraints(maxHeight: 200),
+                                child: ListView.builder(
+                                  padding: EdgeInsets.zero,
+                                  shrinkWrap: true,
+                                  itemCount: options.length,
+                                  itemBuilder: (context, index) {
+                                    final option = options.elementAt(index);
+                                    return ListTile(
+                                      dense: true,
+                                      title: Text(option,
+                                          overflow: TextOverflow.ellipsis),
+                                      onTap: () => onSelected(option),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
                   ),
               const SizedBox(height: 12),
               InkWell(
