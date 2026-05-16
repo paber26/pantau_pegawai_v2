@@ -96,9 +96,25 @@ async function main() {
   console.log(`   ${records.length} baris ditemukan`)
 
   // Ambil dokumentasi yang sudah ada untuk skip duplikat
-  const { data: existingDok } = await supabase.from("dokumentasi").select("user_id, tanggal_kegiatan, proyek")
-  const existingKeys = new Set((existingDok || []).map((d) => `${d.user_id}|${d.tanggal_kegiatan}|${d.proyek}`))
-  console.log(`   ${existingKeys.size} dokumentasi sudah ada di Supabase (akan di-skip)`)
+  // Pagination diperlukan karena Supabase default limit 1000 per query.
+  const PAGE_SIZE = 1000
+  const existingDok = []
+  let page = 0
+  while (true) {
+    const from = page * PAGE_SIZE
+    const to = from + PAGE_SIZE - 1
+    const { data, error } = await supabase
+      .from("dokumentasi")
+      .select("user_id, tanggal_kegiatan, proyek")
+      .range(from, to)
+    if (error) throw new Error(`Gagal baca dokumentasi page ${page}: ${error.message}`)
+    if (!data || data.length === 0) break
+    existingDok.push(...data)
+    if (data.length < PAGE_SIZE) break
+    page++
+  }
+  const existingKeys = new Set(existingDok.map((d) => `${d.user_id}|${d.tanggal_kegiatan}|${d.proyek}`))
+  console.log(`   ${existingDok.length} dokumentasi sudah ada di Supabase (akan di-skip)`)
 
   // Proses semua baris
   const toInsert = []
