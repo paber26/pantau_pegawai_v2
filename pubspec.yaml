@@ -23,6 +23,7 @@ dependencies:
   # Image
   image_picker: ^1.1.2
   cached_network_image: ^3.3.1
+  image: ^4.8.0
 
   # UI
   flutter_svg: ^2.0.10+1
@@ -33,6 +34,7 @@ dependencies:
   uuid: ^4.4.0
   http: ^1.2.1
   url_launcher: ^6.3.0
+  pasteboard: ^0.5.0
 
 dev_dependencies:
   flutter_test:

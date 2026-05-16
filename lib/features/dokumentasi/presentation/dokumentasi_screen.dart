@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/clipboard_service_provider.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../core/utils/image_url_utils.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
@@ -16,7 +17,9 @@ import '../../auth/presentation/auth_provider.dart';
 import '../../kegiatan/presentation/kegiatan_provider.dart';
 import '../../pegawai/presentation/pegawai_provider.dart';
 import '../domain/dokumentasi_model.dart';
+import '../domain/image_source_type.dart';
 import 'dokumentasi_provider.dart';
+import 'widgets/paste_image_handler.dart';
 
 /// Halaman utama: semua dokumentasi semua pegawai + filter
 class DokumentasiScreen extends ConsumerStatefulWidget {
@@ -353,9 +356,12 @@ class DokumentasiFormSheet extends ConsumerStatefulWidget {
 class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
   final _formKey = GlobalKey<FormState>();
   final _catatanController = TextEditingController();
+  final GlobalKey<PasteImageHandlerState> _pasteHandlerKey =
+      GlobalKey<PasteImageHandlerState>();
   String? _selectedProyek;
   DateTime _tanggal = DateTime.now();
   Uint8List? _imageBytes;
+  ImageSourceType? _imageSourceType;
   bool _isLoading = false;
   final _picker = ImagePicker();
 
@@ -370,11 +376,36 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
         source: source, imageQuality: 80, maxWidth: 1920);
     if (picked != null) {
       final bytes = await picked.readAsBytes();
-      setState(() => _imageBytes = bytes);
+      setState(() {
+        _imageBytes = bytes;
+        _imageSourceType = source == ImageSource.camera
+            ? ImageSourceType.camera
+            : ImageSourceType.gallery;
+      });
     }
   }
 
+  /// Callback dipanggil oleh [PasteImageHandler] ketika gambar berhasil
+  /// di-paste dari clipboard. Menyimpan byte ke state form dan menandai
+  /// sumber gambar sebagai [ImageSourceType.paste] supaya UI bisa
+  /// menampilkan badge clipboard pada preview.
+  void _handleImagePasted(Uint8List bytes) {
+    setState(() {
+      _imageBytes = bytes;
+      _imageSourceType = ImageSourceType.paste;
+    });
+  }
+
+  /// Memicu eksekusi paste lewat [PasteImageHandler] yang membungkus
+  /// konten form. Dipanggil dari ListTile "Paste dari Clipboard" pada
+  /// bottom sheet image picker.
+  void _triggerClipboardPaste() {
+    _pasteHandlerKey.currentState?.performPaste();
+  }
+
   void _showImagePicker() {
+    final bool clipboardSupported =
+        ref.read(clipboardServiceProvider).isSupported;
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -397,6 +428,17 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
               Navigator.pop(ctx);
               _pickImage(ImageSource.gallery);
             }),
+        if (clipboardSupported)
+          ListTile(
+              leading:
+                  const Icon(Icons.content_paste, color: AppColors.primary),
+              title: const Text('Paste dari Clipboard'),
+              onTap: () {
+                // Tutup bottom sheet sebelum membaca clipboard
+                // (Requirement 6.5).
+                Navigator.pop(ctx);
+                _triggerClipboardPaste();
+              }),
         if (_imageBytes != null)
           ListTile(
               leading: const Icon(Icons.delete_outline, color: AppColors.error),
@@ -406,6 +448,7 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
                 Navigator.pop(ctx);
                 setState(() {
                   _imageBytes = null;
+                  _imageSourceType = null;
                 });
               }),
       ])),
@@ -446,215 +489,274 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
-      child: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
+      child: PasteImageHandler(
+        key: _pasteHandlerKey,
+        onImagePasted: _handleImagePasted,
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                    child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 16),
+                const Text('Tambah Dokumentasi',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 20),
+                // Image preview area.
+                //
+                // Task 5.5 — tap interaction: ketika user mengetuk preview,
+                // _showImagePicker() menampilkan bottom sheet dengan opsi
+                // "Ambil Foto", "Pilih dari Galeri", "Paste dari Clipboard",
+                // dan "Hapus Foto" (yang terakhir hanya muncul saat sudah
+                // ada gambar). "Hapus Foto" mereset _imageBytes dan
+                // _imageSourceType ke null. Gambar yang di-paste menggantikan
+                // gambar yang sudah ada tanpa dialog konfirmasi karena
+                // _handleImagePasted langsung melakukan setState pada
+                // _imageBytes (Requirements 1.5, 4.3, 4.5).
+                //
+                // Task 5.6 — submission flow: gambar yang di-paste disimpan
+                // pada state variable _imageBytes yang sama dengan kamera/
+                // galeri, sehingga _handleSubmit menggunakan mekanisme upload
+                // identik tanpa percabangan berdasar sumber gambar
+                // (Requirements 6.2, 6.3, 6.4).
+                GestureDetector(
+                  onTap: _showImagePicker,
                   child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(2)))),
-              const SizedBox(height: 16),
-              const Text('Tambah Dokumentasi',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 20),
-              GestureDetector(
-                onTap: _showImagePicker,
-                child: Container(
-                  height: 150,
-                  decoration: BoxDecoration(
-                    color: AppColors.background,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: _imageBytes != null
-                            ? AppColors.primary
-                            : AppColors.border,
-                        width: _imageBytes != null ? 2 : 1),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(11),
-                    child: _imageBytes == null
-                        ? Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                                Icon(Icons.add_a_photo_outlined,
-                                    size: 36,
-                                    color: AppColors.primary
-                                        .withValues(alpha: 0.4)),
-                                const SizedBox(height: 8),
-                                const Text('Tambah Foto (opsional)',
-                                    style: TextStyle(
-                                        color: AppColors.textSecondary,
-                                        fontSize: 13)),
-                              ])
-                        : Image.memory(_imageBytes!,
-                            fit: BoxFit.cover, width: double.infinity),
+                    height: 150,
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: _imageBytes != null
+                              ? AppColors.primary
+                              : AppColors.border,
+                          width: _imageBytes != null ? 2 : 1),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(11),
+                      child: _imageBytes == null
+                          ? Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                  Icon(Icons.add_a_photo_outlined,
+                                      size: 36,
+                                      color: AppColors.primary
+                                          .withValues(alpha: 0.4)),
+                                  const SizedBox(height: 8),
+                                  const Text('Tambah Foto (opsional)',
+                                      style: TextStyle(
+                                          color: AppColors.textSecondary,
+                                          fontSize: 13)),
+                                ])
+                          // Task 5.4 — gunakan Stack agar badge clipboard bisa
+                          // di-overlay pada pojok kanan atas preview ketika
+                          // gambar berasal dari paste clipboard
+                          // (Requirements 1.3, 4.1, 4.2, 4.4).
+                          : Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                Image.memory(_imageBytes!,
+                                    fit: BoxFit.cover, width: double.infinity),
+                                if (_imageSourceType == ImageSourceType.paste)
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: Container(
+                                      width: 32,
+                                      height: 32,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary
+                                            .withValues(alpha: 0.85),
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black
+                                                .withValues(alpha: 0.25),
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Icon(
+                                        Icons.content_paste,
+                                        size: 18,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 14),
-              ref.watch(kegiatanListProvider).when(
-                    loading: () => InputDecorator(
-                      decoration: InputDecoration(
-                        labelText: 'Proyek / Kegiatan *',
-                        prefixIcon: const Icon(Icons.work_outline),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                        suffixIcon: const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: Padding(
-                            padding: EdgeInsets.all(12),
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                const SizedBox(height: 14),
+                ref.watch(kegiatanListProvider).when(
+                      loading: () => InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: 'Proyek / Kegiatan *',
+                          prefixIcon: const Icon(Icons.work_outline),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                          suffixIcon: const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: Padding(
+                              padding: EdgeInsets.all(12),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
                           ),
                         ),
+                        child: const Text('Memuat proyek...',
+                            style: TextStyle(color: AppColors.textHint)),
                       ),
-                      child: const Text('Memuat proyek...',
-                          style: TextStyle(color: AppColors.textHint)),
-                    ),
-                    error: (e, _) => Text(
-                      'Gagal memuat proyek: $e',
-                      style: const TextStyle(color: AppColors.error),
-                    ),
-                    data: (list) {
-                      // Urutkan proyek secara abjad
-                      final sortedList = List.of(list)
-                        ..sort((a, b) => a.judul
-                            .toLowerCase()
-                            .compareTo(b.judul.toLowerCase()));
-                      final proyekNames =
-                          sortedList.map((k) => k.judul).toList();
-
-                      return Autocomplete<String>(
-                        initialValue: _selectedProyek != null
-                            ? TextEditingValue(text: _selectedProyek!)
-                            : TextEditingValue.empty,
-                        optionsBuilder: (textEditingValue) {
-                          if (textEditingValue.text.isEmpty) {
-                            return proyekNames;
-                          }
-                          return proyekNames.where((p) => p
+                      error: (e, _) => Text(
+                        'Gagal memuat proyek: $e',
+                        style: const TextStyle(color: AppColors.error),
+                      ),
+                      data: (list) {
+                        // Urutkan proyek secara abjad
+                        final sortedList = List.of(list)
+                          ..sort((a, b) => a.judul
                               .toLowerCase()
-                              .contains(textEditingValue.text.toLowerCase()));
-                        },
-                        onSelected: (value) =>
-                            setState(() => _selectedProyek = value),
-                        fieldViewBuilder:
-                            (context, controller, focusNode, onFieldSubmitted) {
-                          return TextFormField(
-                            controller: controller,
-                            focusNode: focusNode,
-                            decoration: InputDecoration(
-                              labelText: 'Proyek / Kegiatan *',
-                              hintText: 'Ketik untuk mencari proyek...',
-                              prefixIcon: const Icon(Icons.work_outline),
-                              suffixIcon: _selectedProyek != null
-                                  ? IconButton(
-                                      icon: const Icon(Icons.clear, size: 18),
-                                      onPressed: () {
-                                        controller.clear();
-                                        setState(() => _selectedProyek = null);
-                                      },
-                                    )
-                                  : const Icon(Icons.arrow_drop_down),
-                              border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10)),
-                            ),
-                            validator: (_) => _selectedProyek == null
-                                ? 'Wajib pilih proyek'
-                                : null,
-                            onChanged: (value) {
-                              // Jika user mengetik tapi belum pilih dari list
-                              if (!proyekNames.contains(value)) {
-                                setState(() => _selectedProyek = null);
-                              }
-                            },
-                          );
-                        },
-                        optionsViewBuilder: (context, onSelected, options) {
-                          return Align(
-                            alignment: Alignment.topLeft,
-                            child: Material(
-                              elevation: 4,
-                              borderRadius: BorderRadius.circular(10),
-                              child: ConstrainedBox(
-                                constraints:
-                                    const BoxConstraints(maxHeight: 200),
-                                child: ListView.builder(
-                                  padding: EdgeInsets.zero,
-                                  shrinkWrap: true,
-                                  itemCount: options.length,
-                                  itemBuilder: (context, index) {
-                                    final option = options.elementAt(index);
-                                    return ListTile(
-                                      dense: true,
-                                      title: Text(option,
-                                          overflow: TextOverflow.ellipsis),
-                                      onTap: () => onSelected(option),
-                                    );
-                                  },
+                              .compareTo(b.judul.toLowerCase()));
+                        final proyekNames =
+                            sortedList.map((k) => k.judul).toList();
+
+                        return Autocomplete<String>(
+                          initialValue: _selectedProyek != null
+                              ? TextEditingValue(text: _selectedProyek!)
+                              : TextEditingValue.empty,
+                          optionsBuilder: (textEditingValue) {
+                            if (textEditingValue.text.isEmpty) {
+                              return proyekNames;
+                            }
+                            return proyekNames.where((p) => p
+                                .toLowerCase()
+                                .contains(textEditingValue.text.toLowerCase()));
+                          },
+                          onSelected: (value) =>
+                              setState(() => _selectedProyek = value),
+                          fieldViewBuilder: (context, controller, focusNode,
+                              onFieldSubmitted) {
+                            return TextFormField(
+                              controller: controller,
+                              focusNode: focusNode,
+                              decoration: InputDecoration(
+                                labelText: 'Proyek / Kegiatan *',
+                                hintText: 'Ketik untuk mencari proyek...',
+                                prefixIcon: const Icon(Icons.work_outline),
+                                suffixIcon: _selectedProyek != null
+                                    ? IconButton(
+                                        icon: const Icon(Icons.clear, size: 18),
+                                        onPressed: () {
+                                          controller.clear();
+                                          setState(
+                                              () => _selectedProyek = null);
+                                        },
+                                      )
+                                    : const Icon(Icons.arrow_drop_down),
+                                border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10)),
+                              ),
+                              validator: (_) => _selectedProyek == null
+                                  ? 'Wajib pilih proyek'
+                                  : null,
+                              onChanged: (value) {
+                                // Jika user mengetik tapi belum pilih dari list
+                                if (!proyekNames.contains(value)) {
+                                  setState(() => _selectedProyek = null);
+                                }
+                              },
+                            );
+                          },
+                          optionsViewBuilder: (context, onSelected, options) {
+                            return Align(
+                              alignment: Alignment.topLeft,
+                              child: Material(
+                                elevation: 4,
+                                borderRadius: BorderRadius.circular(10),
+                                child: ConstrainedBox(
+                                  constraints:
+                                      const BoxConstraints(maxHeight: 200),
+                                  child: ListView.builder(
+                                    padding: EdgeInsets.zero,
+                                    shrinkWrap: true,
+                                    itemCount: options.length,
+                                    itemBuilder: (context, index) {
+                                      final option = options.elementAt(index);
+                                      return ListTile(
+                                        dense: true,
+                                        title: Text(option,
+                                            overflow: TextOverflow.ellipsis),
+                                        onTap: () => onSelected(option),
+                                      );
+                                    },
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        },
-                      );
-                    },
+                            );
+                          },
+                        );
+                      },
+                    ),
+                const SizedBox(height: 12),
+                InkWell(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _tanggal,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now());
+                    if (picked != null) setState(() => _tanggal = picked);
+                  },
+                  child: InputDecorator(
+                    decoration: InputDecoration(
+                        labelText: 'Tanggal Kegiatan *',
+                        prefixIcon: const Icon(Icons.calendar_today_outlined),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10))),
+                    child: Text(AppDateUtils.formatDate(_tanggal),
+                        style: const TextStyle(fontSize: 16)),
                   ),
-              const SizedBox(height: 12),
-              InkWell(
-                onTap: () async {
-                  final picked = await showDatePicker(
-                      context: context,
-                      initialDate: _tanggal,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime.now());
-                  if (picked != null) setState(() => _tanggal = picked);
-                },
-                child: InputDecorator(
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _catatanController,
+                  maxLines: 3,
                   decoration: InputDecoration(
-                      labelText: 'Tanggal Kegiatan *',
-                      prefixIcon: const Icon(Icons.calendar_today_outlined),
+                      labelText: 'Catatan',
+                      hintText: 'Deskripsi kegiatan...',
+                      prefixIcon: const Icon(Icons.notes_outlined),
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10))),
-                  child: Text(AppDateUtils.formatDate(_tanggal),
-                      style: const TextStyle(fontSize: 16)),
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _catatanController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                    labelText: 'Catatan',
-                    hintText: 'Deskripsi kegiatan...',
-                    prefixIcon: const Icon(Icons.notes_outlined),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10))),
-              ),
-              const SizedBox(height: 20),
-              if (_isLoading) ...[
-                const LinearProgressIndicator(),
-                const SizedBox(height: 8)
+                const SizedBox(height: 20),
+                if (_isLoading) ...[
+                  const LinearProgressIndicator(),
+                  const SizedBox(height: 8)
+                ],
+                ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _handleSubmit,
+                  icon: const Icon(Icons.save_outlined),
+                  label: const Text('Simpan Dokumentasi'),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12))),
+                ),
               ],
-              ElevatedButton.icon(
-                onPressed: _isLoading ? null : _handleSubmit,
-                icon: const Icon(Icons.save_outlined),
-                label: const Text('Simpan Dokumentasi'),
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12))),
-              ),
-            ],
+            ),
           ),
         ),
       ),
