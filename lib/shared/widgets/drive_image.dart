@@ -1,27 +1,27 @@
-import 'dart:typed_data';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/supabase_constants.dart';
 import '../../core/utils/image_url_utils.dart';
 
 /// Provider untuk fetch image bytes via image-proxy dengan Authorization header.
+///
+/// Selalu pakai anon key (bukan user access token) karena:
+///   - User access token Supabase expire setiap 1 jam → di Android session
+///     yang sudah expired bikin gambar putih permanen.
+///   - Anon key tidak pernah expire dan cukup untuk lewat Supabase gateway.
+///   - Edge function `image-proxy` tidak butuh user identity — function pakai
+///     Service Account internal untuk akses Drive.
 final _imageProvider =
     FutureProvider.family<Uint8List?, String>((ref, fileId) async {
   final proxyUrl = Uri.parse('${SupabaseConstants.imageProxyUrl}?id=$fileId');
 
-  // Gunakan session token jika tersedia, fallback ke anon key
-  final session = Supabase.instance.client.auth.currentSession;
-  final token = session?.accessToken ?? SupabaseConstants.anonKey;
-
   final response = await http.get(
     proxyUrl,
-    headers: {'Authorization': 'Bearer $token'},
+    headers: {'Authorization': 'Bearer ${SupabaseConstants.anonKey}'},
   );
 
   if (response.statusCode == 200) {
@@ -31,6 +31,14 @@ final _imageProvider =
 });
 
 /// Widget untuk menampilkan gambar dari Google Drive via image-proxy Supabase.
+///
+/// Strategi cross-platform sama: fetch byte manual lewat [http.get] dengan
+/// `Authorization: Bearer ${anonKey}`, lalu render via [Image.memory].
+/// Pendekatan ini menghindari masalah:
+///   - Token expired di Android ([Image.network] memakai header sekali saat
+///     load awal dan tidak refresh saat token user expired).
+///   - CORS preflight di web (browser kirim OPTIONS yang ditolak Supabase
+///     bila tidak ada Authorization header).
 class DriveImage extends ConsumerWidget {
   final String? imageUrl;
   final double? width;
@@ -54,65 +62,6 @@ class DriveImage extends ConsumerWidget {
     final fileId = ImageUrlUtils.extractFileId(imageUrl);
     if (fileId == null) return _placeholder();
 
-    // Di web: fetch manual dengan auth header untuk menghindari CORS issue
-    // Di mobile: gunakan Image.network langsung (lebih efisien)
-    if (kIsWeb) {
-      return _WebDriveImage(
-        fileId: fileId,
-        width: width,
-        height: height,
-        fit: fit,
-      );
-    }
-
-    // Semua gambar via image-proxy — sertakan apikey agar Supabase gateway mengizinkan
-    final proxyUrl =
-        '${SupabaseConstants.imageProxyUrl}?id=$fileId&apikey=${SupabaseConstants.anonKey}';
-
-    return Image.network(
-      proxyUrl,
-      width: width,
-      height: height,
-      fit: fit,
-      loadingBuilder: (context, child, progress) {
-        if (progress == null) return child;
-        return Container(
-          width: width,
-          height: height,
-          color: AppColors.background,
-          child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-        );
-      },
-      errorBuilder: (context, error, stack) => _placeholder(),
-    );
-  }
-
-  Widget _placeholder() {
-    return Container(
-      width: width,
-      height: height,
-      color: AppColors.background,
-      child: const Icon(Icons.image_outlined, color: AppColors.textHint),
-    );
-  }
-}
-
-/// Widget khusus web yang fetch image bytes secara manual dengan auth header
-class _WebDriveImage extends ConsumerWidget {
-  final String fileId;
-  final double? width;
-  final double? height;
-  final BoxFit fit;
-
-  const _WebDriveImage({
-    required this.fileId,
-    this.width,
-    this.height,
-    required this.fit,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
     final imageAsync = ref.watch(_imageProvider(fileId));
 
     return imageAsync.when(
