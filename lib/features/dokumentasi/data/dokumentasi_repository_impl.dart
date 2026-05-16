@@ -21,24 +21,43 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
     DateTime? toDate,
   }) async {
     try {
-      if (fromDate != null && toDate != null) {
-        final data = await _client
+      // Pagination: Supabase default limit 1000 baris per query.
+      // Untuk dataset > 1000 baris kita harus pakai range() berulang
+      // sampai semua baris terambil.
+      const pageSize = 1000;
+      final all = <DokumentasiModel>[];
+      var page = 0;
+      final fromStr = fromDate?.toIso8601String().split('T').first;
+      final toStr = toDate?.toIso8601String().split('T').first;
+
+      while (true) {
+        final from = page * pageSize;
+        final to = from + pageSize - 1;
+
+        // Pola query yang sama dengan/tanpa filter tanggal.
+        final query = _client
             .from('dokumentasi')
-            .select('*, users(nama, jabatan, unit_kerja)')
-            .gte(
-                'tanggal_kegiatan', fromDate.toIso8601String().split('T').first)
-            .lte('tanggal_kegiatan', toDate.toIso8601String().split('T').first)
+            .select('*, users(nama, jabatan, unit_kerja)');
+        final filtered = (fromStr != null && toStr != null)
+            ? query.gte('tanggal_kegiatan', fromStr).lte(
+                  'tanggal_kegiatan',
+                  toStr,
+                )
+            : query;
+        final data = await filtered
             .order('tanggal_kegiatan', ascending: false)
-            .order('created_at', ascending: false);
-        return (data as List).map((e) => DokumentasiModel.fromMap(e)).toList();
+            .order('created_at', ascending: false)
+            .range(from, to);
+
+        final batch =
+            (data as List).map((e) => DokumentasiModel.fromMap(e)).toList();
+        all.addAll(batch);
+
+        if (batch.length < pageSize) break;
+        page += 1;
       }
 
-      final data = await _client
-          .from('dokumentasi')
-          .select('*, users(nama, jabatan, unit_kerja)')
-          .order('tanggal_kegiatan', ascending: false)
-          .order('created_at', ascending: false);
-      return (data as List).map((e) => DokumentasiModel.fromMap(e)).toList();
+      return all;
     } catch (e) {
       throw AppException('Gagal memuat dokumentasi: ${e.toString()}');
     }
@@ -47,13 +66,32 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
   @override
   Future<List<DokumentasiModel>> getByUserId(String userId) async {
     try {
-      final data = await _client
-          .from('dokumentasi')
-          .select('*, users(nama, jabatan, unit_kerja)')
-          .eq('user_id', userId)
-          .order('tanggal_kegiatan', ascending: false)
-          .order('created_at', ascending: false);
-      return (data as List).map((e) => DokumentasiModel.fromMap(e)).toList();
+      // Pagination untuk antisipasi user yang punya >1000 dokumentasi.
+      const pageSize = 1000;
+      final all = <DokumentasiModel>[];
+      var page = 0;
+
+      while (true) {
+        final from = page * pageSize;
+        final to = from + pageSize - 1;
+
+        final data = await _client
+            .from('dokumentasi')
+            .select('*, users(nama, jabatan, unit_kerja)')
+            .eq('user_id', userId)
+            .order('tanggal_kegiatan', ascending: false)
+            .order('created_at', ascending: false)
+            .range(from, to);
+
+        final batch =
+            (data as List).map((e) => DokumentasiModel.fromMap(e)).toList();
+        all.addAll(batch);
+
+        if (batch.length < pageSize) break;
+        page += 1;
+      }
+
+      return all;
     } catch (e) {
       throw AppException('Gagal memuat dokumentasi: ${e.toString()}');
     }
@@ -103,13 +141,32 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
   @override
   Future<List<DokumentasiModel>> getByYear(int year) async {
     try {
-      final data = await _client
-          .from('dokumentasi')
-          .select('*, users(nama, jabatan, unit_kerja)')
-          .gte('tanggal_kegiatan', '$year-01-01')
-          .lte('tanggal_kegiatan', '$year-12-31')
-          .order('tanggal_kegiatan', ascending: false);
-      return (data as List).map((e) => DokumentasiModel.fromMap(e)).toList();
+      // Pagination: lihat catatan di getAll().
+      const pageSize = 1000;
+      final all = <DokumentasiModel>[];
+      var page = 0;
+
+      while (true) {
+        final from = page * pageSize;
+        final to = from + pageSize - 1;
+
+        final data = await _client
+            .from('dokumentasi')
+            .select('*, users(nama, jabatan, unit_kerja)')
+            .gte('tanggal_kegiatan', '$year-01-01')
+            .lte('tanggal_kegiatan', '$year-12-31')
+            .order('tanggal_kegiatan', ascending: false)
+            .range(from, to);
+
+        final batch =
+            (data as List).map((e) => DokumentasiModel.fromMap(e)).toList();
+        all.addAll(batch);
+
+        if (batch.length < pageSize) break;
+        page += 1;
+      }
+
+      return all;
     } catch (e) {
       throw AppException(
           'Gagal memuat dokumentasi tahun $year: ${e.toString()}');
