@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Use Case Diagram &mdash; PantauPegawai</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      :root {
+        --blue: #1565c0;
+        --blue-dark: #0d47a1;
+        --bg: #ffffff;
+        --card: #ffffff;
+        --text: #1e2a3a;
+        --text2: #3d4f63;
+        --text3: #6b7a8d;
+        --border: #e3eaf5;
+        --shadow: 0 2px 12px rgba(21, 101, 192, 0.08);
+        --shadow-strong: 0 10px 28px rgba(15, 23, 42, 0.12);
+      }
+      body {
+        margin: 0;
+        font-family:
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      header {
+        background: linear-gradient(135deg, var(--blue) 0%, var(--blue-dark) 100%);
+        color: #fff;
+        padding: 28px 18px;
+      }
+      .wrap {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .title {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 900;
+        letter-spacing: -0.3px;
+      }
+      .subtitle {
+        margin: 6px 0 0;
+        opacity: 0.9;
+      }
+
+      .content {
+        padding: 18px 16px 40px;
+      }
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+        padding: 18px 18px;
+      }
+      .hint {
+        margin: 12px auto 0;
+        max-width: 1200px;
+        color: var(--text3);
+        font-size: 0.9rem;
+        text-align: center;
+      }
+
+      .canvas-wrap {
+        overflow-x: auto;
+      }
+      .canvas {
+        min-width: 1200px;
+        min-height: 760px;
+        position: relative;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background:
+          linear-gradient(0deg, rgba(15, 23, 42, 0.02), rgba(15, 23, 42, 0.02)),
+          radial-gradient(circle at 1px 1px, rgba(21, 101, 192, 0.12) 1px, transparent 1px);
+        background-size: auto, 24px 24px;
+        box-shadow: var(--shadow-strong);
+      }
+
+      svg {
+        width: 1200px;
+        height: 760px;
+        display: block;
+      }
+
+      .sys {
+        fill: #fff;
+        stroke: rgba(30, 41, 59, 0.18);
+        stroke-width: 1.2;
+        rx: 18;
+        ry: 18;
+      }
+      .sys-title {
+        font-weight: 900;
+        font-size: 16px;
+        fill: rgba(30, 41, 59, 0.9);
+      }
+      .lane {
+        fill: rgba(15, 23, 42, 0.015);
+        stroke: rgba(30, 41, 59, 0.12);
+        stroke-width: 1.1;
+        rx: 16;
+        ry: 16;
+      }
+      .lane-title {
+        font-weight: 900;
+        font-size: 12px;
+        letter-spacing: 0.35px;
+        text-transform: uppercase;
+        fill: rgba(30, 41, 59, 0.55);
+      }
+
+      .actor {
+        fill: rgba(255, 255, 255, 0.95);
+        stroke: rgba(30, 41, 59, 0.18);
+        stroke-width: 1.2;
+        rx: 16;
+        ry: 16;
+        filter: url(#shadow);
+      }
+      .actor-title {
+        font-weight: 900;
+        font-size: 14px;
+        fill: rgba(30, 41, 59, 0.92);
+      }
+      .actor-sub {
+        font-size: 12px;
+        fill: rgba(30, 41, 59, 0.64);
+      }
+
+      .uc {
+        fill: rgba(21, 101, 192, 0.06);
+        stroke: rgba(21, 101, 192, 0.35);
+        stroke-width: 1.2;
+      }
+      .uc.admin {
+        fill: rgba(13, 71, 161, 0.06);
+        stroke: rgba(13, 71, 161, 0.35);
+      }
+      .uc.shared {
+        fill: rgba(46, 125, 50, 0.06);
+        stroke: rgba(46, 125, 50, 0.35);
+      }
+      .uc {
+        filter: url(#shadow);
+      }
+      .uc-label {
+        font-size: 12.5px;
+        font-weight: 800;
+        fill: rgba(30, 41, 59, 0.86);
+      }
+      .line {
+        stroke: rgba(30, 41, 59, 0.55);
+        stroke-width: 1.4;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .line.dash {
+        stroke-dasharray: 6 4;
+        stroke: rgba(30, 41, 59, 0.38);
+      }
+      .arrow {
+        marker-end: url(#arrow);
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 12px;
+      }
+      .leg {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--border);
+        padding: 8px 10px;
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        color: var(--text2);
+        background: rgba(255, 255, 255, 0.75);
+        font-size: 0.85rem;
+        font-weight: 700;
+      }
+      .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 4px;
+      }
+      footer {
+        text-align: center;
+        padding: 18px;
+        color: var(--text3);
+        border-top: 1px solid var(--border);
+        background: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <h1 class="title">Use Case Diagram &mdash; PantauPegawai v2</h1>
+        <p class="subtitle">Aktor utama (Pegawai, Admin) dan use case inti sistem.</p>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="wrap panel">
+        <div class="canvas-wrap">
+          <div class="canvas">
+            <svg viewBox="0 0 1200 760" role="img" aria-label="Use Case Diagram PantauPegawai v2">
+              <defs>
+                <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="rgba(15,23,42,0.12)" />
+                </filter>
+                <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                  <path d="M0,0 L0,6 L8,3 z" fill="rgba(30,41,59,0.45)" />
+                </marker>
+              </defs>
+
+              <!-- System boundary -->
+              <rect class="sys" x="250" y="40" width="700" height="660" />
+              <text class="sys-title" x="270" y="70">Sistem PantauPegawai v2</text>
+
+              <!-- Lanes (untuk mengurangi overlap visual) -->
+              <rect class="lane" x="270" y="100" width="320" height="580" />
+              <text class="lane-title" x="288" y="126">Area Pegawai</text>
+              <rect class="lane" x="610" y="100" width="320" height="580" />
+              <text class="lane-title" x="628" y="126">Area Admin</text>
+
+              <!-- Actors -->
+              <rect class="actor" x="40" y="190" width="180" height="170" />
+              <text class="actor-title" x="72" y="230">Pegawai</text>
+              <text class="actor-sub" x="72" y="252">Staf / Pelaksana</text>
+              <!-- stickman -->
+              <circle cx="130" cy="285" r="16" fill="none" stroke="rgba(30,41,59,0.6)" stroke-width="2" />
+              <line class="line" x1="130" y1="301" x2="130" y2="339" />
+              <line class="line" x1="108" y1="315" x2="152" y2="315" />
+              <line class="line" x1="130" y1="339" x2="110" y2="365" />
+              <line class="line" x1="130" y1="339" x2="150" y2="365" />
+
+              <rect class="actor" x="980" y="190" width="180" height="170" />
+              <text class="actor-title" x="1034" y="230">Admin</text>
+              <text class="actor-sub" x="1034" y="252">Pengelola / Pimpinan</text>
+              <circle cx="1070" cy="285" r="16" fill="none" stroke="rgba(30,41,59,0.6)" stroke-width="2" />
+              <line class="line" x1="1070" y1="301" x2="1070" y2="339" />
+              <line class="line" x1="1048" y1="315" x2="1092" y2="315" />
+              <line class="line" x1="1070" y1="339" x2="1050" y2="365" />
+              <line class="line" x1="1070" y1="339" x2="1090" y2="365" />
+
+              <!-- Use cases (Shared) -->
+              <ellipse class="uc shared" cx="600" cy="160" rx="170" ry="34" />
+              <text class="uc-label" x="600" y="164" text-anchor="middle">Login / Logout</text>
+
+              <!-- Pegawai use cases -->
+              <ellipse class="uc" cx="430" cy="270" rx="150" ry="32" />
+              <text class="uc-label" x="430" y="274" text-anchor="middle">Lihat Profil &amp; Penugasan</text>
+
+              <ellipse class="uc" cx="430" cy="360" rx="150" ry="32" />
+              <text class="uc-label" x="430" y="364" text-anchor="middle">Input Dokumentasi Harian</text>
+
+              <ellipse class="uc" cx="430" cy="450" rx="150" ry="32" />
+              <text class="uc-label" x="430" y="454" text-anchor="middle">Upload Foto/Dokumen</text>
+
+              <ellipse class="uc" cx="430" cy="540" rx="150" ry="32" />
+              <text class="uc-label" x="430" y="544" text-anchor="middle">Lihat &amp; Filter Dokumentasi</text>
+
+              <ellipse class="uc" cx="430" cy="630" rx="150" ry="32" />
+              <text class="uc-label" x="430" y="634" text-anchor="middle">Rekap / Riwayat Upload</text>
+
+              <!-- Admin use cases -->
+              <ellipse class="uc admin" cx="770" cy="270" rx="150" ry="32" />
+              <text class="uc-label" x="770" y="274" text-anchor="middle">Kelola Pegawai (CRUD)</text>
+
+              <ellipse class="uc admin" cx="770" cy="360" rx="150" ry="32" />
+              <text class="uc-label" x="770" y="364" text-anchor="middle">Reset Password / Hapus Akun</text>
+
+              <ellipse class="uc admin" cx="770" cy="450" rx="150" ry="32" />
+              <text class="uc-label" x="770" y="454" text-anchor="middle">Kelola Kegiatan &amp; Penugasan</text>
+
+              <ellipse class="uc admin" cx="770" cy="540" rx="150" ry="32" />
+              <text class="uc-label" x="770" y="544" text-anchor="middle">Monitoring Laporan &amp; Rekap</text>
+
+              <ellipse class="uc admin" cx="770" cy="630" rx="150" ry="32" />
+              <text class="uc-label" x="770" y="634" text-anchor="middle">Import Data dari Spreadsheet</text>
+
+              <!-- Associations: Pegawai (lebih rapi, minim silang) -->
+              <path class="line" d="M 220 240 C 260 240, 300 240, 310 260" />
+              <path class="line" d="M 220 260 C 260 270, 300 300, 310 350" />
+              <path class="line" d="M 220 282 C 260 320, 295 380, 310 440" />
+              <path class="line" d="M 220 304 C 260 380, 290 470, 310 530" />
+              <path class="line" d="M 220 326 C 260 450, 285 540, 310 620" />
+              <path class="line" d="M 220 222 C 300 190, 360 175, 430 170" />
+
+              <!-- Associations: Admin -->
+              <path class="line" d="M 980 222 C 900 190, 840 175, 770 170" />
+              <path class="line" d="M 980 240 C 920 240, 880 240, 860 260" />
+              <path class="line" d="M 980 260 C 920 270, 885 300, 860 350" />
+              <path class="line" d="M 980 282 C 920 320, 890 380, 860 440" />
+              <path class="line" d="M 980 304 C 920 380, 895 470, 860 530" />
+              <path class="line" d="M 980 326 C 920 450, 900 540, 860 620" />
+
+              <!-- Include relationships (dashed) -->
+              <path class="line dash arrow" d="M 430 392 C 430 408, 430 420, 430 430" />
+              <text x="470" y="418" font-size="11" fill="rgba(30,41,59,0.6)" font-weight="800">&laquo;include&raquo;</text>
+
+              <path class="line dash arrow" d="M 430 482 C 430 498, 430 510, 430 520" />
+              <text x="470" y="508" font-size="11" fill="rgba(30,41,59,0.6)" font-weight="800">&laquo;include&raquo;</text>
+            </svg>
+          </div>
+        </div>
+
+        <div class="legend" aria-label="Legenda">
+          <div class="leg"><span class="dot" style="background: rgba(46, 125, 50, 0.55)"></span>Use case bersama</div>
+          <div class="leg"><span class="dot" style="background: rgba(21, 101, 192, 0.55)"></span>Use case Pegawai</div>
+          <div class="leg"><span class="dot" style="background: rgba(13, 71, 161, 0.55)"></span>Use case Admin</div>
+          <div class="leg">
+            <span class="dot" style="background: rgba(30, 41, 59, 0.35)"></span>Garis putus-putus = include
+          </div>
+        </div>
+      </div>
+      <p class="hint">Jika diagram terlihat kecil, gunakan zoom browser (Ctrl/⌘ +) atau geser horizontal.</p>
+    </div>
+
+    <footer>&copy; 2026 &mdash; PantauPegawai &mdash; Use Case Diagram</footer>
+  </body>
+</html>

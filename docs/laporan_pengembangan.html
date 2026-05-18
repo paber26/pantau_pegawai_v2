@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Laporan Pengembangan &mdash; Sistem Pantau Pegawai v2</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      :root {
+        --blue: #1565c0;
+        --blue-dark: #0d47a1;
+        --blue-light: #e3f0ff;
+        --green: #2e7d32;
+        --green-light: #e8f5e9;
+        --orange: #e65100;
+        --orange-light: #fff3e0;
+        --purple: #6a1b9a;
+        --purple-light: #f3e5f5;
+        --teal: #00695c;
+        --teal-light: #e0f5f2;
+        --red: #b71c1c;
+        --red-light: #ffebee;
+        --gray: #455a64;
+        --gray-light: #f4f6fb;
+        --text: #1e2a3a;
+        --text2: #3d4f63;
+        --text3: #6b7a8d;
+        --border: #e3eaf5;
+        --shadow: 0 2px 12px rgba(21, 101, 192, 0.08);
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        font-family:
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: var(--gray-light);
+        color: var(--text);
+        line-height: 1.65;
+        font-size: 15px;
+      }
+
+      /* -- NAV -- */
+      nav {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: var(--blue-dark);
+        padding: 0 18px;
+        display: flex;
+        align-items: center;
+        overflow-x: auto;
+        white-space: nowrap;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      nav a {
+        color: rgba(255, 255, 255, 0.82);
+        text-decoration: none;
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 14px 12px;
+        display: inline-block;
+        border-bottom: 2px solid transparent;
+        transition: 0.18s;
+      }
+      nav a:hover,
+      nav a.active {
+        color: #fff;
+        border-bottom-color: #64b5f6;
+      }
+      nav .spacer {
+        flex: 1;
+      }
+      .btn {
+        margin-left: 8px;
+        background: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        color: #fff;
+        font-weight: 700;
+        font-size: 0.78rem;
+        padding: 7px 10px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: 0.18s;
+        white-space: nowrap;
+      }
+      .btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      /* -- HEADER -- */
+      header {
+        background: linear-gradient(135deg, var(--blue) 0%, var(--blue-dark) 100%);
+        color: #fff;
+        padding: 46px 22px 34px;
+      }
+      .wrap {
+        max-width: 1040px;
+        margin: 0 auto;
+      }
+      .title {
+        font-size: 2rem;
+        font-weight: 900;
+        letter-spacing: -0.5px;
+        margin: 0;
+      }
+      .subtitle {
+        margin: 8px 0 0;
+        opacity: 0.9;
+        font-size: 1rem;
+      }
+      .meta {
+        margin-top: 14px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.78rem;
+        padding: 5px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+      }
+
+      /* -- CONTENT -- */
+      main {
+        padding: 22px 18px 44px;
+      }
+      .card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        padding: 22px 22px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+      h2 {
+        margin: 0 0 10px;
+        font-size: 1.45rem;
+        letter-spacing: -0.2px;
+      }
+      h3 {
+        margin: 18px 0 8px;
+        font-size: 1.1rem;
+      }
+      p {
+        margin: 0 0 10px;
+        color: var(--text2);
+        text-align: justify;
+      }
+      ul,
+      ol {
+        margin: 0 0 10px;
+        padding-left: 18px;
+        color: var(--text2);
+      }
+      li {
+        margin: 6px 0;
+        text-align: justify;
+      }
+      a {
+        color: var(--blue);
+        text-decoration: none;
+        font-weight: 700;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .hint {
+        background: var(--blue-light);
+        border: 1px solid #cfe3ff;
+        color: var(--text);
+        padding: 12px 12px;
+        border-radius: 12px;
+      }
+      .warn {
+        background: var(--orange-light);
+        border: 1px solid #ffd6b8;
+        color: var(--text);
+        padding: 12px 12px;
+        border-radius: 12px;
+      }
+      .ok {
+        background: var(--green-light);
+        border: 1px solid #cfead1;
+        color: var(--text);
+        padding: 12px 12px;
+        border-radius: 12px;
+      }
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+        overflow: hidden;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        margin-top: 10px;
+      }
+      .table th,
+      .table td {
+        border-bottom: 1px solid var(--border);
+        padding: 10px 10px;
+        vertical-align: top;
+        text-align: left;
+      }
+      .table th {
+        background: #f7f9ff;
+        font-size: 0.85rem;
+        color: var(--text);
+      }
+      code,
+      pre {
+        font-family:
+          ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          Monaco,
+          Consolas,
+          "Liberation Mono",
+          "Courier New",
+          monospace;
+      }
+      pre {
+        margin: 10px 0 0;
+        padding: 12px 12px;
+        background: #0b1220;
+        color: #d6e3ff;
+        border-radius: 12px;
+        overflow: auto;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .toc {
+        display: grid;
+        gap: 10px;
+      }
+      .toc a {
+        display: block;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: var(--shadow);
+      }
+      .toc small {
+        display: block;
+        color: var(--text3);
+        font-weight: 600;
+        margin-top: 3px;
+      }
+      .footer {
+        margin-top: 18px;
+        padding-top: 14px;
+        border-top: 1px solid var(--border);
+        color: var(--text3);
+        font-size: 0.85rem;
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .shots {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 12px;
+      }
+      figure {
+        margin: 0;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        background: #fff;
+        box-shadow: var(--shadow);
+      }
+      figure img {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      figcaption {
+        padding: 10px 12px;
+        color: var(--text3);
+        font-weight: 700;
+        font-size: 0.84rem;
+      }
+
+      @media (min-width: 980px) {
+        .grid {
+          grid-template-columns: 320px 1fr;
+          align-items: start;
+        }
+        .toc {
+          position: sticky;
+          top: 62px;
+        }
+      }
+
+      @media (max-width: 560px) {
+        header {
+          padding: 40px 16px 28px;
+        }
+        .title {
+          font-size: 1.6rem;
+        }
+        main {
+          padding: 16px 12px 34px;
+        }
+        .card {
+          padding: 18px 16px;
+          border-radius: 14px;
+        }
+        .shots {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* -- PRINT -- */
+      @media print {
+        nav,
+        .toc,
+        .btn {
+          display: none !important;
+        }
+        body {
+          background: #fff;
+        }
+        header {
+          color: #000;
+          background: #fff;
+          padding: 0;
+          border-bottom: 2px solid #000;
+          margin-bottom: 12px;
+        }
+        main {
+          padding: 0;
+        }
+        .card {
+          box-shadow: none;
+          border: none;
+          padding: 0;
+        }
+        a {
+          color: #000;
+          text-decoration: none;
+        }
+        pre {
+          background: #f2f2f2;
+          color: #000;
+          border: 1px solid #ddd;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a href="#ringkasan">Ringkasan</a>
+      <a href="#latar">Latar</a>
+      <a href="#stack">Teknologi</a>
+      <a href="#arsitektur">Arsitektur</a>
+      <a href="#database">Database</a>
+      <a href="#edge">Edge Fn</a>
+      <a href="#fitur">Fitur</a>
+      <a href="#deploy">Deploy</a>
+      <a href="#pengujian">Testing</a>
+      <a href="#kendala">Kendala</a>
+      <a href="#lampiran">Lampiran</a>
+      <span class="spacer"></span>
+      <button class="btn" type="button" id="btnPrint" title="Cetak / simpan ke PDF">Print</button>
+      <button class="btn" type="button" id="btnTop" title="Kembali ke atas">Top</button>
+    </nav>
+
+    <header>
+      <div class="wrap">
+        <h1 class="title">Laporan Pengembangan &mdash; Sistem Pantau Pegawai v2</h1>
+        <p class="subtitle">
+          Dokumen ringkasan lengkap pengembangan ulang dari sistem AppSheet menuju Flutter + Supabase + Google Drive.
+        </p>
+        <div class="meta">
+          <span class="pill"><strong>Target:</strong>&nbsp;Android, iOS, Web</span>
+          <span class="pill"><strong>Backend:</strong>&nbsp;Supabase (PostgreSQL + RLS)</span>
+          <span class="pill"><strong>Storage:</strong>&nbsp;Google Drive (Service Account)</span>
+          <span class="pill"><strong>Repo:</strong>&nbsp;pantau_pegawai_v2</span>
+          <span class="pill"><strong>Tanggal dokumen:</strong>&nbsp;18 Mei 2026</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="wrap grid">
+        <aside class="toc" aria-label="Daftar Isi">
+          <a href="#ringkasan">1. Ringkasan Eksekutif<small>Tujuan, output, capaian MVP</small></a>
+          <a href="#latar">2. Latar Belakang &amp; Ruang Lingkup<small>Alasan migrasi, pengguna, batasan</small></a>
+          <a href="#stack">3. Teknologi &amp; Pertimbangan<small>Stack, alasan pilihan, biaya</small></a>
+          <a href="#arsitektur">4. Arsitektur Sistem<small>Alur data, komponen, integrasi</small></a>
+          <a href="#database">5. Database &amp; Keamanan Data<small>Schema, RLS, trigger</small></a>
+          <a href="#edge">6. Edge Functions &amp; Integrasi Drive<small>Upload, proxy, admin ops</small></a>
+          <a href="#fitur">7. Fitur Utama (MVP)<small>Auth, pegawai, dokumentasi, admin</small></a>
+          <a href="#deploy">8. Deployment &amp; Operasional<small>Web/Vercel, Android/iOS, env</small></a>
+          <a href="#pengujian">9. Strategi Pengujian<small>Fungsional, integrasi, responsif</small></a>
+          <a href="#kendala">10. Kendala, Risiko, Mitigasi<small>CORS, rate limit, akses</small></a>
+          <a href="#roadmap">11. Rencana Pengembangan Lanjutan<small>Backlog &amp; peningkatan</small></a>
+          <a href="#lampiran">12. Lampiran &amp; Referensi<small>Link dokumen teknis &amp; panduan</small></a>
+        </aside>
+
+        <section class="card" aria-label="Isi Laporan">
+          <section id="ringkasan">
+            <h2>1. Ringkasan Eksekutif</h2>
+            <p>
+              Sistem <strong>Pantau Pegawai</strong> versi sebelumnya dibangun dengan AppSheet. Pada versi v2, sistem
+              dikembangkan ulang untuk meningkatkan kontrol pengembangan, dukungan multi-platform, dan integrasi yang
+              lebih fleksibel (terutama penyimpanan dokumentasi pekerjaan).
+            </p>
+            <p>
+              Hasil pengembangan berupa aplikasi <strong>Flutter</strong> untuk pegawai (Android/iOS) dan dashboard admin
+              (Flutter Web), menggunakan <strong>Supabase</strong> sebagai autentikasi + database (PostgreSQL dengan
+              Row-Level Security), serta <strong>Google Drive</strong> sebagai storage berbasis Service Account melalui
+              <strong>Supabase Edge Functions</strong>.
+            </p>
+
+            <div class="ok">
+              <strong>Capaian MVP (ringkas):</strong>
+              <ul>
+                <li>Login/logout + role-based routing (pegawai vs admin).</li>
+                <li>CRUD pegawai (admin) + reset password (via Edge Functions).</li>
+                <li>Dokumentasi harian: input, filter, riwayat, rekap; upload foto ke Google Drive.</li>
+                <li>Admin dashboard: manajemen kegiatan, penugasan, laporan, dan rekap upload.</li>
+                <li>Solusi CORS &amp; rate limit gambar via <code>image-proxy</code>.</li>
+              </ul>
+            </div>
+          </section>
+
+          <section id="latar">
+            <h2>2. Latar Belakang &amp; Ruang Lingkup</h2>
+            <h3>2.1 Latar Belakang</h3>
+            <p>
+              Pengembangan ulang dilakukan untuk meningkatkan fleksibilitas perubahan fitur, pengalaman pengguna yang
+              lebih responsif, serta dukungan multi-device dari satu basis kode. Selain itu, dibutuhkan storage yang
+              mudah, murah, dan terpusat untuk file dokumentasi pekerjaan.
+            </p>
+
+            <h3>2.2 Tujuan</h3>
+            <ul>
+              <li>Menyediakan aplikasi yang berjalan stabil di Android/iOS serta dashboard admin berbasis web.</li>
+              <li>Mengamankan data dengan pembatasan akses per role dan per user (RLS di Supabase).</li>
+              <li>Memudahkan proses input dokumentasi (foto/tautan/catatan) dan pencarian/rekap data.</li>
+              <li>Mengoptimalkan biaya operasional storage dengan memanfaatkan Google Drive.</li>
+            </ul>
+
+            <h3>2.3 Pengguna &amp; Peran</h3>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Peran</th>
+                  <th>Pengguna</th>
+                  <th>Akses Utama</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Pegawai</strong></td>
+                  <td>Staf/pegawai pelaksana</td>
+                  <td>Input dokumentasi, lihat riwayat, lihat dokumentasi rekan, melihat penugasan/aktivitas.</td>
+                </tr>
+                <tr>
+                  <td><strong>Admin</strong></td>
+                  <td>Pengelola/pimpinan</td>
+                  <td>Kelola pegawai, kegiatan, penugasan, laporan; import data; monitoring rekap.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>2.4 Batasan</h3>
+            <ul>
+              <li>Storage file tidak disimpan di Supabase Storage untuk menekan biaya; menggunakan Google Drive.</li>
+              <li>Operasi yang butuh credential sensitif diletakkan di Edge Functions, bukan di client.</li>
+              <li>Dokumen ini adalah ringkasan; detail teknis ada pada lampiran dokumen per tahap.</li>
+            </ul>
+          </section>
+
+          <section id="stack">
+            <h2>3. Teknologi &amp; Pertimbangan</h2>
+            <p>
+              Pemilihan stack difokuskan pada efisiensi pengembangan, coverage platform, kemudahan operasional, dan
+              pengendalian biaya.
+            </p>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Layer</th>
+                  <th>Teknologi</th>
+                  <th>Alasan</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Mobile (Pegawai)</td>
+                  <td><strong>Flutter</strong> Android/iOS</td>
+                  <td>Single codebase, UI konsisten, performa baik.</td>
+                </tr>
+                <tr>
+                  <td>Web (Admin)</td>
+                  <td><strong>Flutter Web</strong> (deploy Vercel)</td>
+                  <td>Reuse UI dan logic, mudah deploy (static site).</td>
+                </tr>
+                <tr>
+                  <td>Auth &amp; Database</td>
+                  <td><strong>Supabase</strong> (PostgreSQL + RLS)</td>
+                  <td>Auth siap pakai, RLS kuat, realtime, integrasi Flutter mudah.</td>
+                </tr>
+                <tr>
+                  <td>Upload Proxy</td>
+                  <td><strong>Edge Functions</strong> (Deno/TypeScript)</td>
+                  <td>Simpan secret (service role key, private key) aman di server-side.</td>
+                </tr>
+                <tr>
+                  <td>File Storage</td>
+                  <td><strong>Google Drive</strong> (Service Account)</td>
+                  <td>Biaya rendah, struktur folder fleksibel, mudah audit &amp; share.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="hint">
+              Detail stack dan daftar dokumen dapat dilihat di <a href="00-overview.md">docs/00-overview.md</a>.
+            </div>
+          </section>
+
+          <section id="arsitektur">
+            <h2>4. Arsitektur Sistem</h2>
+            <p>
+              Arsitektur memisahkan tanggung jawab antara client (Flutter), backend (Supabase), dan penyimpanan file
+              (Google Drive). Proses upload dan akses gambar melewati Edge Functions untuk menghindari kebocoran secret
+              dan untuk menangani isu CORS/rate limit pada web.
+            </p>
+
+            <h3>4.1 Diagram Komponen (ringkas)</h3>
+            <pre><code>[Flutter Mobile/Web]
+   |  (Supabase Auth session)
+   v
+[Supabase API: PostgREST + Realtime]  &lt;--- RLS policies
+   |
+   |  (admin/create user, upload file, image proxy)
+   v
+[Supabase Edge Functions (Deno/TS)]  --(Service Account JWT)-->  [Google Drive API]
+</code></pre>
+
+            <h3>4.2 Alur Dokumentasi Harian (upload foto)</h3>
+            <ol>
+              <li>Pengguna mengisi form dokumentasi (proyek, tanggal, catatan, file foto).</li>
+              <li>Client memanggil Edge Function <code>upload-to-drive</code> (multipart upload + metadata).</li>
+              <li>Edge Function membuat folder Drive dan mengunggah file; mengembalikan URL/id file.</li>
+              <li>Client menyimpan record ke tabel <code>dokumentasi</code> (termasuk <code>image_url</code>).</li>
+              <li>Untuk tampilkan gambar di web, client menggunakan <code>image-proxy</code>.</li>
+            </ol>
+          </section>
+
+          <section id="database">
+            <h2>5. Database &amp; Keamanan Data</h2>
+            <p>
+              Database menggunakan PostgreSQL di Supabase. Kontrol akses dilakukan dengan Row Level Security (RLS) untuk
+              memastikan pegawai hanya dapat menulis/mengubah data miliknya, sementara admin dapat melakukan operasi
+              administratif.
+            </p>
+
+            <h3>5.1 Tabel Utama</h3>
+            <ul>
+              <li><strong>users</strong>: profil pegawai (extends <code>auth.users</code>).</li>
+              <li><strong>kegiatan</strong>: daftar tugas/kegiatan.</li>
+              <li><strong>penugasan</strong>: relasi pegawai ↔ kegiatan.</li>
+              <li><strong>laporan</strong>: laporan kegiatan terkait penugasan.</li>
+              <li><strong>dokumentasi</strong>: dokumentasi harian (fitur utama).</li>
+            </ul>
+
+            <h3>5.2 RLS (ringkas)</h3>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Tabel</th>
+                  <th>Pegawai</th>
+                  <th>Admin</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>users</td>
+                  <td>Baca semua profil, update sendiri</td>
+                  <td>Semua operasi</td>
+                </tr>
+                <tr>
+                  <td>kegiatan</td>
+                  <td>Baca</td>
+                  <td>Semua operasi</td>
+                </tr>
+                <tr>
+                  <td>penugasan</td>
+                  <td>Baca milik sendiri</td>
+                  <td>Semua operasi</td>
+                </tr>
+                <tr>
+                  <td>laporan</td>
+                  <td>Baca/tulis milik sendiri</td>
+                  <td>Semua operasi</td>
+                </tr>
+                <tr>
+                  <td>dokumentasi</td>
+                  <td>Baca semua, tulis milik sendiri</td>
+                  <td>Baca + delete semua</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="hint">
+              Detail schema SQL, trigger <code>handle_new_user</code>, dan perubahan RLS ada di
+              <a href="02-database-schema.md">docs/02-database-schema.md</a>.
+            </div>
+          </section>
+
+          <section id="edge">
+            <h2>6. Edge Functions &amp; Integrasi Google Drive</h2>
+            <p>
+              Edge Functions digunakan untuk operasi yang membutuhkan <em>service role</em> atau credential sensitif
+              (Google private key). Ini memisahkan secret dari aplikasi client.
+            </p>
+
+            <h3>6.1 Daftar Edge Functions</h3>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Function</th>
+                  <th>Path</th>
+                  <th>Kegunaan</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>admin-create-user</code></td>
+                  <td><code>/functions/v1/admin-create-user</code></td>
+                  <td>Buat akun pegawai</td>
+                </tr>
+                <tr>
+                  <td><code>admin-delete-user</code></td>
+                  <td><code>/functions/v1/admin-delete-user</code></td>
+                  <td>Hapus akun pegawai</td>
+                </tr>
+                <tr>
+                  <td><code>admin-reset-password</code></td>
+                  <td><code>/functions/v1/admin-reset-password</code></td>
+                  <td>Reset password pegawai</td>
+                </tr>
+                <tr>
+                  <td><code>upload-to-drive</code></td>
+                  <td><code>/functions/v1/upload-to-drive</code></td>
+                  <td>Upload foto ke Google Drive</td>
+                </tr>
+                <tr>
+                  <td><code>image-proxy</code></td>
+                  <td><code>/functions/v1/image-proxy</code></td>
+                  <td>Proxy gambar Google Drive (anti-CORS, cache)</td>
+                </tr>
+                <tr>
+                  <td><code>import-from-sheets</code></td>
+                  <td><code>/functions/v1/import-from-sheets</code></td>
+                  <td>Import data dari Google Spreadsheet</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>6.2 Struktur Folder Google Drive</h3>
+            <p>Folder otomatis dibuat saat upload dokumentasi, mengikuti pola:</p>
+            <pre><code>/PantauPegawai/{nama_pegawai}/{yyyy-mm-dd}/filename.jpg</code></pre>
+
+            <div class="warn">
+              <strong>Catatan penting (web):</strong> Akses gambar Drive langsung sering memunculkan masalah CORS/redirect
+              dan rate limit. Solusi yang dipakai adalah <code>image-proxy</code> dengan header
+              <code>Authorization</code> dan cache 1 hari.
+            </div>
+
+            <div class="hint">
+              Detail request/response, secret yang dibutuhkan, dan cara deploy ada di
+              <a href="04-edge-functions.md">docs/04-edge-functions.md</a>.
+            </div>
+          </section>
+
+          <section id="fitur">
+            <h2>7. Fitur Utama (MVP)</h2>
+            <h3>7.1 Autentikasi &amp; Akses</h3>
+            <ul>
+              <li>Login/logout berbasis Supabase Auth.</li>
+              <li>Role-based redirect: admin diarahkan ke dashboard admin; pegawai ke area dokumentasi/aktivitas.</li>
+              <li>RLS memastikan akses data sesuai role dan pemilik data.</li>
+            </ul>
+
+            <h3>7.2 Pegawai (Admin)</h3>
+            <ul>
+              <li>CRUD data pegawai.</li>
+              <li>Reset password dan hapus user melalui Edge Functions.</li>
+            </ul>
+
+            <h3>7.3 Dokumentasi Harian (Pegawai)</h3>
+            <ul>
+              <li>Input dokumentasi: proyek, tanggal, catatan, link opsional, dan foto.</li>
+              <li>Riwayat + filter (tanggal/proyek/pegawai) dan rekap upload.</li>
+              <li>Tampilan gambar kompatibel mobile dan web melalui <code>DriveImage</code> + <code>image-proxy</code>.</li>
+            </ul>
+
+            <h3>7.4 Admin Dashboard</h3>
+            <ul>
+              <li>Manajemen kegiatan dan penugasan.</li>
+              <li>Laporan kegiatan dan rekap dokumentasi.</li>
+              <li>Import data historis dari Spreadsheet (admin-only).</li>
+            </ul>
+
+            <div class="hint">
+              Detail implementasi per fitur tersedia di:
+              <a href="05-fitur-auth.md">docs/05-fitur-auth.md</a>,
+              <a href="06-fitur-pegawai.md">docs/06-fitur-pegawai.md</a>,
+              <a href="07-fitur-dokumentasi.md">docs/07-fitur-dokumentasi.md</a>, dan
+              <a href="08-fitur-admin.md">docs/08-fitur-admin.md</a>.
+            </div>
+          </section>
+
+          <section id="deploy">
+            <h2>8. Deployment &amp; Operasional</h2>
+            <h3>8.1 Menjalankan Lokal (ringkas)</h3>
+            <ul>
+              <li>Flutter Web: jalankan dengan <code>--dart-define</code> untuk <code>SUPABASE_URL</code>, <code>SUPABASE_ANON_KEY</code>, dan <code>GOOGLE_SHEETS_API_KEY</code>.</li>
+              <li>Generate code Riverpod: gunakan <code>build_runner</code>.</li>
+              <li>Deploy Edge Functions via Supabase Dashboard atau CLI.</li>
+            </ul>
+            <pre><code>flutter pub get
+flutter pub run build_runner build --delete-conflicting-outputs</code></pre>
+
+            <h3>8.2 Deploy Web (Vercel)</h3>
+            <ul>
+              <li>Output build berupa static files (<code>build/web</code>).</li>
+              <li>Konfigurasi deploy otomatis via <code>vercel.json</code> dan <code>build.sh</code>.</li>
+              <li>Environment variables diset di Vercel Settings.</li>
+            </ul>
+
+            <h3>8.3 Build Mobile</h3>
+            <ul>
+              <li>Android: build APK release.</li>
+              <li>iOS: build release dan distribusi via Xcode (memerlukan Apple Developer Account).</li>
+            </ul>
+
+            <div class="hint">
+              Panduan lengkap menjalankan dan deploy ada di <a href="10-cara-menjalankan.md">docs/10-cara-menjalankan.md</a>
+              serta panduan instalasi end-to-end di <a href="12-panduan-instalasi-lengkap.md">docs/12-panduan-instalasi-lengkap.md</a>.
+            </div>
+          </section>
+
+          <section id="pengujian">
+            <h2>9. Strategi Pengujian</h2>
+            <ul>
+              <li><strong>Uji fungsional:</strong> validasi setiap flow utama (login, CRUD, upload, filter, import).</li>
+              <li><strong>Uji integrasi:</strong> verifikasi komunikasi Flutter ↔ Supabase ↔ Edge Fn ↔ Drive.</li>
+              <li><strong>Uji responsif:</strong> layout pada berbagai ukuran layar (mobile vs desktop web).</li>
+              <li><strong>Uji keamanan:</strong> validasi RLS dan pembatasan endpoint admin-only.</li>
+            </ul>
+
+            <div class="hint">
+              Daftar kendala &amp; solusi teknis (termasuk CORS dan image proxy) ada di
+              <a href="09-troubleshooting.md">docs/09-troubleshooting.md</a>.
+            </div>
+          </section>
+
+          <section id="kendala">
+            <h2>10. Kendala, Risiko, Mitigasi</h2>
+
+            <h3>10.1 Kendala Teknis yang Ditemui</h3>
+            <ul>
+              <li><strong>CORS di Flutter Web</strong> saat menampilkan gambar Google Drive.</li>
+              <li><strong>Rate limit</strong> saat memuat banyak gambar sekaligus dari domain Google tertentu.</li>
+              <li><strong>Credential management</strong> (private key, service role key) harus aman dan tidak bocor ke client.</li>
+            </ul>
+
+            <h3>10.2 Mitigasi yang Diterapkan</h3>
+            <ul>
+              <li>Gunakan <code>image-proxy</code> untuk fetch gambar via server-side, lengkap dengan cache.</li>
+              <li>Gunakan Service Account JWT (bukan OAuth refresh token) untuk menghindari token expired.</li>
+              <li>Letakkan seluruh secret di Supabase Edge Function secrets dan Vercel env vars.</li>
+              <li>Gunakan RLS di semua tabel utama dan helper <code>is_admin()</code>.</li>
+            </ul>
+          </section>
+
+          <section id="roadmap">
+            <h2>11. Rencana Pengembangan Lanjutan</h2>
+            <ul>
+              <li>Audit trail yang lebih lengkap (aksi admin, perubahan data penting).</li>
+              <li>Export laporan (PDF/Excel) dengan template resmi.</li>
+              <li>Notifikasi (push/email) untuk deadline kegiatan dan status penugasan.</li>
+              <li>Optimasi performa list (pagination, caching query, prefetch gambar).</li>
+              <li>Peningkatan observability: logging terstruktur untuk Edge Functions.</li>
+            </ul>
+          </section>
+
+          <section id="lampiran">
+            <h2>12. Lampiran &amp; Referensi</h2>
+            <p>Dokumen pendukung di folder <code>docs/</code>:</p>
+            <ul>
+              <li><a href="00-overview.md">00-overview.md</a> &mdash; ringkasan stack &amp; daftar dokumen.</li>
+              <li><a href="02-database-schema.md">02-database-schema.md</a> &mdash; schema, RLS, trigger, migration.</li>
+              <li><a href="03-supabase-setup.md">03-supabase-setup.md</a> &mdash; konfigurasi Supabase.</li>
+              <li><a href="04-edge-functions.md">04-edge-functions.md</a> &mdash; daftar &amp; detail Edge Functions.</li>
+              <li><a href="07-fitur-dokumentasi.md">07-fitur-dokumentasi.md</a> &mdash; detail fitur dokumentasi harian.</li>
+              <li><a href="09-troubleshooting.md">09-troubleshooting.md</a> &mdash; isu &amp; solusi teknis.</li>
+              <li><a href="10-cara-menjalankan.md">10-cara-menjalankan.md</a> &mdash; cara menjalankan &amp; deploy.</li>
+              <li><a href="dokumentasi-teknis.html">dokumentasi-teknis.html</a> &mdash; dokumentasi teknis terstruktur.</li>
+              <li><a href="erd-database.html">erd-database.html</a> &mdash; ERD database.</li>
+              <li><a href="usecase-diagram.html">usecase-diagram.html</a> &mdash; Use Case Diagram (Pegawai vs Admin).</li>
+            </ul>
+
+            <h3>12.1 Screenshot (contoh tampilan)</h3>
+            <p>Screenshot disimpan di folder <code>docs/screenshots/</code> untuk mempermudah review UI/UX.</p>
+            <div class="shots">
+              <figure>
+                <img src="screenshots/01_login.png" alt="Login" loading="lazy" />
+                <figcaption>Login</figcaption>
+              </figure>
+              <figure>
+                <img src="screenshots/02_admin_dashboard.png" alt="Admin Dashboard" loading="lazy" />
+                <figcaption>Admin &mdash; Dashboard</figcaption>
+              </figure>
+              <figure>
+                <img src="screenshots/03_admin_pegawai.png" alt="Admin Pegawai" loading="lazy" />
+                <figcaption>Admin &mdash; Pegawai</figcaption>
+              </figure>
+              <figure>
+                <img src="screenshots/04_admin_kegiatan.png" alt="Admin Kegiatan" loading="lazy" />
+                <figcaption>Admin &mdash; Kegiatan</figcaption>
+              </figure>
+              <figure>
+                <img src="screenshots/05_admin_dokumentasi.png" alt="Admin Dokumentasi" loading="lazy" />
+                <figcaption>Admin &mdash; Dokumentasi</figcaption>
+              </figure>
+              <figure>
+                <img src="screenshots/06_admin_rekap.png" alt="Admin Rekap" loading="lazy" />
+                <figcaption>Admin &mdash; Rekap</figcaption>
+              </figure>
+              <figure>
+                <img src="screenshots/07_admin_import.png" alt="Admin Import" loading="lazy" />
+                <figcaption>Admin &mdash; Import</figcaption>
+              </figure>
+            </div>
+
+            <div class="footer">
+              <span>Dokumen Laporan Pengembangan &copy; 2026 &mdash; Pantau Pegawai</span>
+              <span>Terakhir diperbarui: 18 Mei 2026</span>
+            </div>
+          </section>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const anchors = Array.from(document.querySelectorAll("nav a")).filter((a) =>
+        a.getAttribute("href")?.startsWith("#"),
+      );
+      const sections = anchors
+        .map((a) => document.querySelector(a.getAttribute("href")))
+        .filter(Boolean);
+
+      function setActive(id) {
+        for (const a of anchors) a.classList.toggle("active", a.getAttribute("href") === "#" + id);
+      }
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const visible = entries
+            .filter((e) => e.isIntersecting)
+            .sort((a, b) => (b.intersectionRatio ?? 0) - (a.intersectionRatio ?? 0))[0];
+          if (visible?.target?.id) setActive(visible.target.id);
+        },
+        { rootMargin: "-35% 0px -55% 0px", threshold: [0.1, 0.25, 0.5] },
+      );
+      for (const s of sections) observer.observe(s);
+
+      document.getElementById("btnPrint")?.addEventListener("click", () => window.print());
+      document.getElementById("btnTop")?.addEventListener("click", () =>
+        window.scrollTo({ top: 0, behavior: "smooth" }),
+      );
+    </script>
+  </body>
+</html>

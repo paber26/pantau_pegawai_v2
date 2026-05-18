@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-    <title>ERD Database — PantauPegawai</title>
+    <title>ERD Database &mdash; PantauPegawai</title>
     <style>
       *,
       *::before,
@@ -12,17 +12,46 @@
         margin: 0;
         padding: 0;
       }
+      :root {
+        --blue: #1565c0;
+        --blue-dark: #0d47a1;
+        --green: #2e7d32;
+        --purple: #6a1b9a;
+        --teal: #00695c;
+        --orange: #e65100;
+
+        --bg: #ffffff;
+        --card: #ffffff;
+        --text: #1e2a3a;
+        --text2: #3d4f63;
+        --text3: #6b7a8d;
+        --border: #e3eaf5;
+        --shadow: 0 2px 12px rgba(21, 101, 192, 0.08);
+        --shadow-strong: 0 10px 28px rgba(15, 23, 42, 0.12);
+      }
       body {
-        font-family: "Segoe UI", system-ui, sans-serif;
-        background: #0f1923;
-        color: #e8eaf6;
+        font-family:
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
         min-height: 100vh;
         padding: 0;
       }
 
       header {
-        background: linear-gradient(135deg, #1565c0, #0d47a1);
-        padding: 28px 40px;
+        background: linear-gradient(135deg, var(--blue) 0%, var(--blue-dark) 100%);
+        padding: 28px 20px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+      .wrap {
+        max-width: 1200px;
+        margin: 0 auto;
+        width: 100%;
         display: flex;
         align-items: center;
         gap: 20px;
@@ -47,22 +76,40 @@
       }
 
       .canvas-wrap {
-        padding: 40px 24px 80px;
+        padding: 22px 16px 46px;
         overflow-x: auto;
+      }
+      .panel {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+        padding: 18px 18px;
       }
       .canvas {
         position: relative;
-        min-width: 1000px;
-        min-height: 680px;
+        min-width: 1060px;
+        min-height: 860px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background:
+          linear-gradient(0deg, rgba(15, 23, 42, 0.02), rgba(15, 23, 42, 0.02)),
+          radial-gradient(circle at 1px 1px, rgba(21, 101, 192, 0.12) 1px, transparent 1px);
+        background-size: auto, 24px 24px;
+        box-shadow: var(--shadow-strong);
       }
 
-      /* ── TABLE BOXES ── */
+      /* -- TABLE BOXES -- */
       .erd-table {
         position: absolute;
-        border-radius: 10px;
+        border-radius: 14px;
         overflow: hidden;
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
         min-width: 200px;
+        background: var(--card);
       }
       .erd-table .t-head {
         padding: 10px 16px;
@@ -73,16 +120,17 @@
         display: flex;
         align-items: center;
         gap: 8px;
+        color: #fff;
       }
       .erd-table .t-body {
-        background: #1e2d3d;
+        background: #fff;
       }
       .erd-table .t-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
         padding: 7px 16px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        border-bottom: 1px solid var(--border);
         font-size: 0.8rem;
         gap: 16px;
       }
@@ -90,29 +138,29 @@
         border-bottom: none;
       }
       .erd-table .t-row:hover {
-        background: rgba(255, 255, 255, 0.04);
+        background: rgba(21, 101, 192, 0.04);
       }
       .col-name {
-        color: #e8eaf6;
+        color: var(--text);
         font-family: monospace;
       }
       .col-type {
-        color: #78909c;
+        color: var(--text3);
         font-size: 0.72rem;
         font-family: monospace;
       }
       .col-name.pk {
-        color: #ffd54f;
+        color: #b45309;
         font-weight: 700;
       }
       .col-name.fk {
-        color: #80cbc4;
+        color: #0f766e;
       }
       .col-name.uk {
-        color: #ce93d8;
+        color: #6b21a8;
       }
       .badge-pk {
-        background: #f57f17;
+        background: #b45309;
         color: #fff;
         font-size: 0.6rem;
         padding: 1px 6px;
@@ -120,7 +168,7 @@
         font-weight: 700;
       }
       .badge-fk {
-        background: #00695c;
+        background: #0f766e;
         color: #fff;
         font-size: 0.6rem;
         padding: 1px 6px;
@@ -128,7 +176,7 @@
         font-weight: 700;
       }
       .badge-uk {
-        background: #6a1b9a;
+        background: #6b21a8;
         color: #fff;
         font-size: 0.6rem;
         padding: 1px 6px;
@@ -136,8 +184,8 @@
         font-weight: 700;
       }
       .badge-nn {
-        background: #37474f;
-        color: #b0bec5;
+        background: #e2e8f0;
+        color: #334155;
         font-size: 0.6rem;
         padding: 1px 6px;
         border-radius: 3px;
@@ -145,22 +193,22 @@
 
       /* Table color themes */
       .tbl-users .t-head {
-        background: #1565c0;
+        background: var(--blue);
       }
       .tbl-kegiatan .t-head {
-        background: #2e7d32;
+        background: var(--green);
       }
       .tbl-dokumentasi .t-head {
-        background: #6a1b9a;
+        background: var(--purple);
       }
       .tbl-penugasan .t-head {
-        background: #00695c;
+        background: var(--teal);
       }
       .tbl-laporan .t-head {
-        background: #e65100;
+        background: var(--orange);
       }
 
-      /* ── SVG LINES ── */
+      /* -- SVG LINES -- */
       svg.lines {
         position: absolute;
         top: 0;
@@ -170,36 +218,55 @@
         pointer-events: none;
         overflow: visible;
       }
+      .rel-knee {
+        stroke-linejoin: round;
+        stroke-linecap: round;
+      }
       .rel-line {
-        stroke: #455a64;
-        stroke-width: 1.5;
+        stroke: rgba(30, 41, 59, 0.4);
+        stroke-width: 1.6;
         fill: none;
         stroke-dasharray: 6 3;
       }
       .rel-line.solid {
         stroke-dasharray: none;
-        stroke: #546e7a;
+        stroke: rgba(30, 41, 59, 0.55);
       }
       .rel-label {
-        font-size: 10px;
-        fill: #78909c;
+        font-size: 11px;
+        fill: rgba(30, 41, 59, 0.65);
         font-family: monospace;
       }
 
-      /* ── LEGEND ── */
+      /* -- LEGEND -- */
       .legend {
         display: flex;
         flex-wrap: wrap;
         gap: 16px;
-        padding: 0 24px 32px;
+        padding: 18px 16px 0;
         justify-content: center;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .subnote {
+        max-width: 1200px;
+        margin: 10px auto 0;
+        padding: 0 16px;
+        color: var(--text3);
+        font-size: 0.85rem;
+        text-align: center;
       }
       .leg-item {
         display: flex;
         align-items: center;
         gap: 8px;
         font-size: 0.78rem;
-        color: #90a4ae;
+        color: var(--text2);
+        background: rgba(255, 255, 255, 0.65);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        padding: 8px 10px;
+        border-radius: 12px;
       }
       .leg-dot {
         width: 12px;
@@ -207,17 +274,20 @@
         border-radius: 3px;
       }
 
-      /* ── NOTATION ── */
+      /* -- NOTATION -- */
       .notation {
-        background: #1a2332;
-        border-radius: 12px;
-        margin: 0 24px 40px;
-        padding: 20px 24px;
+        max-width: 1200px;
+        margin: 0 auto 14px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        padding: 18px 18px;
       }
       .notation h3 {
         font-size: 0.85rem;
         font-weight: 700;
-        color: #90a4ae;
+        color: var(--text3);
         text-transform: uppercase;
         letter-spacing: 0.5px;
         margin-bottom: 14px;
@@ -232,7 +302,7 @@
         align-items: center;
         gap: 10px;
         font-size: 0.8rem;
-        color: #b0bec5;
+        color: var(--text2);
       }
       .not-badge {
         font-size: 0.65rem;
@@ -242,18 +312,21 @@
         flex-shrink: 0;
       }
 
-      /* ── RELATIONS TABLE ── */
+      /* -- RELATIONS TABLE -- */
       .rel-table-wrap {
-        margin: 0 24px 40px;
-        background: #1a2332;
-        border-radius: 12px;
-        padding: 20px 24px;
+        max-width: 1200px;
+        margin: 0 auto 14px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        padding: 18px 18px;
         overflow-x: auto;
       }
       .rel-table-wrap h3 {
         font-size: 0.85rem;
         font-weight: 700;
-        color: #90a4ae;
+        color: var(--text3);
         text-transform: uppercase;
         letter-spacing: 0.5px;
         margin-bottom: 14px;
@@ -264,110 +337,116 @@
         font-size: 0.82rem;
       }
       table.rel th {
-        background: #263238;
-        color: #90a4ae;
+        background: #f7f9ff;
+        color: var(--text3);
         padding: 9px 14px;
         text-align: left;
         font-size: 0.75rem;
         text-transform: uppercase;
         letter-spacing: 0.3px;
+        border-bottom: 1px solid var(--border);
       }
       table.rel td {
         padding: 9px 14px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-        color: #b0bec5;
+        border-bottom: 1px solid var(--border);
+        color: var(--text2);
         font-family: monospace;
       }
       table.rel tr:hover td {
-        background: rgba(255, 255, 255, 0.03);
+        background: rgba(21, 101, 192, 0.04);
       }
       table.rel .hl {
-        color: #80cbc4;
+        color: var(--blue);
+        font-weight: 800;
       }
 
       footer {
         text-align: center;
         padding: 24px;
         font-size: 0.78rem;
-        color: #546e7a;
-        border-top: 1px solid #1a2332;
+        color: var(--text3);
+        border-top: 1px solid var(--border);
+        margin-top: 18px;
+        background: #fff;
+      }
+
+      @media (max-width: 720px) {
+        header {
+          padding: 24px 14px;
+        }
+        .panel {
+          padding: 14px 12px;
+          border-radius: 16px;
+        }
       }
     </style>
   </head>
   <body>
     <header>
-      <img src="../assets/images/Logo-BPS.png" alt="BPS" onerror="this.style.display = 'none'" />
-      <div>
-        <h1>Entity Relationship Diagram — PantauPegawai</h1>
-        <p>Skema database Supabase (PostgreSQL) · BPS Kabupaten Minahasa Selatan · 2026</p>
+      <div class="wrap">
+        <img src="../assets/images/Logo-BPS.png" alt="BPS" onerror="this.style.display = 'none'" />
+        <div>
+          <h1>Entity Relationship Diagram &mdash; PantauPegawai</h1>
+          <p>Skema database Supabase (PostgreSQL) · BPS Kabupaten Minahasa Selatan · 2026</p>
+        </div>
       </div>
     </header>
 
     <!-- LEGEND -->
     <div class="legend">
       <div class="leg-item">
-        <div class="leg-dot" style="background: #1565c0"></div>
+        <div class="leg-dot" style="background: var(--blue)"></div>
         users
       </div>
       <div class="leg-item">
-        <div class="leg-dot" style="background: #2e7d32"></div>
+        <div class="leg-dot" style="background: var(--green)"></div>
         kegiatan
       </div>
       <div class="leg-item">
-        <div class="leg-dot" style="background: #6a1b9a"></div>
+        <div class="leg-dot" style="background: var(--purple)"></div>
         dokumentasi
       </div>
       <div class="leg-item">
-        <div class="leg-dot" style="background: #00695c"></div>
+        <div class="leg-dot" style="background: var(--teal)"></div>
         penugasan
       </div>
       <div class="leg-item">
-        <div class="leg-dot" style="background: #e65100"></div>
+        <div class="leg-dot" style="background: var(--orange)"></div>
         laporan
       </div>
       <div class="leg-item" style="margin-left: 16px">
         <svg width="30" height="12">
-          <line x1="0" y1="6" x2="30" y2="6" stroke="#546E7A" stroke-width="1.5" stroke-dasharray="5 3" />
+          <line
+            x1="0"
+            y1="6"
+            x2="30"
+            y2="6"
+            stroke="rgba(30, 41, 59, 0.55)"
+            stroke-width="1.6"
+            stroke-dasharray="5 3"
+          />
         </svg>
         Relasi FK
       </div>
     </div>
+    <p class="subnote">Tips: geser horizontal untuk melihat seluruh diagram, atau perkecil zoom browser (Ctrl/⌘ -).</p>
 
     <!-- ERD CANVAS -->
     <div class="canvas-wrap">
-      <div class="canvas" id="canvas">
+      <div class="panel">
+        <div class="canvas" id="canvas">
         <!-- SVG RELATION LINES -->
-        <svg class="lines" id="svglines">
-          <!-- users → dokumentasi (user_id) -->
-          <line class="rel-line solid" x1="220" y1="120" x2="420" y2="200" marker-end="url(#arrow)" />
-          <!-- users → penugasan (user_id) -->
-          <line class="rel-line solid" x1="220" y1="140" x2="420" y2="460" marker-end="url(#arrow)" />
-          <!-- users → laporan (user_id) -->
-          <line class="rel-line solid" x1="220" y1="160" x2="760" y2="380" marker-end="url(#arrow)" />
-          <!-- kegiatan → penugasan (kegiatan_id) -->
-          <line class="rel-line solid" x1="620" y1="200" x2="560" y2="440" marker-end="url(#arrow)" />
-          <!-- kegiatan → laporan (kegiatan_id) -->
-          <line class="rel-line solid" x1="660" y1="220" x2="800" y2="360" marker-end="url(#arrow)" />
-
-          <!-- Cardinality labels -->
-          <text class="rel-label" x="290" y="155">1</text>
-          <text class="rel-label" x="410" y="195">N</text>
-          <text class="rel-label" x="270" y="290">1</text>
-          <text class="rel-label" x="415" y="455">N</text>
-          <text class="rel-label" x="630" y="310">1</text>
-          <text class="rel-label" x="555" y="438">N</text>
-          <text class="rel-label" x="490" y="270">1</text>
-          <text class="rel-label" x="755" y="375">N</text>
-
+        <svg class="lines" id="svglines" aria-hidden="true">
+          <g id="relLayer"></g>
           <defs>
             <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-              <path d="M0,0 L0,6 L8,3 z" fill="#546E7A" />
+              <path d="M0,0 L0,6 L8,3 z" fill="rgba(30, 41, 59, 0.55)" />
             </marker>
           </defs>
         </svg>
 
         <!-- TABLE: users -->
-        <div class="erd-table tbl-users" style="left: 20px; top: 60px; width: 220px">
+        <div class="erd-table tbl-users" id="tblUsers" style="left: 40px; top: 80px; width: 260px">
           <div class="t-head">👤 users</div>
           <div class="t-body">
             <div class="t-row">
@@ -414,7 +493,7 @@
         </div>
 
         <!-- TABLE: kegiatan -->
-        <div class="erd-table tbl-kegiatan" style="left: 440px; top: 60px; width: 220px">
+        <div class="erd-table tbl-kegiatan" id="tblKegiatan" style="left: 430px; top: 80px; width: 280px">
           <div class="t-head">📁 kegiatan</div>
           <div class="t-body">
             <div class="t-row">
@@ -450,7 +529,7 @@
         </div>
 
         <!-- TABLE: dokumentasi -->
-        <div class="erd-table tbl-dokumentasi" style="left: 420px; top: 240px; width: 240px">
+        <div class="erd-table tbl-dokumentasi" id="tblDokumentasi" style="left: 410px; top: 320px; width: 300px">
           <div class="t-head">📸 dokumentasi</div>
           <div class="t-body">
             <div class="t-row">
@@ -505,7 +584,7 @@
         </div>
 
         <!-- TABLE: penugasan -->
-        <div class="erd-table tbl-penugasan" style="left: 420px; top: 500px; width: 240px">
+        <div class="erd-table tbl-penugasan" id="tblPenugasan" style="left: 410px; top: 640px; width: 300px">
           <div class="t-head">🔗 penugasan</div>
           <div class="t-body">
             <div class="t-row">
@@ -540,7 +619,7 @@
         </div>
 
         <!-- TABLE: laporan -->
-        <div class="erd-table tbl-laporan" style="left: 760px; top: 380px; width: 220px">
+        <div class="erd-table tbl-laporan" id="tblLaporan" style="left: 820px; top: 420px; width: 280px">
           <div class="t-head">📋 laporan</div>
           <div class="t-body">
             <div class="t-row">
@@ -583,8 +662,96 @@
         </div>
       </div>
       <!-- /canvas -->
+      </div>
     </div>
     <!-- /canvas-wrap -->
+
+    <script>
+      const canvas = document.getElementById("canvas");
+      const svg = document.getElementById("svglines");
+      const layer = document.getElementById("relLayer");
+
+      const relations = [
+        { from: "tblUsers", to: "tblDokumentasi", labelFrom: "1", labelTo: "N" },
+        { from: "tblUsers", to: "tblPenugasan", labelFrom: "1", labelTo: "N" },
+        { from: "tblUsers", to: "tblLaporan", labelFrom: "1", labelTo: "N" },
+        { from: "tblKegiatan", to: "tblPenugasan", labelFrom: "1", labelTo: "N" },
+        { from: "tblKegiatan", to: "tblLaporan", labelFrom: "1", labelTo: "N" },
+      ];
+
+      function clearLayer() {
+        while (layer.firstChild) layer.removeChild(layer.firstChild);
+      }
+
+      function relPoint(el, side) {
+        const r = el.getBoundingClientRect();
+        const cr = canvas.getBoundingClientRect();
+        const xLeft = r.left - cr.left + canvas.scrollLeft;
+        const yTop = r.top - cr.top + canvas.scrollTop;
+        const xRight = xLeft + r.width;
+        const yMid = yTop + r.height / 2;
+        return side === "left" ? { x: xLeft, y: yMid } : { x: xRight, y: yMid };
+      }
+
+      function makePath(fromPt, toPt) {
+        const gap = 18;
+        const midX = Math.round((fromPt.x + toPt.x) / 2);
+        const startX = Math.round(fromPt.x + gap);
+        const endX = Math.round(toPt.x - gap);
+        const y1 = Math.round(fromPt.y);
+        const y2 = Math.round(toPt.y);
+        const knee1 = Math.round(Math.min(midX, endX - 40));
+        const knee2 = Math.round(Math.max(midX, startX + 40));
+        const kx = Math.round((knee1 + knee2) / 2);
+        return `M ${startX} ${y1} L ${kx} ${y1} L ${kx} ${y2} L ${endX} ${y2}`;
+      }
+
+      function addText(x, y, t) {
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("class", "rel-label");
+        text.setAttribute("x", String(Math.round(x)));
+        text.setAttribute("y", String(Math.round(y)));
+        text.textContent = t;
+        layer.appendChild(text);
+      }
+
+      function draw() {
+        if (!canvas || !svg || !layer) return;
+        clearLayer();
+
+        const w = canvas.scrollWidth;
+        const h = canvas.scrollHeight;
+        svg.setAttribute("width", String(w));
+        svg.setAttribute("height", String(h));
+        svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+
+        for (const rel of relations) {
+          const fromEl = document.getElementById(rel.from);
+          const toEl = document.getElementById(rel.to);
+          if (!fromEl || !toEl) continue;
+
+          const fromPt = relPoint(fromEl, "right");
+          const toPt = relPoint(toEl, "left");
+
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.setAttribute("d", makePath(fromPt, toPt));
+          path.setAttribute("class", "rel-line solid rel-knee");
+          path.setAttribute("marker-end", "url(#arrow)");
+          layer.appendChild(path);
+
+          const labelX = (fromPt.x + toPt.x) / 2;
+          addText(labelX - 26, fromPt.y - 6, rel.labelFrom ?? "");
+          addText(labelX + 18, toPt.y - 6, rel.labelTo ?? "");
+        }
+      }
+
+      const ro = new ResizeObserver(() => draw());
+      ro.observe(canvas);
+      window.addEventListener("resize", () => draw(), { passive: true });
+
+      // Redraw after first paint (fonts/layout)
+      requestAnimationFrame(() => requestAnimationFrame(() => draw()));
+    </script>
 
     <!-- NOTATION -->
     <div class="notation">
@@ -611,7 +778,7 @@
           &nbsp;Nullable — boleh kosong
         </div>
         <div class="not-item">
-          <span style="font-family: monospace; color: #80cbc4; font-size: 0.8rem">1 → N</span>
+          <span style="font-family: monospace; color: var(--blue); font-size: 0.8rem; font-weight: 800">1 → N</span>
           &nbsp;Relasi One-to-Many
         </div>
       </div>
