@@ -16,6 +16,7 @@ import '../../../shared/widgets/loading_shimmer.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../../kegiatan/presentation/kegiatan_provider.dart';
 import '../../pegawai/presentation/pegawai_provider.dart';
+import '../data/dokumentasi_filter_store.dart';
 import '../domain/dokumentasi_model.dart';
 import '../domain/image_source_type.dart';
 import 'dokumentasi_provider.dart';
@@ -33,6 +34,24 @@ class _DokumentasiScreenState extends ConsumerState<DokumentasiScreen> {
   String? _filterProyek;
   DateTime? _filterFrom;
   DateTime? _filterTo;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pulihkan filter yang tersimpan agar tetap diterapkan setelah refresh.
+    _restoreFilter();
+  }
+
+  Future<void> _restoreFilter() async {
+    final saved = await DokumentasiFilterStore.load();
+    if (!mounted || saved.isEmpty) return;
+    setState(() {
+      _filterPegawaiId = saved.pegawaiId;
+      _filterProyek = saved.proyek;
+      _filterFrom = saved.from;
+      _filterTo = saved.to;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -237,6 +256,7 @@ class _DokumentasiScreenState extends ConsumerState<DokumentasiScreen> {
                         _filterFrom = null;
                         _filterTo = null;
                       });
+                      DokumentasiFilterStore.save(DokumentasiFilter.empty);
                       ref
                           .read(adminDokumentasiNotifierProvider.notifier)
                           .applyFilter();
@@ -254,6 +274,12 @@ class _DokumentasiScreenState extends ConsumerState<DokumentasiScreen> {
                         _filterFrom = tempFrom;
                         _filterTo = tempTo;
                       });
+                      DokumentasiFilterStore.save(DokumentasiFilter(
+                        pegawaiId: tempPegawaiId,
+                        proyek: tempProyek,
+                        from: tempFrom,
+                        to: tempTo,
+                      ));
                       ref
                           .read(adminDokumentasiNotifierProvider.notifier)
                           .applyFilter(fromDate: tempFrom, toDate: tempTo);

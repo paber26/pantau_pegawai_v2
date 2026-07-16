@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../auth/presentation/auth_provider.dart';
+import '../data/dokumentasi_filter_store.dart';
 import '../data/dokumentasi_repository.dart';
 import '../data/dokumentasi_repository_impl.dart';
 import '../domain/dokumentasi_model.dart';
@@ -79,7 +80,15 @@ class AdminDokumentasiNotifier extends _$AdminDokumentasiNotifier {
 
   @override
   Future<List<DokumentasiModel>> build() async {
-    return ref.read(dokumentasiRepositoryProvider).getAll();
+    // Pulihkan rentang tanggal yang tersimpan agar hasil tetap terfilter
+    // setelah halaman di-refresh, bukan mengambil ulang semua data.
+    final saved = await DokumentasiFilterStore.load();
+    _fromDate = saved.from;
+    _toDate = saved.to;
+    return ref.read(dokumentasiRepositoryProvider).getAll(
+          fromDate: _fromDate,
+          toDate: _toDate,
+        );
   }
 
   Future<void> refresh() async {
