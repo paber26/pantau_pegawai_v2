@@ -12,6 +12,15 @@ abstract class DokumentasiRepository {
     Uint8List? imageBytes,
     String? catatan,
   });
+  Future<DokumentasiModel> update({
+    required String id,
+    required String pegawaiNama,
+    required String proyek,
+    required DateTime tanggalKegiatan,
+    Uint8List? newImageBytes,
+    String? existingImageUrl,
+    String? catatan,
+  });
   Future<List<DokumentasiModel>> getByYear(int year);
   Future<void> delete(String id);
 }

@@ -61,6 +61,34 @@ class MyDokumentasiNotifier extends _$MyDokumentasiNotifier {
     }
   }
 
+  Future<String?> edit({
+    required String id,
+    required String proyek,
+    required DateTime tanggalKegiatan,
+    Uint8List? newImageBytes,
+    String? existingImageUrl,
+    String? catatan,
+  }) async {
+    try {
+      final user = await ref.read(authStateProvider.future);
+      if (user == null) return 'Tidak terautentikasi';
+
+      await ref.read(dokumentasiRepositoryProvider).update(
+            id: id,
+            pegawaiNama: user.nama,
+            proyek: proyek,
+            tanggalKegiatan: tanggalKegiatan,
+            newImageBytes: newImageBytes,
+            existingImageUrl: existingImageUrl,
+            catatan: catatan,
+          );
+      await refresh();
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
   Future<String?> hapus(String id) async {
     try {
       await ref.read(dokumentasiRepositoryProvider).delete(id);

@@ -371,9 +371,13 @@ class RiwayatDokumentasiScreen extends ConsumerWidget {
   }
 }
 
-/// Form sheet tambah dokumentasi
+/// Form sheet tambah / edit dokumentasi.
+///
+/// Bila [existing] diisi, form berjalan dalam mode edit: field di-prefill dari
+/// data yang ada dan submit memanggil update alih-alih create.
 class DokumentasiFormSheet extends ConsumerStatefulWidget {
-  const DokumentasiFormSheet({super.key});
+  final DokumentasiModel? existing;
+  const DokumentasiFormSheet({super.key, this.existing});
   @override
   ConsumerState<DokumentasiFormSheet> createState() =>
       _DokumentasiFormSheetState();
@@ -388,8 +392,23 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
   DateTime _tanggal = DateTime.now();
   Uint8List? _imageBytes;
   ImageSourceType? _imageSourceType;
+  String? _existingImageUrl;
   bool _isLoading = false;
   final _picker = ImagePicker();
+
+  bool get _isEdit => widget.existing != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.existing;
+    if (existing != null) {
+      _selectedProyek = existing.proyek;
+      _tanggal = existing.tanggalKegiatan;
+      _existingImageUrl = existing.imageUrl;
+      if (existing.catatan != null) _catatanController.text = existing.catatan!;
+    }
+  }
 
   @override
   void dispose() {
@@ -465,7 +484,7 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
                 Navigator.pop(ctx);
                 _triggerClipboardPaste();
               }),
-        if (_imageBytes != null)
+        if (_imageBytes != null || _existingImageUrl != null)
           ListTile(
               leading: const Icon(Icons.delete_outline, color: AppColors.error),
               title: const Text('Hapus Foto',
@@ -475,6 +494,7 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
                 setState(() {
                   _imageBytes = null;
                   _imageSourceType = null;
+                  _existingImageUrl = null;
                 });
               }),
       ])),
@@ -484,23 +504,37 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
-    final errorMsg =
-        await ref.read(myDokumentasiNotifierProvider.notifier).tambah(
-              proyek: _selectedProyek!,
-              tanggalKegiatan: _tanggal,
-              imageBytes: _imageBytes,
-              catatan: _catatanController.text.trim().isEmpty
-                  ? null
-                  : _catatanController.text.trim(),
-            );
+    final notifier = ref.read(myDokumentasiNotifierProvider.notifier);
+    final catatan = _catatanController.text.trim().isEmpty
+        ? null
+        : _catatanController.text.trim();
+    final String? errorMsg;
+    if (_isEdit) {
+      errorMsg = await notifier.edit(
+        id: widget.existing!.id,
+        proyek: _selectedProyek!,
+        tanggalKegiatan: _tanggal,
+        newImageBytes: _imageBytes,
+        existingImageUrl: _existingImageUrl,
+        catatan: catatan,
+      );
+    } else {
+      errorMsg = await notifier.tambah(
+        proyek: _selectedProyek!,
+        tanggalKegiatan: _tanggal,
+        imageBytes: _imageBytes,
+        catatan: catatan,
+      );
+    }
     ref.read(adminDokumentasiNotifierProvider.notifier).refresh();
     if (mounted) {
       setState(() => _isLoading = false);
       Navigator.pop(context);
+      final successMsg = _isEdit
+          ? 'Dokumentasi berhasil diperbarui!'
+          : 'Dokumentasi berhasil disimpan!';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(errorMsg == null
-            ? 'Dokumentasi berhasil disimpan!'
-            : 'Gagal: $errorMsg'),
+        content: Text(errorMsg == null ? successMsg : 'Gagal: $errorMsg'),
         backgroundColor: errorMsg == null ? AppColors.success : AppColors.error,
         duration: const Duration(seconds: 4),
       ));
@@ -510,6 +544,7 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final hasImage = _imageBytes != null || _existingImageUrl != null;
     return Container(
       decoration: const BoxDecoration(
           color: Colors.white,
@@ -533,9 +568,9 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
                             color: Colors.grey.shade300,
                             borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 16),
-                const Text('Tambah Dokumentasi',
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(_isEdit ? 'Edit Dokumentasi' : 'Tambah Dokumentasi',
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 20),
                 // Image preview area.
                 //
@@ -562,27 +597,35 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
                       color: AppColors.background,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                          color: _imageBytes != null
-                              ? AppColors.primary
-                              : AppColors.border,
-                          width: _imageBytes != null ? 2 : 1),
+                          color:
+                              hasImage ? AppColors.primary : AppColors.border,
+                          width: hasImage ? 2 : 1),
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(11),
                       child: _imageBytes == null
-                          ? Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                  Icon(Icons.add_a_photo_outlined,
-                                      size: 36,
-                                      color: AppColors.primary
-                                          .withValues(alpha: 0.4)),
-                                  const SizedBox(height: 8),
-                                  const Text('Tambah Foto (opsional)',
-                                      style: TextStyle(
-                                          color: AppColors.textSecondary,
-                                          fontSize: 13)),
-                                ])
+                          ? (_existingImageUrl != null
+                              // Mode edit: tampilkan gambar yang sudah ada dari
+                              // Google Drive sebagai preview. Mengetuk preview
+                              // tetap membuka opsi ganti / hapus foto.
+                              ? DriveImage(
+                                  imageUrl: _existingImageUrl,
+                                  width: double.infinity,
+                                  height: 150,
+                                  fit: BoxFit.cover)
+                              : Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.add_a_photo_outlined,
+                                        size: 36,
+                                        color: AppColors.primary
+                                            .withValues(alpha: 0.4)),
+                                    const SizedBox(height: 8),
+                                    const Text('Tambah Foto (opsional)',
+                                        style: TextStyle(
+                                            color: AppColors.textSecondary,
+                                            fontSize: 13)),
+                                  ]))
                           // Task 5.4 — gunakan Stack agar badge clipboard bisa
                           // di-overlay pada pojok kanan atas preview ketika
                           // gambar berasal dari paste clipboard
@@ -773,7 +816,8 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
                 ElevatedButton.icon(
                   onPressed: _isLoading ? null : _handleSubmit,
                   icon: const Icon(Icons.save_outlined),
-                  label: const Text('Simpan Dokumentasi'),
+                  label: Text(
+                      _isEdit ? 'Simpan Perubahan' : 'Simpan Dokumentasi'),
                   style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
@@ -955,10 +999,17 @@ class DokCard extends ConsumerWidget {
             if (isOwn)
               PopupMenuButton<String>(
                 onSelected: (value) async {
-                  if (value == 'hapus') {
+                  if (value == 'edit') {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => DokumentasiFormSheet(existing: doc),
+                    );
+                  } else if (value == 'hapus') {
                     final confirm = await showConfirmDialog(context,
                         title: 'Hapus Dokumentasi',
-                        message: 'Hapus dokumentasi "\${doc.proyek}"?');
+                        message: 'Hapus dokumentasi "${doc.proyek}"?');
                     if (confirm == true && context.mounted) {
                       await ref
                           .read(myDokumentasiNotifierProvider.notifier)
@@ -970,6 +1021,7 @@ class DokCard extends ConsumerWidget {
                   }
                 },
                 itemBuilder: (_) => [
+                  const PopupMenuItem(value: 'edit', child: Text('Edit')),
                   const PopupMenuItem(
                       value: 'hapus',
                       child: Text('Hapus',

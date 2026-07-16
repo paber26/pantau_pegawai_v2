@@ -139,6 +139,49 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
   }
 
   @override
+  Future<DokumentasiModel> update({
+    required String id,
+    required String pegawaiNama,
+    required String proyek,
+    required DateTime tanggalKegiatan,
+    Uint8List? newImageBytes,
+    String? existingImageUrl,
+    String? catatan,
+  }) async {
+    try {
+      // Default: pertahankan gambar lama. Jika ada gambar baru, unggah dan
+      // ganti URL-nya.
+      String? imageUrl = existingImageUrl;
+
+      if (newImageBytes != null) {
+        imageUrl = await _uploadToGoogleDrive(
+          imageBytes: newImageBytes,
+          pegawaiNama: pegawaiNama,
+          tanggal: AppDateUtils.toFolderDate(tanggalKegiatan),
+        );
+      }
+
+      final data = await _client
+          .from('dokumentasi')
+          .update({
+            'proyek': proyek,
+            'tanggal_kegiatan':
+                tanggalKegiatan.toIso8601String().split('T').first,
+            'image_url': imageUrl,
+            'catatan': catatan,
+            'link': imageUrl,
+          })
+          .eq('id', id)
+          .select('*, users(nama, jabatan, unit_kerja)')
+          .single();
+
+      return DokumentasiModel.fromMap(data);
+    } catch (e) {
+      throw AppException('Gagal memperbarui dokumentasi: ${e.toString()}');
+    }
+  }
+
+  @override
   Future<List<DokumentasiModel>> getByYear(int year) async {
     try {
       // Pagination: lihat catatan di getAll().
