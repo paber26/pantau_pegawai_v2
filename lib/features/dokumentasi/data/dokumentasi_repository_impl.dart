@@ -75,11 +75,13 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
         final from = page * pageSize;
         final to = from + pageSize - 1;
 
+        // Diurutkan berdasarkan waktu penambahan (created_at), bukan tanggal
+        // kegiatan, karena dipakai untuk riwayat penambahan dokumentasi
+        // terakhir di halaman "Riwayat Saya".
         final data = await _client
             .from('dokumentasi')
             .select('*, users(nama, jabatan, unit_kerja)')
             .eq('user_id', userId)
-            .order('tanggal_kegiatan', ascending: false)
             .order('created_at', ascending: false)
             .range(from, to);
 

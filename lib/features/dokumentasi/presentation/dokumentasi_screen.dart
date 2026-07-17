@@ -346,10 +346,15 @@ class RiwayatDokumentasiScreen extends ConsumerWidget {
                   style: TextStyle(color: AppColors.textSecondary)),
             ]));
           }
+          // Dikelompokkan berdasarkan tanggal penambahan (createdAt), bukan
+          // tanggal kegiatan, supaya halaman ini menunjukkan riwayat
+          // penambahan dokumentasi terakhir alih-alih riwayat per tanggal
+          // kegiatan (yang sudah tersedia di halaman Dokumentasi Harian).
           final grouped = <DateTime, List<DokumentasiModel>>{};
           for (final doc in list) {
-            final date = DateTime(doc.tanggalKegiatan.year,
-                doc.tanggalKegiatan.month, doc.tanggalKegiatan.day);
+            final createdLocal = doc.createdAt.toLocal();
+            final date = DateTime(
+                createdLocal.year, createdLocal.month, createdLocal.day);
             grouped.putIfAbsent(date, () => []).add(doc);
           }
           return RefreshIndicator(
@@ -361,7 +366,10 @@ class RiwayatDokumentasiScreen extends ConsumerWidget {
               itemBuilder: (context, index) {
                 final entry = grouped.entries.elementAt(index);
                 return DokDateGroup(
-                    tanggal: entry.key, items: entry.value, showPegawai: false);
+                    tanggal: entry.key,
+                    items: entry.value,
+                    showPegawai: false,
+                    showTanggalKegiatan: true);
               },
             ),
           );
@@ -839,12 +847,14 @@ class DokDateGroup extends ConsumerWidget {
   final DateTime tanggal;
   final List<DokumentasiModel> items;
   final bool showPegawai;
+  final bool showTanggalKegiatan;
 
   const DokDateGroup(
       {super.key,
       required this.tanggal,
       required this.items,
-      required this.showPegawai});
+      required this.showPegawai,
+      this.showTanggalKegiatan = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -890,7 +900,10 @@ class DokDateGroup extends ConsumerWidget {
                     const TextStyle(fontSize: 11, color: AppColors.textHint)),
           ]),
         ),
-        ...items.map((doc) => DokCard(doc: doc, showPegawai: showPegawai)),
+        ...items.map((doc) => DokCard(
+            doc: doc,
+            showPegawai: showPegawai,
+            showTanggalKegiatan: showTanggalKegiatan)),
         const SizedBox(height: 8),
       ],
     );
@@ -901,8 +914,13 @@ class DokDateGroup extends ConsumerWidget {
 class DokCard extends ConsumerWidget {
   final DokumentasiModel doc;
   final bool showPegawai;
+  final bool showTanggalKegiatan;
 
-  const DokCard({super.key, required this.doc, required this.showPegawai});
+  const DokCard(
+      {super.key,
+      required this.doc,
+      required this.showPegawai,
+      this.showTanggalKegiatan = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -953,6 +971,19 @@ class DokCard extends ConsumerWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                             fontSize: 12, color: AppColors.textSecondary)),
+                  if (showTanggalKegiatan) ...[
+                    const SizedBox(height: 2),
+                    Row(children: [
+                      const Icon(Icons.event_outlined,
+                          size: 11, color: AppColors.textHint),
+                      const SizedBox(width: 3),
+                      Text(
+                          'Kegiatan: '
+                          '${AppDateUtils.formatDate(doc.tanggalKegiatan)}',
+                          style: const TextStyle(
+                              fontSize: 11, color: AppColors.textHint)),
+                    ]),
+                  ],
                   const SizedBox(height: 4),
                   Row(children: [
                     const Icon(Icons.access_time,
