@@ -42,3 +42,7 @@ supabase/.temp/
 *.env
 *.envbackup
 .env*
+
+# Claude Code (kredensial lokal & log analyze — jangan di-commit)
+.claude/settings.local.json
+.claude/flutter-analyze.log
