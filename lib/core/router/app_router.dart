@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -21,13 +22,41 @@ import '../../shared/widgets/pegawai_scaffold.dart';
 
 part 'app_router.g.dart';
 
-@riverpod
+/// Memberi tahu [GoRouter] untuk mengevaluasi ulang `redirect` setiap kali
+/// status auth berubah, tanpa perlu membuat ulang instance [GoRouter] itu
+/// sendiri (lihat catatan di [appRouter]).
+class _AuthRefreshNotifier extends ChangeNotifier {
+  _AuthRefreshNotifier(Ref ref) {
+    ref.listen(authStateProvider, (_, __) => notifyListeners());
+  }
+}
+
+@Riverpod(keepAlive: true)
 GoRouter appRouter(Ref ref) {
-  final authState = ref.watch(authStateProvider);
+  // Provider ini sengaja TIDAK melakukan `ref.watch(authStateProvider)`.
+  // Jika di-watch, setiap kali stream auth emit nilai baru (mis. sesaat
+  // setelah refresh halaman ketika sesi baru selesai dipulihkan) provider
+  // ini akan rebuild dan mengembalikan instance GoRouter yang BARU —
+  // sehingga MaterialApp.router mengganti seluruh Router dan lokasi URL
+  // saat ini (mis. /pegawai/riwayat) hilang, kembali ke initialLocation.
+  //
+  // Sebagai gantinya, instance GoRouter dipertahankan (keepAlive) selama
+  // sesi aplikasi, dan `redirect` dievaluasi ulang lewat refreshListenable
+  // setiap ada perubahan auth, sambil tetap membaca status auth terbaru
+  // via `ref.read` di dalam callback.
+  final refreshNotifier = _AuthRefreshNotifier(ref);
+  ref.onDispose(refreshNotifier.dispose);
 
   return GoRouter(
     initialLocation: '/login',
+    refreshListenable: refreshNotifier,
     redirect: (context, state) {
+      final authState = ref.read(authStateProvider);
+      // Status auth belum diketahui (mis. sesi masih dipulihkan setelah
+      // refresh halaman) — jangan redirect dulu, tunggu sampai resolve
+      // supaya lokasi URL saat ini tidak keburu digeser ke /login.
+      if (authState.isLoading && !authState.hasValue) return null;
+
       final isLoggedIn = authState.valueOrNull != null;
       final isLoginPage = state.matchedLocation == '/login';
 

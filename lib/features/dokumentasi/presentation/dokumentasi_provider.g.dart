@@ -27,7 +27,7 @@ final dokumentasiRepositoryProvider =
 typedef DokumentasiRepositoryRef
     = AutoDisposeProviderRef<DokumentasiRepository>;
 String _$myDokumentasiNotifierHash() =>
-    r'4bae78a4a9afe8619ffea7b7163ef0aca7e8b0c4';
+    r'370496bd1ad9f4d7654b4d8984466ab16fa3f863';
 
 /// Dokumentasi milik pegawai yang login
 ///
@@ -47,7 +47,7 @@ final myDokumentasiNotifierProvider = AutoDisposeAsyncNotifierProvider<
 typedef _$MyDokumentasiNotifier
     = AutoDisposeAsyncNotifier<List<DokumentasiModel>>;
 String _$adminDokumentasiNotifierHash() =>
-    r'202db148bd09f285526a8bf18abd28f6aa77cb44';
+    r'11c733d315db2897866102b7d47f5f1387104d42';
 
 /// Semua dokumentasi untuk admin
 ///
