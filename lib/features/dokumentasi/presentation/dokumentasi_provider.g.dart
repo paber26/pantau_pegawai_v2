@@ -7,7 +7,7 @@ part of 'dokumentasi_provider.dart';
 // **************************************************************************
 
 String _$dokumentasiRepositoryHash() =>
-    r'ec66303d41064b5a8395e6a3264502ce4d124db4';
+    r'b117954665d53b805ce4ee6ecf544fc581790580';
 
 /// See also [dokumentasiRepository].
 @ProviderFor(dokumentasiRepository)

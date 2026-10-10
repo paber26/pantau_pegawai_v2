@@ -17,7 +17,7 @@ ValidationResultModel validateRows(
   List<ColumnMappingModel> mappings,
   String targetTable,
 ) {
-  final schema = kSupabaseTableSchemas[targetTable] ?? [];
+  final schema = kImportTableSchemas[targetTable] ?? [];
   final errors = <RowValidationError>[];
   int invalidRowCount = 0;
 
@@ -104,7 +104,7 @@ bool hasUnmappedRequiredColumns(
   List<ColumnMappingModel> mappings,
   String targetTable,
 ) {
-  final schema = kSupabaseTableSchemas[targetTable] ?? [];
+  final schema = kImportTableSchemas[targetTable] ?? [];
 
   for (final def in schema) {
     if (!def.required) continue;

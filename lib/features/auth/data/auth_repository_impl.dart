@@ -1,13 +1,14 @@
-import 'package:supabase_flutter/supabase_flutter.dart' hide AuthException;
-
 import '../../../core/errors/app_exception.dart';
+import '../../../core/network/api_client.dart';
+import '../../../core/network/session_store.dart';
 import '../domain/auth_state.dart';
 import 'auth_repository.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
-  final SupabaseClient _client;
+  final ApiClient _api;
+  final SessionStore _session;
 
-  AuthRepositoryImpl(this._client);
+  AuthRepositoryImpl(this._api, this._session);
 
   @override
   Future<AppAuthUser> login({
@@ -15,20 +16,16 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
   }) async {
     try {
-      final response = await _client.auth.signInWithPassword(
-        email: email,
-        password: password,
-      );
+      final data = await _api.post(
+        '/api/auth/login',
+        body: {'email': email, 'password': password},
+      ) as Map<String, dynamic>;
 
-      if (response.user == null) {
-        throw const AppException('Login gagal. Periksa email dan kata sandi.');
-      }
-
-      return await _fetchUserProfile(response.user!.id);
+      final user = AppAuthUser.fromMap(data['user'] as Map<String, dynamic>);
+      await _session.save(data['token'] as String, user);
+      return user;
     } on AppException {
       rethrow;
-    } on AuthApiException catch (e) {
-      throw AppException(e.message);
     } catch (e) {
       throw AppException('Terjadi kesalahan: ${e.toString()}');
     }
@@ -36,38 +33,25 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> logout() async {
-    await _client.auth.signOut();
+    try {
+      await _api.post('/api/auth/logout');
+    } catch (_) {
+      // Tetap keluar walau server tidak bisa dihubungi.
+    }
+    await _session.clear();
   }
 
   @override
   Future<AppAuthUser?> getCurrentUser() async {
-    final user = _client.auth.currentUser;
-    if (user == null) return null;
-    try {
-      return await _fetchUserProfile(user.id);
-    } catch (_) {
-      return null;
-    }
+    await _session.restore(_fetchProfile);
+    return _session.currentUser;
   }
 
   @override
-  Stream<AppAuthUser?> authStateChanges() {
-    return _client.auth.onAuthStateChange.asyncMap((event) async {
-      if (event.session == null) return null;
-      try {
-        return await _fetchUserProfile(event.session!.user.id);
-      } catch (_) {
-        return null;
-      }
-    });
-  }
+  Stream<AppAuthUser?> authStateChanges() => _session.watch(_fetchProfile);
 
-  Future<AppAuthUser> _fetchUserProfile(String userId) async {
-    final data = await _client
-        .from('users')
-        .select()
-        .eq('id', userId)
-        .single();
-    return AppAuthUser.fromMap(data);
+  Future<AppAuthUser?> _fetchProfile() async {
+    final data = await _api.get('/api/auth/me') as Map<String, dynamic>;
+    return AppAuthUser.fromMap(data['user'] as Map<String, dynamic>);
   }
 }

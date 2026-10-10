@@ -6,7 +6,7 @@ part of 'laporan_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$laporanRepositoryHash() => r'024ba8d612082b2466732132818486fab07060c2';
+String _$laporanRepositoryHash() => r'959113f306afcf14b515a2541659c014afdd7731';
 
 /// See also [laporanRepository].
 @ProviderFor(laporanRepository)

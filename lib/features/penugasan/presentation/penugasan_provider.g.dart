@@ -7,7 +7,7 @@ part of 'penugasan_provider.dart';
 // **************************************************************************
 
 String _$penugasanRepositoryHash() =>
-    r'89ae50e78e167f4e03953747eed6c5bbea024f56';
+    r'db5ec0b3072f11fc1fed2cc1807164ca9a0b55fe';
 
 /// See also [penugasanRepository].
 @ProviderFor(penugasanRepository)

@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/network/network_providers.dart';
 import '../data/penugasan_repository.dart';
 import '../data/penugasan_repository_impl.dart';
 import '../domain/penugasan_model.dart';
@@ -10,7 +10,7 @@ part 'penugasan_provider.g.dart';
 
 @riverpod
 PenugasanRepository penugasanRepository(Ref ref) {
-  return PenugasanRepositoryImpl(Supabase.instance.client);
+  return PenugasanRepositoryImpl(ref.watch(apiClientProvider));
 }
 
 @riverpod

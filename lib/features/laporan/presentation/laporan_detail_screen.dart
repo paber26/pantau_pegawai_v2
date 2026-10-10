@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_utils.dart';
+import '../../../shared/widgets/drive_image.dart';
 import '../../../shared/widgets/error_display.dart';
 import 'laporan_provider.dart';
 
@@ -42,26 +43,10 @@ class LaporanDetailScreen extends ConsumerWidget {
               // Foto fullscreen
               Expanded(
                 child: InteractiveViewer(
-                  child: Image.network(
-                    laporan.imageUrl,
+                  child: DriveImage(
+                    imageUrl: laporan.imageUrl,
                     fit: BoxFit.contain,
                     width: double.infinity,
-                    loadingBuilder: (context, child, progress) {
-                      if (progress == null) return child;
-                      return Center(
-                        child: CircularProgressIndicator(
-                          value: progress.expectedTotalBytes != null
-                              ? progress.cumulativeBytesLoaded /
-                                  progress.expectedTotalBytes!
-                              : null,
-                          color: Colors.white,
-                        ),
-                      );
-                    },
-                    errorBuilder: (_, __, ___) => const Center(
-                      child: Icon(Icons.broken_image_outlined,
-                          size: 64, color: Colors.white54),
-                    ),
                   ),
                 ),
               ),

@@ -6,6 +6,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../shared/widgets/admin_scaffold.dart';
+import '../../../shared/widgets/drive_image.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
 import '../domain/laporan_model.dart';
@@ -134,29 +135,10 @@ class _LaporanCard extends StatelessWidget {
               // Thumbnail
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: Image.network(
-                  laporan.imageUrl,
+                child: DriveImage(
+                  imageUrl: laporan.imageUrl,
                   width: 72,
                   height: 72,
-                  fit: BoxFit.cover,
-                  loadingBuilder: (context, child, progress) {
-                    if (progress == null) return child;
-                    return Container(
-                      width: 72,
-                      height: 72,
-                      color: AppColors.background,
-                      child: const Center(
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    );
-                  },
-                  errorBuilder: (_, __, ___) => Container(
-                    width: 72,
-                    height: 72,
-                    color: AppColors.background,
-                    child: const Icon(Icons.broken_image_outlined,
-                        color: AppColors.textHint),
-                  ),
                 ),
               ),
               const SizedBox(width: 12),

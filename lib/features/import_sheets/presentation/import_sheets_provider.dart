@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/network/network_providers.dart';
 import '../data/import_sheets_repository.dart';
 import '../data/import_sheets_repository_impl.dart';
 import '../domain/batch_utils.dart';
@@ -97,7 +97,7 @@ class ImportWizardState {
 
 @riverpod
 ImportSheetsRepository importSheetsRepository(Ref ref) {
-  return ImportSheetsRepositoryImpl();
+  return ImportSheetsRepositoryImpl(ref.watch(apiClientProvider));
 }
 
 // ---------------------------------------------------------------------------
@@ -237,9 +237,6 @@ class ImportSheetsNotifier extends _$ImportSheetsNotifier {
     final validationResult = state.validationResult;
     if (table == null || validationResult == null) return;
 
-    final jwtToken =
-        Supabase.instance.client.auth.currentSession?.accessToken ?? '';
-
     // Kumpulkan indeks baris yang memiliki error
     final errorRowIndices =
         validationResult.errors.map((e) => e.rowIndex).toSet();
@@ -270,7 +267,6 @@ class ImportSheetsNotifier extends _$ImportSheetsNotifier {
         final result = await _repo.importBatch(
           targetTable: table,
           rows: batch,
-          jwtToken: jwtToken,
         );
         totalProcessed += result.totalProcessed;
         totalSuccess += result.successCount;

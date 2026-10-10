@@ -5,7 +5,8 @@ class AppException implements Exception {
   const AppException(this.message, {this.code});
 
   @override
-  String toString() => 'AppException: $message (code: $code)';
+  // Pesan langsung ditampilkan ke pengguna (SnackBar / ErrorDisplay).
+  String toString() => message;
 }
 
 class AuthException extends AppException {

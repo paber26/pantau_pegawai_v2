@@ -1,19 +1,24 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:http/http.dart' as http;
-import 'package:supabase_flutter/supabase_flutter.dart';
-
-import '../../../core/constants/supabase_constants.dart';
 import '../../../core/errors/app_exception.dart';
-import '../../../core/utils/date_utils.dart';
+import '../../../core/network/api_client.dart';
 import '../domain/dokumentasi_model.dart';
 import 'dokumentasi_repository.dart';
 
 class DokumentasiRepositoryImpl implements DokumentasiRepository {
-  final SupabaseClient _client;
+  final ApiClient _api;
 
-  DokumentasiRepositoryImpl(this._client);
+  DokumentasiRepositoryImpl(this._api);
+
+  String _date(DateTime d) => d.toIso8601String().split('T').first;
+
+  Future<List<DokumentasiModel>> _list(Map<String, String?> query) async {
+    // API mengembalikan semua baris yang cocok (tidak ada batas 1000 baris).
+    final data = await _api.get('/api/dokumentasi', query: query) as List;
+    return data
+        .map((e) => DokumentasiModel.fromMap(e as Map<String, dynamic>))
+        .toList();
+  }
 
   @override
   Future<List<DokumentasiModel>> getAll({
@@ -21,43 +26,14 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
     DateTime? toDate,
   }) async {
     try {
-      // Pagination: Supabase default limit 1000 baris per query.
-      // Untuk dataset > 1000 baris kita harus pakai range() berulang
-      // sampai semua baris terambil.
-      const pageSize = 1000;
-      final all = <DokumentasiModel>[];
-      var page = 0;
-      final fromStr = fromDate?.toIso8601String().split('T').first;
-      final toStr = toDate?.toIso8601String().split('T').first;
-
-      while (true) {
-        final from = page * pageSize;
-        final to = from + pageSize - 1;
-
-        // Pola query yang sama dengan/tanpa filter tanggal.
-        final query = _client
-            .from('dokumentasi')
-            .select('*, users(nama, jabatan, unit_kerja)');
-        final filtered = (fromStr != null && toStr != null)
-            ? query.gte('tanggal_kegiatan', fromStr).lte(
-                  'tanggal_kegiatan',
-                  toStr,
-                )
-            : query;
-        final data = await filtered
-            .order('tanggal_kegiatan', ascending: false)
-            .order('created_at', ascending: false)
-            .range(from, to);
-
-        final batch =
-            (data as List).map((e) => DokumentasiModel.fromMap(e)).toList();
-        all.addAll(batch);
-
-        if (batch.length < pageSize) break;
-        page += 1;
-      }
-
-      return all;
+      // Filter tanggal hanya dipakai bila keduanya diisi.
+      final hasRange = fromDate != null && toDate != null;
+      return await _list({
+        'from': hasRange ? _date(fromDate) : null,
+        'to': hasRange ? _date(toDate) : null,
+      });
+    } on AppException {
+      rethrow;
     } catch (e) {
       throw AppException('Gagal memuat dokumentasi: ${e.toString()}');
     }
@@ -66,34 +42,11 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
   @override
   Future<List<DokumentasiModel>> getByUserId(String userId) async {
     try {
-      // Pagination untuk antisipasi user yang punya >1000 dokumentasi.
-      const pageSize = 1000;
-      final all = <DokumentasiModel>[];
-      var page = 0;
-
-      while (true) {
-        final from = page * pageSize;
-        final to = from + pageSize - 1;
-
-        // Diurutkan berdasarkan waktu penambahan (created_at), bukan tanggal
-        // kegiatan, karena dipakai untuk riwayat penambahan dokumentasi
-        // terakhir di halaman "Riwayat Saya".
-        final data = await _client
-            .from('dokumentasi')
-            .select('*, users(nama, jabatan, unit_kerja)')
-            .eq('user_id', userId)
-            .order('created_at', ascending: false)
-            .range(from, to);
-
-        final batch =
-            (data as List).map((e) => DokumentasiModel.fromMap(e)).toList();
-        all.addAll(batch);
-
-        if (batch.length < pageSize) break;
-        page += 1;
-      }
-
-      return all;
+      // Diurutkan server berdasarkan waktu penambahan (created_at) terbaru,
+      // untuk halaman "Riwayat Saya".
+      return await _list({'user_id': userId});
+    } on AppException {
+      rethrow;
     } catch (e) {
       throw AppException('Gagal memuat dokumentasi: ${e.toString()}');
     }
@@ -108,33 +61,29 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
     Uint8List? imageBytes,
     String? catatan,
   }) async {
+    // userId & pegawaiNama ditentukan server dari akun yang login.
     try {
       String? imageUrl;
 
       if (imageBytes != null) {
-        imageUrl = await _uploadToGoogleDrive(
-          imageBytes: imageBytes,
-          pegawaiNama: pegawaiNama,
-          tanggal: AppDateUtils.toFolderDate(tanggalKegiatan),
+        imageUrl = await _api.uploadPhoto(
+          bytes: imageBytes,
+          tanggal: tanggalKegiatan,
         );
       }
 
-      final data = await _client
-          .from('dokumentasi')
-          .insert({
-            'user_id': userId,
-            'pegawai_nama': pegawaiNama,
-            'proyek': proyek,
-            'tanggal_kegiatan':
-                tanggalKegiatan.toIso8601String().split('T').first,
-            'image_url': imageUrl,
-            'catatan': catatan,
-            'link': imageUrl,
-          })
-          .select('*, users(nama, jabatan, unit_kerja)')
-          .single();
+      final data = await _api.post('/api/dokumentasi', body: {
+        'proyek': proyek,
+        'tanggal_kegiatan': _date(tanggalKegiatan),
+        'image_url': imageUrl,
+        'catatan': catatan,
+        'link': imageUrl,
+      });
 
-      return DokumentasiModel.fromMap(data);
+      return DokumentasiModel.fromMap(data as Map<String, dynamic>);
+    } on AppException catch (e) {
+      throw AppException('Gagal menyimpan dokumentasi: ${e.message}',
+          code: e.code);
     } catch (e) {
       throw AppException('Gagal menyimpan dokumentasi: ${e.toString()}');
     }
@@ -156,28 +105,24 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
       String? imageUrl = existingImageUrl;
 
       if (newImageBytes != null) {
-        imageUrl = await _uploadToGoogleDrive(
-          imageBytes: newImageBytes,
-          pegawaiNama: pegawaiNama,
-          tanggal: AppDateUtils.toFolderDate(tanggalKegiatan),
+        imageUrl = await _api.uploadPhoto(
+          bytes: newImageBytes,
+          tanggal: tanggalKegiatan,
         );
       }
 
-      final data = await _client
-          .from('dokumentasi')
-          .update({
-            'proyek': proyek,
-            'tanggal_kegiatan':
-                tanggalKegiatan.toIso8601String().split('T').first,
-            'image_url': imageUrl,
-            'catatan': catatan,
-            'link': imageUrl,
-          })
-          .eq('id', id)
-          .select('*, users(nama, jabatan, unit_kerja)')
-          .single();
+      final data = await _api.patch('/api/dokumentasi/$id', body: {
+        'proyek': proyek,
+        'tanggal_kegiatan': _date(tanggalKegiatan),
+        'image_url': imageUrl,
+        'catatan': catatan,
+        'link': imageUrl,
+      });
 
-      return DokumentasiModel.fromMap(data);
+      return DokumentasiModel.fromMap(data as Map<String, dynamic>);
+    } on AppException catch (e) {
+      throw AppException('Gagal memperbarui dokumentasi: ${e.message}',
+          code: e.code);
     } catch (e) {
       throw AppException('Gagal memperbarui dokumentasi: ${e.toString()}');
     }
@@ -186,32 +131,9 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
   @override
   Future<List<DokumentasiModel>> getByYear(int year) async {
     try {
-      // Pagination: lihat catatan di getAll().
-      const pageSize = 1000;
-      final all = <DokumentasiModel>[];
-      var page = 0;
-
-      while (true) {
-        final from = page * pageSize;
-        final to = from + pageSize - 1;
-
-        final data = await _client
-            .from('dokumentasi')
-            .select('*, users(nama, jabatan, unit_kerja)')
-            .gte('tanggal_kegiatan', '$year-01-01')
-            .lte('tanggal_kegiatan', '$year-12-31')
-            .order('tanggal_kegiatan', ascending: false)
-            .range(from, to);
-
-        final batch =
-            (data as List).map((e) => DokumentasiModel.fromMap(e)).toList();
-        all.addAll(batch);
-
-        if (batch.length < pageSize) break;
-        page += 1;
-      }
-
-      return all;
+      return await _list({'year': '$year'});
+    } on AppException {
+      rethrow;
     } catch (e) {
       throw AppException(
           'Gagal memuat dokumentasi tahun $year: ${e.toString()}');
@@ -221,49 +143,12 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
   @override
   Future<void> delete(String id) async {
     try {
-      await _client.from('dokumentasi').delete().eq('id', id);
+      await _api.delete('/api/dokumentasi/$id');
+    } on AppException catch (e) {
+      throw AppException('Gagal menghapus dokumentasi: ${e.message}',
+          code: e.code);
     } catch (e) {
       throw AppException('Gagal menghapus dokumentasi: ${e.toString()}');
     }
-  }
-
-  Future<String> _uploadToGoogleDrive({
-    required Uint8List imageBytes,
-    required String pegawaiNama,
-    required String tanggal,
-  }) async {
-    final session = _client.auth.currentSession;
-    if (session == null) throw const AppException('Sesi tidak valid');
-
-    final timestamp = AppDateUtils.toTimestamp(DateTime.now());
-    final filename = 'foto_$timestamp.jpg';
-
-    final request = http.MultipartRequest(
-      'POST',
-      Uri.parse(SupabaseConstants.uploadDriveFunctionUrl),
-    );
-
-    request.headers['Authorization'] = 'Bearer ${session.accessToken}';
-    request.fields['pegawai_nama'] = pegawaiNama;
-    request.fields['tanggal'] = tanggal;
-    request.fields['filename'] = filename;
-
-    request.files.add(
-      http.MultipartFile.fromBytes(
-        'file',
-        imageBytes,
-        filename: filename,
-      ),
-    );
-
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
-
-    if (response.statusCode != 200) {
-      throw AppException('Upload foto gagal: ${response.body}');
-    }
-
-    final json = jsonDecode(response.body) as Map<String, dynamic>;
-    return json['image_url'] as String;
   }
 }

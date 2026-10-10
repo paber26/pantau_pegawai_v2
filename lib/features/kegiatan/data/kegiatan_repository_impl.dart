@@ -1,23 +1,29 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
-
 import '../../../core/errors/app_exception.dart';
+import '../../../core/network/api_client.dart';
 import '../domain/bulk_import_result.dart';
 import '../domain/kegiatan_model.dart';
 import 'kegiatan_repository.dart';
 
 class KegiatanRepositoryImpl implements KegiatanRepository {
-  final SupabaseClient _client;
+  final ApiClient _api;
 
-  KegiatanRepositoryImpl(this._client);
+  KegiatanRepositoryImpl(this._api);
+
+  String _date(DateTime d) => d.toIso8601String().split('T').first;
+
+  Future<List<KegiatanModel>> _list(Map<String, String?> query) async {
+    final data = await _api.get('/api/kegiatan', query: query) as List;
+    return data
+        .map((e) => KegiatanModel.fromMap(e as Map<String, dynamic>))
+        .toList();
+  }
 
   @override
   Future<List<KegiatanModel>> getAll() async {
     try {
-      final data = await _client
-          .from('kegiatan')
-          .select()
-          .order('deadline', ascending: true);
-      return (data as List).map((e) => KegiatanModel.fromMap(e)).toList();
+      return await _list({});
+    } on AppException {
+      rethrow;
     } catch (e) {
       throw AppException('Gagal memuat kegiatan: ${e.toString()}');
     }
@@ -26,14 +32,9 @@ class KegiatanRepositoryImpl implements KegiatanRepository {
   @override
   Future<List<KegiatanModel>> getByUserId(String userId) async {
     try {
-      final data = await _client
-          .from('penugasan')
-          .select('kegiatan(*)')
-          .eq('user_id', userId);
-      return (data as List)
-          .map((e) =>
-              KegiatanModel.fromMap(e['kegiatan'] as Map<String, dynamic>))
-          .toList();
+      return await _list({'assigned_to': userId});
+    } on AppException {
+      rethrow;
     } catch (e) {
       throw AppException('Gagal memuat kegiatan: ${e.toString()}');
     }
@@ -42,9 +43,8 @@ class KegiatanRepositoryImpl implements KegiatanRepository {
   @override
   Future<KegiatanModel> getById(String id) async {
     try {
-      final data =
-          await _client.from('kegiatan').select().eq('id', id).single();
-      return KegiatanModel.fromMap(data);
+      final data = await _api.get('/api/kegiatan/$id');
+      return KegiatanModel.fromMap(data as Map<String, dynamic>);
     } catch (e) {
       throw const AppException('Kegiatan tidak ditemukan');
     }
@@ -57,16 +57,14 @@ class KegiatanRepositoryImpl implements KegiatanRepository {
     required DateTime deadline,
   }) async {
     try {
-      final data = await _client
-          .from('kegiatan')
-          .insert({
-            'judul': judul,
-            'deskripsi': deskripsi,
-            'deadline': deadline.toIso8601String().split('T').first,
-          })
-          .select()
-          .single();
-      return KegiatanModel.fromMap(data);
+      final data = await _api.post('/api/kegiatan', body: {
+        'judul': judul,
+        'deskripsi': deskripsi,
+        'deadline': _date(deadline),
+      });
+      return KegiatanModel.fromMap(data as Map<String, dynamic>);
+    } on AppException catch (e) {
+      throw AppException('Gagal membuat kegiatan: ${e.message}', code: e.code);
     } catch (e) {
       throw AppException('Gagal membuat kegiatan: ${e.toString()}');
     }
@@ -80,17 +78,15 @@ class KegiatanRepositoryImpl implements KegiatanRepository {
     required DateTime deadline,
   }) async {
     try {
-      final data = await _client
-          .from('kegiatan')
-          .update({
-            'judul': judul,
-            'deskripsi': deskripsi,
-            'deadline': deadline.toIso8601String().split('T').first,
-          })
-          .eq('id', id)
-          .select()
-          .single();
-      return KegiatanModel.fromMap(data);
+      final data = await _api.patch('/api/kegiatan/$id', body: {
+        'judul': judul,
+        'deskripsi': deskripsi,
+        'deadline': _date(deadline),
+      });
+      return KegiatanModel.fromMap(data as Map<String, dynamic>);
+    } on AppException catch (e) {
+      throw AppException('Gagal mengupdate kegiatan: ${e.message}',
+          code: e.code);
     } catch (e) {
       throw AppException('Gagal mengupdate kegiatan: ${e.toString()}');
     }
@@ -99,7 +95,10 @@ class KegiatanRepositoryImpl implements KegiatanRepository {
   @override
   Future<void> delete(String id) async {
     try {
-      await _client.from('kegiatan').delete().eq('id', id);
+      await _api.delete('/api/kegiatan/$id');
+    } on AppException catch (e) {
+      throw AppException('Gagal menghapus kegiatan: ${e.message}',
+          code: e.code);
     } catch (e) {
       throw AppException('Gagal menghapus kegiatan: ${e.toString()}');
     }
@@ -109,28 +108,18 @@ class KegiatanRepositoryImpl implements KegiatanRepository {
   Future<BulkImportResult> bulkImport(
       List<String> judulList, DateTime deadline) async {
     try {
-      final existing = await _client.from('kegiatan').select('judul');
-      final existingTitles =
-          (existing as List).map((e) => e['judul'] as String).toSet();
-
-      final newItems =
-          judulList.where((judul) => !existingTitles.contains(judul)).toList();
-
-      if (newItems.isNotEmpty) {
-        await _client.from('kegiatan').insert(
-              newItems
-                  .map((judul) => {
-                        'judul': judul,
-                        'deadline': deadline.toIso8601String().split('T').first,
-                      })
-                  .toList(),
-            );
-      }
-
+      // Judul yang sudah ada dilewati oleh server.
+      final data = await _api.post('/api/kegiatan/bulk', body: {
+        'judul_list': judulList,
+        'deadline': _date(deadline),
+      }) as Map<String, dynamic>;
       return BulkImportResult(
-        inserted: newItems.length,
-        skipped: judulList.length - newItems.length,
+        inserted: data['inserted'] as int,
+        skipped: data['skipped'] as int,
       );
+    } on AppException catch (e) {
+      throw AppException('Gagal melakukan bulk import: ${e.message}',
+          code: e.code);
     } catch (e) {
       throw AppException('Gagal melakukan bulk import: ${e.toString()}');
     }

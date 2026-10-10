@@ -27,4 +27,13 @@ class AppAuthUser {
       role: map['role'] as String? ?? 'pegawai',
     );
   }
+
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'nama': nama,
+        'email': email,
+        'jabatan': jabatan,
+        'unit_kerja': unitKerja,
+        'role': role,
+      };
 }

@@ -230,8 +230,7 @@ class _AdminDokCard extends StatelessWidget {
             // Foto
             GestureDetector(
               onTap: doc.imageUrl != null
-                  ? () => _showFullImage(
-                      context, ImageUrlUtils.toDisplayUrl(doc.imageUrl)!)
+                  ? () => _showFullImage(context, doc.imageUrl!)
                   : null,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
@@ -323,7 +322,8 @@ class _AdminDokCard extends StatelessWidget {
         child: Stack(
           children: [
             InteractiveViewer(
-              child: Image.network(imageUrl,
+              child: DriveImage(
+                  imageUrl: imageUrl,
                   fit: BoxFit.contain,
                   width: double.infinity,
                   height: double.infinity),

@@ -1,23 +1,24 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 
-import '../../../core/constants/supabase_constants.dart';
+import '../../../core/constants/api_constants.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../core/network/api_client.dart';
 import '../domain/import_result_model.dart';
 import '../domain/sheet_metadata_model.dart';
 import '../domain/sheet_row_model.dart';
 import 'import_sheets_repository.dart';
 
 class ImportSheetsRepositoryImpl implements ImportSheetsRepository {
+  final ApiClient _api;
   final http.Client _httpClient;
 
-  ImportSheetsRepositoryImpl({http.Client? httpClient})
+  ImportSheetsRepositoryImpl(this._api, {http.Client? httpClient})
       : _httpClient = httpClient ?? http.Client();
 
-  static const String _apiKey = SupabaseConstants.googleSheetsApiKey;
+  static const String _apiKey = ApiConstants.googleSheetsApiKey;
 
   @override
   Future<List<SheetMetadataModel>> getSheetList(String spreadsheetId) async {
@@ -166,54 +167,12 @@ class ImportSheetsRepositoryImpl implements ImportSheetsRepository {
   Future<ImportResultModel> importBatch({
     required String targetTable,
     required List<Map<String, dynamic>> rows,
-    required String jwtToken,
   }) async {
-    final uri = Uri.parse(SupabaseConstants.importSheetsFunctionUrl);
-    final body = jsonEncode({'targetTable': targetTable, 'rows': rows});
-
-    final http.Response response;
-    try {
-      response = await _httpClient
-          .post(
-            uri,
-            headers: {
-              'Authorization': 'Bearer $jwtToken',
-              'Content-Type': 'application/json',
-            },
-            body: body,
-          )
-          .timeout(const Duration(seconds: 60));
-    } on TimeoutException {
-      throw const AppException(
-        'Koneksi ke server timeout. Silakan coba lagi.',
-        code: 'timeout',
-      );
-    } catch (e) {
-      if (e.toString().contains('SocketException') ||
-          e.toString().contains('Failed host lookup') ||
-          e.toString().contains('Connection refused')) {
-        throw const AppException(
-          'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.',
-          code: 'network_error',
-        );
-      }
-      rethrow;
-    }
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      return _parseImportResult(data);
-    } else if (response.statusCode == 403) {
-      throw const AppException(
-        'Sesi tidak valid, silakan login ulang.',
-        code: '403',
-      );
-    } else {
-      throw AppException(
-        'Gagal mengimpor data. Status: ${response.statusCode}',
-        code: '${response.statusCode}',
-      );
-    }
+    final data = await _api.post(
+      '/api/import',
+      body: {'targetTable': targetTable, 'rows': rows},
+    );
+    return _parseImportResult(data as Map<String, dynamic>);
   }
 
   ImportResultModel _parseImportResult(Map<String, dynamic> data) {

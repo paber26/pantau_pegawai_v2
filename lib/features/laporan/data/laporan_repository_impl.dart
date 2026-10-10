@@ -1,20 +1,21 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:http/http.dart' as http;
-import 'package:supabase_flutter/supabase_flutter.dart'
-    hide AuthException, StorageException;
-
-import '../../../core/constants/supabase_constants.dart';
 import '../../../core/errors/app_exception.dart';
-import '../../../core/utils/date_utils.dart';
+import '../../../core/network/api_client.dart';
 import '../domain/laporan_model.dart';
 import 'laporan_repository.dart';
 
 class LaporanRepositoryImpl implements LaporanRepository {
-  final SupabaseClient _client;
+  final ApiClient _api;
 
-  LaporanRepositoryImpl(this._client);
+  LaporanRepositoryImpl(this._api);
+
+  Future<List<LaporanModel>> _list(Map<String, String?> query) async {
+    final data = await _api.get('/api/laporan', query: query) as List;
+    return data
+        .map((e) => LaporanModel.fromMap(e as Map<String, dynamic>))
+        .toList();
+  }
 
   @override
   Future<List<LaporanModel>> getAll({
@@ -24,60 +25,16 @@ class LaporanRepositoryImpl implements LaporanRepository {
     String? kegiatanId,
   }) async {
     try {
-      // Build query dengan filter bertahap
-      var query =
-          _client.from('laporan').select('*, users(nama), kegiatan(judul)');
-
-      // Filter harus dilakukan sebelum .order() karena supabase_flutter
-      // mengembalikan PostgrestFilterBuilder dari .select()
-      if (userId != null) {
-        final data = await _client
-            .from('laporan')
-            .select('*, users(nama), kegiatan(judul)')
-            .eq('user_id', userId)
-            .order('created_at', ascending: false);
-        return (data as List).map((e) => LaporanModel.fromMap(e)).toList();
-      }
-
-      if (kegiatanId != null) {
-        final data = await _client
-            .from('laporan')
-            .select('*, users(nama), kegiatan(judul)')
-            .eq('kegiatan_id', kegiatanId)
-            .order('created_at', ascending: false);
-        return (data as List).map((e) => LaporanModel.fromMap(e)).toList();
-      }
-
-      if (fromDate != null && toDate != null) {
-        final data = await _client
-            .from('laporan')
-            .select('*, users(nama), kegiatan(judul)')
-            .gte('created_at', fromDate.toIso8601String())
-            .lte('created_at', toDate.toIso8601String())
-            .order('created_at', ascending: false);
-        return (data as List).map((e) => LaporanModel.fromMap(e)).toList();
-      }
-
-      if (fromDate != null) {
-        final data = await _client
-            .from('laporan')
-            .select('*, users(nama), kegiatan(judul)')
-            .gte('created_at', fromDate.toIso8601String())
-            .order('created_at', ascending: false);
-        return (data as List).map((e) => LaporanModel.fromMap(e)).toList();
-      }
-
-      if (toDate != null) {
-        final data = await _client
-            .from('laporan')
-            .select('*, users(nama), kegiatan(judul)')
-            .lte('created_at', toDate.toIso8601String())
-            .order('created_at', ascending: false);
-        return (data as List).map((e) => LaporanModel.fromMap(e)).toList();
-      }
-
-      final data = await query.order('created_at', ascending: false);
-      return (data as List).map((e) => LaporanModel.fromMap(e)).toList();
+      // Hanya satu filter yang dipakai, dengan prioritas:
+      // user → kegiatan → rentang tanggal.
+      if (userId != null) return await _list({'user_id': userId});
+      if (kegiatanId != null) return await _list({'kegiatan_id': kegiatanId});
+      return await _list({
+        'from': fromDate?.toUtc().toIso8601String(),
+        'to': toDate?.toUtc().toIso8601String(),
+      });
+    } on AppException {
+      rethrow;
     } catch (e) {
       throw AppException('Gagal memuat laporan: ${e.toString()}');
     }
@@ -86,12 +43,9 @@ class LaporanRepositoryImpl implements LaporanRepository {
   @override
   Future<List<LaporanModel>> getByUserId(String userId) async {
     try {
-      final data = await _client
-          .from('laporan')
-          .select('*, kegiatan(judul)')
-          .eq('user_id', userId)
-          .order('created_at', ascending: false);
-      return (data as List).map((e) => LaporanModel.fromMap(e)).toList();
+      return await _list({'user_id': userId});
+    } on AppException {
+      rethrow;
     } catch (e) {
       throw AppException('Gagal memuat riwayat laporan: ${e.toString()}');
     }
@@ -100,12 +54,8 @@ class LaporanRepositoryImpl implements LaporanRepository {
   @override
   Future<LaporanModel> getById(String id) async {
     try {
-      final data = await _client
-          .from('laporan')
-          .select('*, users(nama), kegiatan(judul)')
-          .eq('id', id)
-          .single();
-      return LaporanModel.fromMap(data);
+      final data = await _api.get('/api/laporan/$id');
+      return LaporanModel.fromMap(data as Map<String, dynamic>);
     } catch (e) {
       throw const AppException('Laporan tidak ditemukan');
     }
@@ -120,65 +70,24 @@ class LaporanRepositoryImpl implements LaporanRepository {
     String? deskripsi,
   }) async {
     try {
-      // 1. Upload foto ke Google Drive via Edge Function
-      final imageUrl = await _uploadToGoogleDrive(
-        imageBytes: imageBytes,
-        pegawaiNama: pegawaiNama,
+      // 1. Upload foto ke Google Drive lewat API
+      final imageUrl = await _api.uploadPhoto(
+        bytes: imageBytes,
+        tanggal: DateTime.now(),
       );
 
-      // 2. Simpan metadata ke Supabase
-      final data = await _client
-          .from('laporan')
-          .insert({
-            'user_id': userId,
-            'kegiatan_id': kegiatanId,
-            'image_url': imageUrl,
-            'deskripsi': deskripsi,
-          })
-          .select('*, users(nama), kegiatan(judul)')
-          .single();
+      // 2. Simpan metadata (user ditentukan server dari akun yang login)
+      final data = await _api.post('/api/laporan', body: {
+        'kegiatan_id': kegiatanId,
+        'image_url': imageUrl,
+        'deskripsi': deskripsi,
+      });
 
-      return LaporanModel.fromMap(data);
+      return LaporanModel.fromMap(data as Map<String, dynamic>);
+    } on AppException catch (e) {
+      throw AppException('Gagal upload laporan: ${e.message}', code: e.code);
     } catch (e) {
       throw AppException('Gagal upload laporan: ${e.toString()}');
     }
-  }
-
-  Future<String> _uploadToGoogleDrive({
-    required Uint8List imageBytes,
-    required String pegawaiNama,
-  }) async {
-    final session = _client.auth.currentSession;
-    if (session == null) throw const AppException('Sesi tidak valid');
-
-    final now = DateTime.now();
-    final tanggal = AppDateUtils.toFolderDate(now);
-    final timestamp = AppDateUtils.toTimestamp(now);
-    final filename = 'foto_$timestamp.jpg';
-
-    final request = http.MultipartRequest(
-      'POST',
-      Uri.parse(SupabaseConstants.uploadDriveFunctionUrl),
-    );
-
-    request.headers['Authorization'] = 'Bearer ${session.accessToken}';
-    request.fields['pegawai_nama'] = pegawaiNama;
-    request.fields['tanggal'] = tanggal;
-    request.fields['filename'] = filename;
-
-    request.files.add(
-      http.MultipartFile.fromBytes('file', imageBytes, filename: filename),
-    );
-
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
-
-    if (response.statusCode != 200) {
-      throw AppException(
-          'Upload gagal: ${response.statusCode} ${response.body}');
-    }
-
-    final json = jsonDecode(response.body) as Map<String, dynamic>;
-    return json['image_url'] as String;
   }
 }

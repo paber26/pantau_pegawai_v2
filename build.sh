@@ -25,9 +25,13 @@ echo "==> Running build_runner..."
 dart run build_runner build --delete-conflicting-outputs
 
 echo "==> Building Flutter Web..."
+if [[ -z "${API_URL:-}" ]]; then
+  echo "ERROR: API_URL belum diset (Vercel > Settings > Environment Variables)."
+  exit 1
+fi
+
 flutter build web --release \
-  --dart-define=SUPABASE_URL="$SUPABASE_URL" \
-  --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
+  --dart-define=API_URL="$API_URL" \
   --dart-define=GOOGLE_SHEETS_API_KEY="$GOOGLE_SHEETS_API_KEY"
 
 echo "==> Build complete! Output in build/web"

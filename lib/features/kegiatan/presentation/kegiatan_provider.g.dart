@@ -7,7 +7,7 @@ part of 'kegiatan_provider.dart';
 // **************************************************************************
 
 String _$kegiatanRepositoryHash() =>
-    r'8d7e6ae647fa5b62e28f46c5b5d58158974d4155';
+    r'8de0056da6941a46f73e1812b39b831efa26f71b';
 
 /// See also [kegiatanRepository].
 @ProviderFor(kegiatanRepository)

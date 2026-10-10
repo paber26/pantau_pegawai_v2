@@ -18,10 +18,9 @@ abstract class ImportSheetsRepository {
     String sheetName,
   );
 
-  /// Mengirim batch data ke Edge Function untuk diimpor ke Supabase.
+  /// Mengirim batch data ke API untuk diimpor ke database.
   Future<ImportResultModel> importBatch({
     required String targetTable,
     required List<Map<String, dynamic>> rows,
-    required String jwtToken,
   });
 }

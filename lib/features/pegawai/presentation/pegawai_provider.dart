@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/network/network_providers.dart';
 import '../data/pegawai_repository.dart';
 import '../data/pegawai_repository_impl.dart';
 import '../domain/pegawai_model.dart';
@@ -10,7 +10,7 @@ part 'pegawai_provider.g.dart';
 
 @riverpod
 PegawaiRepository pegawaiRepository(Ref ref) {
-  return PegawaiRepositoryImpl(Supabase.instance.client);
+  return PegawaiRepositoryImpl(ref.watch(apiClientProvider));
 }
 
 @riverpod
