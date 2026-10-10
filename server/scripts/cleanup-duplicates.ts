@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Cleanup duplikat di tabel `dokumentasi`.
  *
@@ -6,47 +5,39 @@
  * (user_id, tanggal_kegiatan, proyek). Untuk setiap kelompok duplikat,
  * baris dengan `created_at` paling lama dipertahankan; sisanya dihapus.
  *
- * Cara jalankan:
- *   SUPABASE_SERVICE_ROLE_KEY=xxx node scripts/cleanup-duplicates.js
+ * Cara jalankan (dari folder server/):
+ *   DATABASE_URL=postgres://... npx tsx scripts/cleanup-duplicates.ts
  *
  * Tambah --dry-run untuk hanya menampilkan apa yang akan dihapus tanpa
  * benar-benar menghapus.
  */
 
-const { createClient } = require("@supabase/supabase-js")
+import pg from "pg"
 
-const SUPABASE_URL = "https://glywzqbifjordhwulpbw.supabase.co"
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+pg.types.setTypeParser(pg.types.builtins.DATE, (v) => v)
+
+const DATABASE_URL = process.env.DATABASE_URL ?? ""
 const DRY_RUN = process.argv.includes("--dry-run")
 
-if (!SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("❌ Set SUPABASE_SERVICE_ROLE_KEY terlebih dahulu")
+if (!DATABASE_URL) {
+  console.error("❌ Set DATABASE_URL terlebih dahulu")
   process.exit(1)
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false }
-})
+const db = new pg.Pool({ connectionString: DATABASE_URL })
 
-async function fetchAllDokumentasi() {
-  const PAGE_SIZE = 1000
-  const all = []
-  let page = 0
-  while (true) {
-    const from = page * PAGE_SIZE
-    const to = from + PAGE_SIZE - 1
-    const { data, error } = await supabase
-      .from("dokumentasi")
-      .select("id, user_id, tanggal_kegiatan, proyek, created_at")
-      .order("created_at", { ascending: true })
-      .range(from, to)
-    if (error) throw new Error(`Gagal baca page ${page}: ${error.message}`)
-    if (!data || data.length === 0) break
-    all.push(...data)
-    if (data.length < PAGE_SIZE) break
-    page++
-  }
-  return all
+interface DokRow {
+  id: string
+  user_id: string
+  tanggal_kegiatan: string
+  proyek: string
+}
+
+async function fetchAllDokumentasi(): Promise<DokRow[]> {
+  const { rows } = await db.query<DokRow>(
+    "SELECT id, user_id, tanggal_kegiatan, proyek FROM dokumentasi ORDER BY created_at ASC, id ASC"
+  )
+  return rows
 }
 
 async function main() {
@@ -57,16 +48,16 @@ async function main() {
   console.log(`📋 Total baris di DB: ${allDok.length}`)
 
   // Group by (user_id, tanggal_kegiatan, proyek)
-  const groups = new Map()
+  const groups = new Map<string, DokRow[]>()
   for (const dok of allDok) {
     const key = `${dok.user_id}|${dok.tanggal_kegiatan}|${dok.proyek}`
     if (!groups.has(key)) groups.set(key, [])
-    groups.get(key).push(dok)
+    groups.get(key)!.push(dok)
   }
 
   // Cari kelompok yang punya duplikat (>1 baris)
-  const duplicateGroups = []
-  const idsToDelete = []
+  const duplicateGroups: { key: string; totalRows: number; kept: string; deleted: string[] }[] = []
+  const idsToDelete: string[] = []
   for (const [key, rows] of groups.entries()) {
     if (rows.length > 1) {
       // Sudah di-sort by created_at ASC, jadi rows[0] adalah yang paling lama (keep).
@@ -103,10 +94,12 @@ async function main() {
     const totalBatch = Math.ceil(idsToDelete.length / BATCH)
     process.stdout.write(`   Batch ${batchNum}/${totalBatch}... `)
 
-    const { error } = await supabase.from("dokumentasi").delete().in("id", chunk)
-    if (error) {
-      console.log(`❌ ${error.message}`)
-      throw new Error(`Batch ${batchNum} gagal: ${error.message}`)
+    try {
+      await db.query("DELETE FROM dokumentasi WHERE id = ANY($1::uuid[])", [chunk])
+    } catch (error) {
+      const message = (error as Error).message
+      console.log(`❌ ${message}`)
+      throw new Error(`Batch ${batchNum} gagal: ${message}`)
     }
     deleted += chunk.length
     console.log(`✅ ${deleted}/${idsToDelete.length}`)
@@ -120,7 +113,9 @@ async function main() {
   console.log("\n✅ Selesai!")
 }
 
-main().catch((err) => {
-  console.error("❌", err.message)
-  process.exit(1)
-})
+main()
+  .catch((err) => {
+    console.error("❌", err.message)
+    process.exitCode = 1
+  })
+  .finally(() => db.end())

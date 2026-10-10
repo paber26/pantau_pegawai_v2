@@ -1,29 +1,34 @@
-#!/usr/bin/env node
 /**
- * Script migrasi data sekali jalan dari Google Spreadsheet ke Supabase.
- * Cara jalankan:
- *   SUPABASE_SERVICE_ROLE_KEY=xxx node scripts/migrate-from-sheets.js
+ * Sinkronisasi data dari Google Spreadsheet (AppSheet lama) ke database.
+ * Aman dijalankan berkali-kali: baris yang sudah ada dilewati berdasarkan
+ * (user_id, tanggal_kegiatan, proyek).
+ *
+ * Cara jalankan (dari folder server/, atau lewat ./sync.sh di root repo):
+ *   DATABASE_URL=postgres://... GOOGLE_SHEETS_API_KEY=xxx npx tsx scripts/migrate-from-sheets.ts
  */
+import pg from "pg"
 
-const { createClient } = require("@supabase/supabase-js")
+pg.types.setTypeParser(pg.types.builtins.DATE, (v) => v)
 
-const SPREADSHEET_ID = "1IvEhH5DvIDKKg7U61StDUAr6hYlyeYQYjzibnC4Bxj4"
-const GOOGLE_SHEETS_API_KEY = "AIzaSyAj7-Sm2ScvRNprljcC-8CzOTshwh-J0k8"
-const SUPABASE_URL = "https://glywzqbifjordhwulpbw.supabase.co"
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
-const DEFAULT_PASSWORD = "@@Password"
+const SPREADSHEET_ID = process.env.SPREADSHEET_ID ?? "1IvEhH5DvIDKKg7U61StDUAr6hYlyeYQYjzibnC4Bxj4"
+const GOOGLE_SHEETS_API_KEY = process.env.GOOGLE_SHEETS_API_KEY ?? ""
+const DATABASE_URL = process.env.DATABASE_URL ?? ""
 
-if (!SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("❌ Set SUPABASE_SERVICE_ROLE_KEY terlebih dahulu")
+if (!DATABASE_URL || !GOOGLE_SHEETS_API_KEY) {
+  console.error("❌ Set DATABASE_URL dan GOOGLE_SHEETS_API_KEY terlebih dahulu")
   process.exit(1)
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false }
-})
+const db = new pg.Pool({ connectionString: DATABASE_URL })
 
-// Mapping nama lengkap di spreadsheet → email di Supabase
-const NAMA_MAPPING = {
+interface UserRow {
+  id: string
+  nama: string
+  email: string
+}
+
+// Mapping nama lengkap di spreadsheet → email akun pegawai
+const NAMA_MAPPING: Record<string, string | null> = {
   "Irena Listianawati SST, SE., M.Si": "irena@bps.go.id",
   "Sri Endang T Karim SE": "srikarim@bps.go.id",
   "Johanes S.ST": "johanes@bps.go.id",
@@ -53,18 +58,18 @@ const NAMA_MAPPING = {
   "Frensix Katihokang": null // tidak ada di daftar pegawai, skip
 }
 
-async function fetchSheetData(sheetName) {
+async function fetchSheetData(sheetName: string): Promise<string[][]> {
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(sheetName)}?key=${GOOGLE_SHEETS_API_KEY}`
   const res = await fetch(url)
   if (!res.ok) throw new Error(`Gagal fetch "${sheetName}": ${res.status}`)
   return (await res.json()).values || []
 }
 
-function rowsToObjects(rows) {
+function rowsToObjects(rows: string[][]): Record<string, string>[] {
   if (rows.length < 2) return []
   const headers = rows[0]
   return rows.slice(1).map((row) => {
-    const obj = {}
+    const obj: Record<string, string> = {}
     headers.forEach((h, i) => {
       obj[h] = row[i] || ""
     })
@@ -72,7 +77,7 @@ function rowsToObjects(rows) {
   })
 }
 
-function parseDate(s) {
+function parseDate(s: string | undefined): string | null {
   if (!s) return null
   if (s.includes("-") && !isNaN(new Date(s).getTime())) return new Date(s).toISOString().split("T")[0]
   const p = s.split("/")
@@ -81,12 +86,11 @@ function parseDate(s) {
 }
 
 async function main() {
-  console.log("🚀 Migrasi data dari Google Spreadsheet ke Supabase...\n")
+  console.log("🚀 Sinkronisasi data dari Google Spreadsheet ke database...\n")
 
   // Ambil semua user yang sudah ada
-  const { data: allUsers } = await supabase.from("users").select("id, nama, email")
-  const userMap = allUsers || []
-  console.log(`👥 ${userMap.length} pegawai sudah ada di Supabase`)
+  const { rows: userMap } = await db.query<UserRow>("SELECT id, nama, email FROM users")
+  console.log(`👥 ${userMap.length} pegawai sudah ada di database`)
   userMap.forEach((u) => console.log(`   - ${u.nama} | ${u.email}`))
 
   // Baca DOKUMENTASI HARIAN
@@ -96,31 +100,25 @@ async function main() {
   console.log(`   ${records.length} baris ditemukan`)
 
   // Ambil dokumentasi yang sudah ada untuk skip duplikat
-  // Pagination diperlukan karena Supabase default limit 1000 per query.
-  const PAGE_SIZE = 1000
-  const existingDok = []
-  let page = 0
-  while (true) {
-    const from = page * PAGE_SIZE
-    const to = from + PAGE_SIZE - 1
-    const { data, error } = await supabase
-      .from("dokumentasi")
-      .select("user_id, tanggal_kegiatan, proyek")
-      .range(from, to)
-    if (error) throw new Error(`Gagal baca dokumentasi page ${page}: ${error.message}`)
-    if (!data || data.length === 0) break
-    existingDok.push(...data)
-    if (data.length < PAGE_SIZE) break
-    page++
-  }
+  const { rows: existingDok } = await db.query<{ user_id: string; tanggal_kegiatan: string; proyek: string }>(
+    "SELECT user_id, tanggal_kegiatan, proyek FROM dokumentasi"
+  )
   const existingKeys = new Set(existingDok.map((d) => `${d.user_id}|${d.tanggal_kegiatan}|${d.proyek}`))
-  console.log(`   ${existingDok.length} dokumentasi sudah ada di Supabase (akan di-skip)`)
+  console.log(`   ${existingDok.length} dokumentasi sudah ada di database (akan di-skip)`)
 
   // Proses semua baris
-  const toInsert = []
+  const toInsert: {
+    user_id: string
+    pegawai_nama: string
+    proyek: string
+    tanggal_kegiatan: string
+    catatan: string | null
+    link: string | null
+    image_url: string | null
+  }[] = []
   let dilewati = 0
   let errorParse = 0
-  const parseErrors = []
+  const parseErrors: string[] = []
 
   for (const [i, record] of records.entries()) {
     const namaPegawai = record["PEGAWAI"]?.trim()
@@ -141,7 +139,7 @@ async function main() {
       continue
     } // sengaja skip
 
-    let user = null
+    let user: UserRow | undefined
     if (mappedEmail) {
       user = userMap.find((u) => u.email?.toLowerCase() === mappedEmail.toLowerCase())
     }
@@ -150,7 +148,7 @@ async function main() {
       user = userMap.find(
         (u) =>
           u.nama?.toLowerCase().includes(namaPegawai.toLowerCase()) ||
-          namaPegawai.toLowerCase().includes(u.nama?.toLowerCase())
+          namaPegawai.toLowerCase().includes(u.nama?.toLowerCase() ?? "")
       )
     }
 
@@ -180,7 +178,7 @@ async function main() {
     }
     existingKeys.add(key)
 
-    toInsert.push({ user_id: user.id, proyek, tanggal_kegiatan: tanggal, catatan, link, image_url: link })
+    toInsert.push({ user_id: user.id, pegawai_nama: user.nama, proyek, tanggal_kegiatan: tanggal, catatan, link, image_url: link })
   }
 
   console.log(`\n   Siap insert: ${toInsert.length} baris baru`)
@@ -196,7 +194,7 @@ async function main() {
   const BATCH = 200
   let berhasil = 0
   let gagalInsert = 0
-  const insertErrors = []
+  const insertErrors: string[] = []
 
   for (let i = 0; i < toInsert.length; i += BATCH) {
     const chunk = toInsert.slice(i, i + BATCH)
@@ -204,14 +202,20 @@ async function main() {
     const totalBatch = Math.ceil(toInsert.length / BATCH)
     process.stdout.write(`   Batch ${batchNum}/${totalBatch}... `)
 
-    const { error } = await supabase.from("dokumentasi").insert(chunk)
-    if (error) {
-      console.log(`❌ ${error.message}`)
-      insertErrors.push(`Batch ${batchNum}: ${error.message}`)
-      gagalInsert += chunk.length
-    } else {
+    try {
+      await db.query(
+        `INSERT INTO dokumentasi (user_id, pegawai_nama, proyek, tanggal_kegiatan, catatan, link, image_url)
+         SELECT user_id, pegawai_nama, proyek, tanggal_kegiatan, catatan, link, image_url
+           FROM json_populate_recordset(NULL::dokumentasi, $1::json)`,
+        [JSON.stringify(chunk)]
+      )
       berhasil += chunk.length
       console.log(`✅ ${berhasil}/${toInsert.length}`)
+    } catch (error) {
+      const message = (error as Error).message
+      console.log(`❌ ${message}`)
+      insertErrors.push(`Batch ${batchNum}: ${message}`)
+      gagalInsert += chunk.length
     }
   }
 
@@ -236,7 +240,9 @@ async function main() {
   console.log("\n✅ Selesai!")
 }
 
-main().catch((err) => {
-  console.error("❌", err.message)
-  process.exit(1)
-})
+main()
+  .catch((err) => {
+    console.error("❌", err.message)
+    process.exitCode = 1
+  })
+  .finally(() => db.end())
