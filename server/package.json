@@ -1,0 +1,38 @@
+{
+  "name": "pantau-pegawai-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "REST API PantauPegawai (pengganti Supabase)",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/src/server.js",
+    "dev": "tsx watch src/server.ts",
+    "migrate": "tsx src/migrate.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "create-admin": "tsx scripts/create-admin.ts",
+    "migrate:supabase": "tsx scripts/migrate-from-supabase.ts",
+    "sync:sheets": "tsx scripts/migrate-from-sheets.ts",
+    "cleanup:duplicates": "tsx scripts/cleanup-duplicates.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.3.1",
+    "@fastify/multipart": "^10.1.3",
+    "@fastify/rate-limit": "^11.2.1",
+    "bcryptjs": "^3.0.3",
+    "fastify": "^5.12.5",
+    "google-auth-library": "^11.2.0",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/pg": "^8.23.1",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.3"
+  }
+}
