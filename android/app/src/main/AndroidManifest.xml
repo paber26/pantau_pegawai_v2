@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Internet untuk koneksi ke Supabase -->
+    <!-- Internet untuk koneksi ke API PantauPegawai -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Kamera untuk ambil foto dokumentasi -->
     <uses-permission android:name="android.permission.CAMERA"/>

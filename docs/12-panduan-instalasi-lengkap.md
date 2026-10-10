@@ -1,5 +1,9 @@
 # Panduan Instalasi Lengkap — PantauPegawai
 
+> ⚠️ **Dokumen lama (versi Supabase).** Sejak pindah ke VPS, aplikasi tidak lagi
+> memakai Supabase. Lihat [`13-deploy-vps.md`](13-deploy-vps.md) dan
+> [`10-cara-menjalankan.md`](10-cara-menjalankan.md). Dokumen ini disimpan sebagai arsip.
+
 Dokumen ini adalah panduan end-to-end untuk menyiapkan seluruh infrastruktur dan menjalankan aplikasi **PantauPegawai** dari nol.
 
 ---

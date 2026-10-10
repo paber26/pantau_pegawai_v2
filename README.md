@@ -1,137 +1,109 @@
 # PantauPegawai
 
-Aplikasi monitoring pegawai berbasis Flutter + Supabase + Google Drive.
+Aplikasi monitoring pegawai berbasis Flutter + API PostgreSQL di VPS + Google Drive.
 
 ## Stack
 
-| Layer               | Teknologi                        |
-| ------------------- | -------------------------------- |
-| Mobile (Pegawai)    | Flutter Android                  |
-| Web/Desktop (Admin) | Flutter Web/Desktop              |
-| Auth & Database     | Supabase (PostgreSQL + RLS)      |
-| Realtime            | Supabase Realtime                |
-| File Storage        | Google Drive via Service Account |
-| Upload Proxy        | Supabase Edge Function (Deno)    |
-| State Management    | Riverpod                         |
-| Navigation          | go_router                        |
+| Layer               | Teknologi                                   |
+| ------------------- | ------------------------------------------- |
+| Mobile (Pegawai)    | Flutter Android / iOS                       |
+| Web (Admin)         | Flutter Web, deploy di Vercel               |
+| API                 | Node.js 22 + Fastify (folder `server/`)     |
+| Database            | PostgreSQL 16 di VPS                        |
+| Login               | Token sesi dari API (disimpan hash di DB)   |
+| File Storage        | Google Drive via Service Account            |
+| HTTPS               | Caddy (Let's Encrypt otomatis)              |
+| Deploy server       | Docker Compose (`docker-compose.yml`)       |
+| State Management    | Riverpod                                    |
+| Navigation          | go_router                                   |
+
+> Aplikasi ini sebelumnya memakai Supabase. Panduan pindah data dan
+> peralihan ada di [`docs/13-deploy-vps.md`](docs/13-deploy-vps.md).
 
 ---
 
 ## Setup
 
-### 1. Supabase
+### 1. Server (VPS)
 
-1. Buat project baru di [supabase.com](https://supabase.com)
-2. Jalankan migration di **SQL Editor**:
-   ```
-   supabase/migrations/001_initial_schema.sql
-   ```
-3. Buat user admin pertama:
-   - Pergi ke **Authentication > Users > Add User**
-   - Masukkan email dan password admin
-   - Jalankan SQL berikut untuk set role admin:
-     ```sql
-     UPDATE public.users
-     SET role = 'admin', nama = 'Nama Admin', jabatan = 'Admin Sistem'
-     WHERE email = 'admin@instansi.go.id';
-     ```
+Ringkasnya (detail lengkap di [`docs/13-deploy-vps.md`](docs/13-deploy-vps.md)):
+
+```bash
+git clone https://github.com/paber26/pantau_pegawai_v2.git
+cd pantau_pegawai_v2
+cp .env.example .env                                   # isi API_DOMAIN, POSTGRES_PASSWORD, dll.
+mkdir -p secrets                                       # taruh JSON service account Google:
+cp /path/ke/key.json secrets/google-service-account.json
+docker compose up -d --build
+docker compose exec api node dist/scripts/create-admin.js   # admin pertama (instalasi baru)
+```
 
 ### 2. Google Drive Service Account
 
-1. Buka [Google Cloud Console](https://console.cloud.google.com)
-2. Buat project baru atau gunakan yang sudah ada
-3. Aktifkan **Google Drive API**
-4. Buat **Service Account**:
-   - IAM & Admin > Service Accounts > Create
-   - Download JSON key
-5. Buat folder di Google Drive bernama `PantauPegawai`
-6. Share folder tersebut ke email service account dengan role **Editor**
-7. Catat **Folder ID** dari URL Google Drive
+1. Buka [Google Cloud Console](https://console.cloud.google.com), aktifkan **Google Drive API**
+2. Buat **Service Account** → tab Keys → Add key → **JSON**
+3. Buat folder di Google Drive (mis. `PantauPegawai`), share ke email service account dengan role **Editor**
+4. Isi `GOOGLE_DRIVE_ROOT_FOLDER_ID` di `.env` dengan ID folder tersebut
 
-### 3. Deploy Edge Function
+### 3. Flutter App
 
 ```bash
-# Install Supabase CLI
-npm install -g supabase
+flutter pub get
+dart run build_runner build --delete-conflicting-outputs
 
-# Login
-supabase login
-
-# Link ke project
-supabase link --project-ref YOUR_PROJECT_ID
-
-# Set secrets
-supabase secrets set GOOGLE_SERVICE_ACCOUNT_EMAIL="your-sa@project.iam.gserviceaccount.com"
-supabase secrets set GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n..."
-supabase secrets set GOOGLE_DRIVE_ROOT_FOLDER_ID="your_folder_id"
-
-# Deploy function
-supabase functions deploy upload-to-drive
+# Jalankan (URL API diberikan saat build/run)
+flutter run -d chrome --dart-define=API_URL=https://api.domain-anda.go.id
+# atau pakai ./run_local.sh yang membaca API_URL dari file .env
 ```
 
-### 4. Flutter App
+Web di Vercel: set Environment Variable `API_URL` (dan `GOOGLE_SHEETS_API_KEY`).
 
-1. Update `lib/core/constants/supabase_constants.dart`:
-
-   ```dart
-   static const String url = 'https://YOUR_PROJECT_ID.supabase.co';
-   static const String anonKey = 'YOUR_ANON_KEY';
-   ```
-
-2. Install dependencies:
-
-   ```bash
-   flutter pub get
-   ```
-
-3. Generate Riverpod code:
-
-   ```bash
-   dart run build_runner build --delete-conflicting-outputs
-   ```
-
-4. Jalankan:
-
-   ```bash
-   # Android
-   flutter run
-
-   # Web
-   flutter run -d chrome
-
-   # Desktop (macOS/Windows/Linux)
-   flutter run -d macos
-   ```
+Menjalankan API secara lokal untuk pengembangan: lihat
+[`docs/10-cara-menjalankan.md`](docs/10-cara-menjalankan.md).
 
 ---
 
 ## Struktur Project
 
 ```
-lib/
-├── core/           # Constants, theme, router, utils, errors
+lib/                    # Aplikasi Flutter
+├── core/
+│   ├── network/        # ApiClient & SessionStore (login, token)
+│   ├── constants/      # ApiConstants (API_URL), warna, teks
+│   └── ...             # theme, router, utils, errors
 ├── features/
-│   ├── auth/       # Login, logout, session
-│   ├── pegawai/    # CRUD pegawai
-│   ├── kegiatan/   # CRUD kegiatan
-│   ├── penugasan/  # Assign kegiatan ke pegawai
-│   ├── laporan/    # Upload & lihat laporan
-│   └── dashboard/  # Statistik admin
-└── shared/
-    └── widgets/    # Komponen UI reusable
+│   ├── auth/           # Login, logout, sesi
+│   ├── pegawai/        # CRUD pegawai
+│   ├── kegiatan/       # CRUD proyek/kegiatan
+│   ├── penugasan/      # Assign kegiatan ke pegawai
+│   ├── dokumentasi/    # Dokumentasi harian (foto, filter, riwayat)
+│   ├── rekap_upload/   # Rekap upload per pegawai
+│   ├── import_sheets/  # Import data dari Google Sheets
+│   ├── laporan/        # Laporan (fitur lama)
+│   └── dashboard/      # Statistik admin
+└── shared/widgets/     # Komponen UI reusable
+
+server/                 # API Node.js + PostgreSQL
+├── migrations/         # Skema database (dijalankan otomatis saat start)
+├── src/routes/         # Endpoint /api/... + aturan akses
+├── scripts/            # Pindah data Supabase, sinkron Sheets, buat admin
+└── test/               # Test API (vitest + PostgreSQL)
+
+deploy/                 # Caddyfile & script backup
+docker-compose.yml      # db + api + caddy + backup
 ```
 
 ---
 
 ## Permissions Android
 
-Tambahkan ke `android/app/src/main/AndroidManifest.xml`:
+Sudah ada di `android/app/src/main/AndroidManifest.xml`:
 
 ```xml
 <uses-permission android:name="android.permission.INTERNET"/>
 <uses-permission android:name="android.permission.CAMERA"/>
-<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
 <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
 ```
 
 ---
@@ -154,7 +126,8 @@ dart run build_runner watch
 
 ## Catatan Keamanan
 
-- **Jangan** commit `supabase_constants.dart` dengan credentials asli ke repository publik
-- Gunakan environment variables atau `.env` file yang di-gitignore
-- Google Service Account credentials **hanya** ada di Edge Function secrets, tidak pernah di client
-- RLS aktif di semua tabel — pegawai tidak bisa akses data pegawai lain
+- Aplikasi Flutter hanya menyimpan `API_URL` — tidak ada kredensial database di client
+- Kredensial Google Service Account **hanya** ada di server (`secrets/`, tidak di-commit)
+- Aturan akses ditegakkan API: pegawai hanya bisa mengubah/menghapus dokumentasinya
+  sendiri, hanya admin yang bisa mengelola pegawai & proyek
+- Database tidak dibuka ke internet; backup harian di folder `backups/` — salin ke luar VPS secara berkala

@@ -1,234 +1,163 @@
 # Tahap 10 — Cara Menjalankan Aplikasi
 
+> Sejak pindah dari Supabase, aplikasi terdiri dari **API server** (folder
+> `server/`, Node.js + PostgreSQL) dan **aplikasi Flutter**. Deploy ke VPS
+> dijelaskan di [`13-deploy-vps.md`](13-deploy-vps.md).
+
 ## Prasyarat
 
 | Tool           | Versi   | Cara Install                                 |
 | -------------- | ------- | -------------------------------------------- |
 | Flutter        | 3.41.8+ | https://flutter.dev/docs/get-started/install |
 | Dart           | 3.11.5+ | Sudah termasuk dalam Flutter                 |
+| Node.js        | 22+     | https://nodejs.org                           |
+| Docker         | Terbaru | https://docs.docker.com/get-docker (untuk PostgreSQL lokal) |
 | Xcode          | 15+     | Mac App Store (untuk iOS)                    |
 | Android Studio | 2023+   | https://developer.android.com/studio         |
 | Chrome         | Terbaru | Untuk Flutter Web                            |
 
-## Setup Awal (Sekali Saja)
+---
 
-### 1. Clone / buka project
-
-```bash
-cd pantau_pegawai
-```
-
-### 2. Buat file credentials (WAJIB)
-
-File `lib/core/constants/supabase_constants.dart` sekarang membaca dari environment variables saat build — **tidak perlu dibuat manual**. Nilai diisi via `--dart-define` saat build atau via Vercel Environment Variables.
-
-Untuk development lokal, jalankan dengan:
+## 1. Jalankan API secara lokal
 
 ```bash
-flutter run -d chrome \
-  --dart-define=SUPABASE_URL=https://glywzqbifjordhwulpbw.supabase.co \
-  --dart-define=SUPABASE_ANON_KEY=eyJhbGci... \
-  --dart-define=GOOGLE_SHEETS_API_KEY=your_key \
-  --web-browser-flag "--disable-web-security"
+# PostgreSQL lokal (sekali saja)
+docker run -d --name pantau-db -e POSTGRES_PASSWORD=dev -p 5432:5432 postgres:16
+
+cd server
+npm install
+
+export DATABASE_URL=postgres://postgres:dev@localhost:5432/postgres
+export PUBLIC_API_URL=http://localhost:3000
+export CORS_ORIGINS='http://localhost:*'
+# Opsional, untuk upload & tampil foto:
+# export GOOGLE_SERVICE_ACCOUNT_FILE=/path/ke/service-account.json
+# export GOOGLE_DRIVE_ROOT_FOLDER_ID=xxxx
+
+npm run dev            # API di http://localhost:3000 (tabel dibuat otomatis)
 ```
 
-### 3. Install dependencies
+Buat akun admin (terminal lain, dengan `DATABASE_URL` yang sama):
 
 ```bash
-flutter pub get
+cd server && npm run create-admin
 ```
 
-### 4. Generate Riverpod code
+Test server (butuh PostgreSQL; default `postgres://postgres@localhost:5433/pantau_test`,
+ubah lewat `TEST_DATABASE_URL`):
 
 ```bash
-flutter pub run build_runner build --delete-conflicting-outputs
-```
-
-### 5. Jalankan SQL migration di Supabase
-
-- Buka Supabase Dashboard → SQL Editor
-- Jalankan `supabase/migrations/001_initial_schema.sql`
-- Jalankan `supabase/migrations/002_dokumentasi_harian.sql`
-
-### 6. Buat akun admin
-
-- Supabase Dashboard → Authentication → Users → Add user
-- Jalankan SQL:
-
-```sql
-UPDATE public.users
-SET role = 'admin', nama = 'Administrator'
-WHERE email = 'admin@instansi.go.id';
+cd server
+npm run typecheck
+TEST_DATABASE_URL=postgres://postgres:dev@localhost:5432/pantau_test npm test
 ```
 
 ---
 
-## Menjalankan Aplikasi
-
-### Flutter Web (Admin Dashboard)
+## 2. Jalankan aplikasi Flutter
 
 ```bash
-# Development (dengan CORS disabled untuk localhost)
-flutter run -d chrome \
-  --dart-define=SUPABASE_URL=https://glywzqbifjordhwulpbw.supabase.co \
-  --dart-define=SUPABASE_ANON_KEY=eyJhbGci... \
-  --dart-define=GOOGLE_SHEETS_API_KEY=your_key \
-  --web-browser-flag "--disable-web-security"
+flutter pub get
+dart run build_runner build --delete-conflicting-outputs   # generate Riverpod
 ```
 
-### Flutter iOS (Pegawai App)
+Buat `.env` di root repository (salin dari `.env.example`) dan isi:
+
+```
+API_URL=http://localhost:3000
+GOOGLE_SHEETS_API_KEY=xxx   # opsional, untuk menu Import Data
+```
+
+Lalu:
 
 ```bash
-# Install pods (sekali saja atau setelah update dependencies)
-cd ios && pod install && cd ..
-
-# Lihat device yang terhubung
-flutter devices
-
-# Jalankan ke iPhone
-flutter run -d <device_id>
+./run_local.sh            # Chrome
+./run_local.sh macos      # desktop macOS
+./run_local.sh <device>   # HP (lihat: flutter devices)
 ```
 
-### Flutter Android
+Atau langsung:
 
 ```bash
-flutter run -d <device_id>
+flutter run -d chrome --dart-define=API_URL=http://localhost:3000
 ```
+
+> **HP / emulator Android:** `localhost` di HP bukan komputer Anda. Pakai
+> IP komputer di jaringan yang sama (mis. `http://192.168.1.10:3000`) atau
+> `http://10.0.2.2:3000` untuk emulator. Android memblokir HTTP biasa
+> secara default, jadi untuk HP paling mudah memakai API yang sudah HTTPS
+> (API di VPS).
 
 ---
 
 ## Setelah Mengubah Kode
 
-### Hot reload (perubahan UI)
-
-Tekan `r` di terminal Flutter.
-
-### Hot restart (perubahan provider/konstanta)
-
-Tekan `R` di terminal Flutter.
-
-### Full restart (perubahan yang tidak terdeteksi)
-
-Stop (`q`) lalu jalankan ulang `flutter run`.
-
----
-
-## Deploy Edge Functions
-
-Setiap kali mengubah kode Edge Function:
-
-**Via Browser (mudah):**
-
-1. Supabase Dashboard → Edge Functions → klik nama function
-2. Tab "Code" → edit → Deploy
-
-**Via CLI:**
-
-```bash
-# Install Supabase CLI
-brew install supabase/tap/supabase
-
-# Login dengan personal access token dari:
-# https://supabase.com/dashboard/account/tokens
-supabase login --token sbp_xxx...
-
-# Deploy
-supabase functions deploy admin-create-user --project-ref glywzqbifjordhwulpbw
-supabase functions deploy admin-delete-user --project-ref glywzqbifjordhwulpbw
-supabase functions deploy admin-reset-password --project-ref glywzqbifjordhwulpbw
-supabase functions deploy upload-to-drive --project-ref glywzqbifjordhwulpbw
-supabase functions deploy image-proxy --project-ref glywzqbifjordhwulpbw
-supabase functions deploy import-from-sheets --project-ref glywzqbifjordhwulpbw
-```
+| Perubahan | Tindakan |
+| --- | --- |
+| UI Flutter | Tekan `r` (hot reload) |
+| Provider/konstanta Flutter | Tekan `R` (hot restart) |
+| Provider dengan `@riverpod` baru | `dart run build_runner build --delete-conflicting-outputs` |
+| Kode API (`server/src`) | `npm run dev` otomatis restart |
+| Struktur database | Tambah file baru `server/migrations/00N_nama.sql` (jalan otomatis saat API start) |
 
 ---
 
 ## Build Production
 
-### Web
+### Web (Vercel)
+
+Deploy otomatis setiap `git push` ke branch `main` (lihat `vercel.json` dan
+`build.sh`). Environment Variables di Vercel:
+
+| Name                    | Value                                   |
+| ----------------------- | --------------------------------------- |
+| `API_URL`               | `https://api.pantau.domain.go.id`       |
+| `GOOGLE_SHEETS_API_KEY` | API key Google Sheets                   |
+
+Build manual:
 
 ```bash
 flutter build web --release \
-  --dart-define=SUPABASE_URL=https://glywzqbifjordhwulpbw.supabase.co \
-  --dart-define=SUPABASE_ANON_KEY=eyJhbGci... \
+  --dart-define=API_URL=https://api.pantau.domain.go.id \
   --dart-define=GOOGLE_SHEETS_API_KEY=your_key
 # Output: build/web/
-```
-
-Output berupa file HTML/CSS/JS statis di folder `build/web/` yang siap di-hosting.
-
-#### Deploy ke Vercel (Production — Recommended)
-
-Aplikasi web sudah dikonfigurasi untuk deploy otomatis ke Vercel via GitHub.
-
-**Setup awal (sekali saja):**
-
-1. Push repo ke GitHub
-2. Buka [vercel.com](https://vercel.com) → New Project → Import repo
-3. Vercel otomatis baca `vercel.json` — tidak perlu konfigurasi manual
-4. Di **Settings → Environment Variables**, tambahkan:
-
-| Name                    | Value                                      |
-| ----------------------- | ------------------------------------------ |
-| `SUPABASE_URL`          | `https://glywzqbifjordhwulpbw.supabase.co` |
-| `SUPABASE_ANON_KEY`     | Legacy anon key (`eyJhbGci...`)            |
-| `GOOGLE_SHEETS_API_KEY` | API key Google Sheets                      |
-
-5. Klik Deploy
-
-**Deploy selanjutnya:** Otomatis setiap `git push` ke branch `main`.
-
-**File konfigurasi Vercel:**
-
-- `vercel.json` — build command, output directory, SPA routing rewrite
-- `build.sh` — install Flutter 3.41.8, enable web, pub get, build_runner, flutter build web
-
-> ⚠️ Gunakan **Legacy anon key** (format `eyJhbGci...`), bukan Publishable key (format `sb_publishable_...`). Supabase Edge Functions hanya menerima legacy key.
-
-### iOS (butuh Apple Developer Account)
-
-```bash
-flutter build ios --release
-# Lalu buka Xcode untuk archive dan distribute
 ```
 
 ### Android
 
 ```bash
-flutter build apk --release
+flutter build apk --release --dart-define=API_URL=https://api.pantau.domain.go.id
 # Output: build/app/outputs/flutter-apk/app-release.apk
 ```
 
----
-
-## Migrasi Data dari AppSheet (Sekali Jalan)
-
-Untuk mengimpor data historis dari Google Spreadsheet lama ke Supabase:
+### iOS (butuh Apple Developer Account)
 
 ```bash
-# Install dependency (sekali saja)
-npm install @supabase/supabase-js
-
-# Jalankan migrasi
-SUPABASE_SERVICE_ROLE_KEY=xxx node scripts/migrate-from-sheets.js
+cd ios && pod install && cd ..
+flutter build ios --release --dart-define=API_URL=https://api.pantau.domain.go.id
+# Lalu buka Xcode untuk archive dan distribute
 ```
 
-Script ini akan:
+### API server
 
-1. Membaca sheet `DOKUMENTASI HARIAN` dari spreadsheet AppSheet lama
-2. Mencocokkan nama pegawai ke akun Supabase
-3. Menginsert semua data ke tabel `dokumentasi`
-4. URL foto Google Drive disimpan as-is ke `image_url` (tidak perlu upload ulang)
-
-Lihat `scripts/migrate-from-sheets.js` untuk konfigurasi Spreadsheet ID dan mapping nama pegawai.
+Lihat [`13-deploy-vps.md`](13-deploy-vps.md) (Docker Compose di VPS).
 
 ---
 
-## Akun Default
+## Sinkronisasi Data dari AppSheet
 
-| Role    | Email             | Password             |
-| ------- | ----------------- | -------------------- |
-| Admin   | admin@pawai.go.id | (sesuai yang dibuat) |
-| Pegawai | als@bps.go.id     | (sesuai yang dibuat) |
+Untuk mengambil data dari Google Spreadsheet AppSheet lama ke database:
 
-> Ganti password setelah setup menggunakan fitur "Ubah Password" di halaman Edit Pegawai.
+```bash
+# Di VPS (memakai container api)
+./sync.sh
+
+# Atau lokal
+cd server
+DATABASE_URL=... GOOGLE_SHEETS_API_KEY=... npm run sync:sheets
+```
+
+Script (`server/scripts/migrate-from-sheets.ts`) membaca sheet
+`DOKUMENTASI HARIAN`, mencocokkan nama pegawai ke akun, lalu menyimpan baris
+yang belum ada ke tabel `dokumentasi`. Aman dijalankan berulang kali.
+Mapping nama pegawai ada di bagian atas file script tersebut.
