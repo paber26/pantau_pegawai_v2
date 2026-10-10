@@ -1,5 +1,5 @@
 name: pantau_pegawai
-description: Aplikasi monitoring pegawai berbasis Flutter + Supabase + Google Drive
+description: Aplikasi monitoring pegawai berbasis Flutter + API PostgreSQL (VPS) + Google Drive
 publish_to: "none"
 version: 1.0.0+1
 
@@ -9,9 +9,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
-  # Backend
-  supabase_flutter: ^2.8.4
 
   # State Management
   flutter_riverpod: ^2.5.1

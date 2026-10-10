@@ -1,5 +1,9 @@
 # Tahap 3 — Konfigurasi Supabase
 
+> ⚠️ **Dokumen lama (versi Supabase).** Sejak pindah ke VPS, aplikasi tidak lagi
+> memakai Supabase. Lihat [`13-deploy-vps.md`](13-deploy-vps.md) dan
+> [`10-cara-menjalankan.md`](10-cara-menjalankan.md). Dokumen ini disimpan sebagai arsip.
+
 ## 3.1 Membuat Project Supabase
 
 1. Buka https://supabase.com dan login

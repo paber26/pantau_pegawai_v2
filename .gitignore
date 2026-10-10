@@ -42,6 +42,11 @@ supabase/.temp/
 *.env
 *.envbackup
 .env*
+!.env.example
+
+# Deploy VPS (kredensial & backup database — jangan di-commit)
+secrets/
+backups/
 
 # Claude Code (kredensial lokal & log analyze — jangan di-commit)
 .claude/settings.local.json

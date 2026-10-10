@@ -2,8 +2,8 @@ import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/network/network_providers.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../data/dokumentasi_filter_store.dart';
 import '../data/dokumentasi_repository.dart';
@@ -14,7 +14,7 @@ part 'dokumentasi_provider.g.dart';
 
 @riverpod
 DokumentasiRepository dokumentasiRepository(Ref ref) {
-  return DokumentasiRepositoryImpl(Supabase.instance.client);
+  return DokumentasiRepositoryImpl(ref.watch(apiClientProvider));
 }
 
 /// Dokumentasi milik pegawai yang login

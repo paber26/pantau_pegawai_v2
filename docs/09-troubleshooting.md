@@ -1,5 +1,9 @@
 # Tahap 9 — Troubleshooting
 
+> ⚠️ **Dokumen lama (versi Supabase).** Sejak pindah ke VPS, aplikasi tidak lagi
+> memakai Supabase. Lihat [`13-deploy-vps.md`](13-deploy-vps.md) dan
+> [`10-cara-menjalankan.md`](10-cara-menjalankan.md). Dokumen ini disimpan sebagai arsip.
+
 Kumpulan masalah yang ditemui selama pengembangan beserta solusinya.
 
 ---

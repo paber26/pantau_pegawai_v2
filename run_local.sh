@@ -11,7 +11,8 @@
 #
 # Tips:
 #   - Untuk melihat daftar device: `flutter devices`
-#   - Edit file `.env` untuk mengganti URL/key Supabase atau Sheets API.
+#   - Edit file `.env` untuk mengganti API_URL atau GOOGLE_SHEETS_API_KEY.
+#   - API lokal: lihat docs/10-cara-menjalankan.md (folder server/).
 
 set -euo pipefail
 
@@ -20,7 +21,7 @@ ENV_FILE="$SCRIPT_DIR/.env"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "ERROR: $ENV_FILE tidak ditemukan."
-  echo "Buat file .env terlebih dahulu (lihat dokumentasi atau .envbackup)."
+  echo "Buat file .env terlebih dahulu (salin dari .env.example)."
   exit 1
 fi
 
@@ -32,25 +33,17 @@ source "$ENV_FILE"
 set +a
 
 # Validasi env vars wajib.
-: "${SUPABASE_URL:?SUPABASE_URL belum diset di .env}"
-: "${SUPABASE_ANON_KEY:?SUPABASE_ANON_KEY belum diset di .env}"
+: "${API_URL:?API_URL belum diset di .env}"
 GOOGLE_SHEETS_API_KEY="${GOOGLE_SHEETS_API_KEY:-}"
 
 DEVICE="${1:-chrome}"
 
 echo "==> Menjalankan flutter run di device: $DEVICE"
-echo "==> Supabase URL: $SUPABASE_URL"
+echo "==> API URL: $API_URL"
 
-EXTRA_FLAGS=()
-if [[ "$DEVICE" == "chrome" ]]; then
-  # Disable web security agar fetch ke image-proxy / Supabase tidak
-  # diblokir CORS di lokal (mirroring instruksi di docs/10-cara-menjalankan.md).
-  EXTRA_FLAGS+=(--web-browser-flag "--disable-web-security")
-fi
-
+# CORS untuk http://localhost:* diatur di API (CORS_ORIGINS), jadi Chrome
+# tidak perlu lagi dijalankan dengan --disable-web-security.
 exec flutter run \
   -d "$DEVICE" \
-  --dart-define=SUPABASE_URL="$SUPABASE_URL" \
-  --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
-  --dart-define=GOOGLE_SHEETS_API_KEY="$GOOGLE_SHEETS_API_KEY" \
-  "${EXTRA_FLAGS[@]}"
+  --dart-define=API_URL="$API_URL" \
+  --dart-define=GOOGLE_SHEETS_API_KEY="$GOOGLE_SHEETS_API_KEY"

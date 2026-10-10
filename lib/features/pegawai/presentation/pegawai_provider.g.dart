@@ -6,7 +6,7 @@ part of 'pegawai_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$pegawaiRepositoryHash() => r'f6230f706905265be0257fd8cb504c7b25557ad0';
+String _$pegawaiRepositoryHash() => r'd29ba17e4cbc424a5497203e5e8b3228026e4208';
 
 /// See also [pegawaiRepository].
 @ProviderFor(pegawaiRepository)

@@ -7,7 +7,7 @@ import '../../domain/row_validator.dart';
 import '../../domain/table_schema_config.dart';
 import '../import_sheets_provider.dart';
 
-const _kTargetTables = ['users', 'kegiatan', 'laporan', 'dokumentasi'];
+const _kTargetTables = ['kegiatan', 'dokumentasi'];
 const _kIgnoreOption = 'Abaikan';
 
 class Step3MappingScreen extends ConsumerWidget {
@@ -20,7 +20,7 @@ class Step3MappingScreen extends ConsumerWidget {
 
     final targetTable = state.targetTable;
     final schema = targetTable != null
-        ? (kSupabaseTableSchemas[targetTable] ?? <ColumnDefinition>[])
+        ? (kImportTableSchemas[targetTable] ?? <ColumnDefinition>[])
         : <ColumnDefinition>[];
     final hasUnmapped = targetTable != null &&
         hasUnmappedRequiredColumns(state.columnMappings, targetTable);

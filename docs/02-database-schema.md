@@ -1,5 +1,10 @@
 # Tahap 2 — Database Schema Supabase
 
+> ℹ️ Struktur tabel di bawah masih berlaku di PostgreSQL VPS
+> (`server/migrations/001_init.sql`), dengan perbedaan: tidak ada `auth.users`,
+> RLS, maupun trigger. `users` menyimpan `password_hash`, ada tabel `sessions`,
+> dan aturan akses ditegakkan oleh API (`server/src/routes`).
+
 ## 2.1 Tabel-Tabel
 
 ### `users` — Profil pegawai (extends auth.users)

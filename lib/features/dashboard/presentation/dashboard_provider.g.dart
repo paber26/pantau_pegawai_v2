@@ -6,9 +6,12 @@ part of 'dashboard_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$dashboardStatsHash() => r'006ce9eee198f4adb834814e7058c4b6ec480a0a';
+String _$dashboardStatsHash() => r'dd6ead1282cec8284ba8858f6775ab16739f2ece';
 
-/// See also [dashboardStats].
+/// Statistik dihitung di server dengan COUNT (tidak terbatas 1000 baris).
+/// "Belum upload" = pegawai tanpa dokumentasi bertanggal hari ini (WITA).
+///
+/// Copied from [dashboardStats].
 @ProviderFor(dashboardStats)
 final dashboardStatsProvider =
     AutoDisposeFutureProvider<DashboardStatsModel>.internal(

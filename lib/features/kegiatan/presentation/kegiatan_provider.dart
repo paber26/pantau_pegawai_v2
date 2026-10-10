@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/network/network_providers.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../data/kegiatan_repository.dart';
 import '../data/kegiatan_repository_impl.dart';
@@ -13,7 +13,7 @@ part 'kegiatan_provider.g.dart';
 
 @riverpod
 KegiatanRepository kegiatanRepository(Ref ref) {
-  return KegiatanRepositoryImpl(Supabase.instance.client);
+  return KegiatanRepositoryImpl(ref.watch(apiClientProvider));
 }
 
 /// Semua kegiatan (untuk admin)

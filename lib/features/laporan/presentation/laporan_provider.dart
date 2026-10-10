@@ -2,8 +2,8 @@ import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/network/network_providers.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../data/laporan_repository.dart';
 import '../data/laporan_repository_impl.dart';
@@ -13,7 +13,7 @@ part 'laporan_provider.g.dart';
 
 @riverpod
 LaporanRepository laporanRepository(Ref ref) {
-  return LaporanRepositoryImpl(Supabase.instance.client);
+  return LaporanRepositoryImpl(ref.watch(apiClientProvider));
 }
 
 /// Semua laporan (admin) dengan filter opsional
