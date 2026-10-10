@@ -52,7 +52,7 @@ flutter pub get
 dart run build_runner build --delete-conflicting-outputs
 
 # Jalankan (URL API diberikan saat build/run)
-flutter run -d chrome --dart-define=API_URL=https://api.domain-anda.go.id
+flutter run -d chrome --dart-define=API_URL=https://api-pawai.toolkitbps.my.id
 # atau pakai ./run_local.sh yang membaca API_URL dari file .env
 ```
 

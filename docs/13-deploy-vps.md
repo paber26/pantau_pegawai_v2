@@ -4,10 +4,11 @@ Sejak versi ini PantauPegawai **tidak lagi memakai Supabase**. Database,
 login, dan semua fungsi server berjalan di VPS sendiri:
 
 ```
-Aplikasi Flutter (Android / iOS / Web di Vercel)
-        │  HTTPS  https://api.<domain-anda>
+Web admin  https://pawai.toolkitbps.my.id  (tetap di Vercel, alamat tidak berubah)
+Aplikasi Android / iOS
+        │  keduanya memanggil API lewat HTTPS
         ▼
-   Caddy (HTTPS otomatis, Let's Encrypt)
+   https://api-pawai.toolkitbps.my.id → Caddy di VPS (HTTPS otomatis, Let's Encrypt)
         ▼
    API Node.js (folder server/)  ──►  Google Drive (foto, service account)
         ▼
@@ -32,7 +33,7 @@ Aplikasi Flutter (Android / iOS / Web di Vercel)
 | Kebutuhan | Keterangan |
 | --- | --- |
 | VPS | Ubuntu 22.04/24.04, minimal 1 vCPU, 2 GB RAM, 20 GB disk |
-| Domain / subdomain | Mis. `api.pantau.domain.go.id`. Buat **A record** ke IP VPS **sebelum** menjalankan server |
+| Subdomain API | `api-pawai.toolkitbps.my.id` → **A record** ke IP VPS, dibuat **sebelum** menjalankan server (lihat *DNS untuk subdomain API* di bawah). Web admin tetap di `pawai.toolkitbps.my.id` (Vercel) |
 | File JSON service account Google | Service account **yang sama** dengan yang dipakai Edge Function Supabase (punya akses ke folder Drive foto) |
 | ID folder Google Drive | Nilai `GOOGLE_DRIVE_ROOT_FOLDER_ID` yang lama |
 | Connection string database Supabase | Hanya untuk memindahkan data lama (langkah 5) |
@@ -55,6 +56,17 @@ dan `GOOGLE_PRIVATE_KEY`). Sekarang dipakai dalam bentuk file JSON:
 
 > Pastikan folder Drive foto tetap di-share ke email service account tersebut
 > dengan role **Editor**.
+
+### DNS untuk subdomain API
+
+Di tempat DNS `toolkitbps.my.id` dikelola (registrar / Cloudflare), tambahkan:
+
+| Type | Name | Value | Keterangan |
+| --- | --- | --- | --- |
+| `A` | `api-pawai` | IP publik VPS | Bila memakai Cloudflare: set **DNS only** (awan abu-abu) agar Caddy bisa memasang sertifikat HTTPS sendiri |
+
+Record `pawai` yang mengarah ke Vercel **jangan diubah**. Cek dari komputer
+Anda: `nslookup api-pawai.toolkitbps.my.id` harus menampilkan IP VPS.
 
 ---
 
@@ -91,8 +103,8 @@ Isi `.env`:
 
 | Variabel | Contoh | Keterangan |
 | --- | --- | --- |
-| `API_DOMAIN` | `api.pantau.domain.go.id` | Domain API (DNS sudah mengarah ke VPS) |
-| `CORS_ORIGINS` | `https://pantau-pegawai.vercel.app,http://localhost:*` | Domain web admin yang boleh memanggil API, pisahkan koma |
+| `API_DOMAIN` | `api-pawai.toolkitbps.my.id` | Domain API (DNS sudah mengarah ke VPS) |
+| `CORS_ORIGINS` | `https://pawai.toolkitbps.my.id,https://pantau-pegawai-v2.vercel.app,http://localhost:*` | Domain web admin yang boleh memanggil API, pisahkan koma |
 | `POSTGRES_PASSWORD` | hasil `openssl rand -hex 24` | Huruf & angka saja |
 | `GOOGLE_DRIVE_ROOT_FOLDER_ID` | `1AbC...` | ID folder Drive foto (sama seperti dulu) |
 | `GOOGLE_SHEETS_API_KEY` | `AIza...` | Untuk `./sync.sh` (opsional) |
@@ -112,7 +124,7 @@ Jalankan:
 ```bash
 docker compose up -d --build
 docker compose ps                       # semua service harus "running"/"healthy"
-curl https://api.pantau.domain.go.id/health   # → {"status":"ok"}
+curl https://api-pawai.toolkitbps.my.id/health   # → {"status":"ok"}
 ```
 
 Saat pertama start, API otomatis membuat tabel (folder `server/migrations/`).
@@ -191,22 +203,28 @@ Catatan:
 
 ### Web admin (Vercel)
 
-Vercel → Project → **Settings → Environment Variables**:
+Web admin tetap di **https://pawai.toolkitbps.my.id**; yang diganti hanya
+alamat API yang dipanggilnya. Vercel → Project → **Settings → Environment Variables**:
 
 | Hapus | Tambah |
 | --- | --- |
-| `SUPABASE_URL`, `SUPABASE_ANON_KEY` | `API_URL` = `https://api.pantau.domain.go.id` |
+| `SUPABASE_URL`, `SUPABASE_ANON_KEY` | `API_URL` = `https://api-pawai.toolkitbps.my.id` |
 
-`GOOGLE_SHEETS_API_KEY` tetap. Lalu **Redeploy**. Pastikan domain Vercel
-tercantum di `CORS_ORIGINS` pada `.env` VPS (ubah → `docker compose up -d`).
+`GOOGLE_SHEETS_API_KEY` tetap. Lalu **Redeploy**. Pastikan
+`https://pawai.toolkitbps.my.id` tercantum di `CORS_ORIGINS` pada `.env` VPS
+(ubah → `docker compose up -d`).
+
+> Isi `API_URL` **setelah** `https://api-pawai.toolkitbps.my.id/health`
+> menjawab `{"status":"ok"}`. Selama `API_URL` belum diisi, build Vercel
+> sengaja gagal dan versi lama tetap tayang di `pawai.toolkitbps.my.id`.
 
 ### Android / iOS
 
 Build ulang dengan `API_URL`:
 
 ```bash
-flutter build apk --release --dart-define=API_URL=https://api.pantau.domain.go.id
-flutter build ios --release --dart-define=API_URL=https://api.pantau.domain.go.id
+flutter build apk --release --dart-define=API_URL=https://api-pawai.toolkitbps.my.id
+flutter build ios --release --dart-define=API_URL=https://api-pawai.toolkitbps.my.id
 ```
 
 Aplikasi versi lama (yang masih ke Supabase) tidak akan bisa dipakai lagi

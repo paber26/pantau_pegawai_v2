@@ -111,14 +111,14 @@ Deploy otomatis setiap `git push` ke branch `main` (lihat `vercel.json` dan
 
 | Name                    | Value                                   |
 | ----------------------- | --------------------------------------- |
-| `API_URL`               | `https://api.pantau.domain.go.id`       |
+| `API_URL`               | `https://api-pawai.toolkitbps.my.id`       |
 | `GOOGLE_SHEETS_API_KEY` | API key Google Sheets                   |
 
 Build manual:
 
 ```bash
 flutter build web --release \
-  --dart-define=API_URL=https://api.pantau.domain.go.id \
+  --dart-define=API_URL=https://api-pawai.toolkitbps.my.id \
   --dart-define=GOOGLE_SHEETS_API_KEY=your_key
 # Output: build/web/
 ```
@@ -126,7 +126,7 @@ flutter build web --release \
 ### Android
 
 ```bash
-flutter build apk --release --dart-define=API_URL=https://api.pantau.domain.go.id
+flutter build apk --release --dart-define=API_URL=https://api-pawai.toolkitbps.my.id
 # Output: build/app/outputs/flutter-apk/app-release.apk
 ```
 
@@ -134,7 +134,7 @@ flutter build apk --release --dart-define=API_URL=https://api.pantau.domain.go.i
 
 ```bash
 cd ios && pod install && cd ..
-flutter build ios --release --dart-define=API_URL=https://api.pantau.domain.go.id
+flutter build ios --release --dart-define=API_URL=https://api-pawai.toolkitbps.my.id
 # Lalu buka Xcode untuk archive dan distribute
 ```
 
