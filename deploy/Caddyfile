@@ -1,0 +1,6 @@
+# Reverse proxy + HTTPS otomatis (Let's Encrypt) untuk API PantauPegawai.
+# API_DOMAIN diambil dari file .env (lihat docker-compose.yml).
+{$API_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy api:3000
+}
