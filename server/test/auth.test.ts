@@ -78,6 +78,25 @@ describe("sesi", () => {
   })
 })
 
+describe("rate limit login", () => {
+  it("dibatasi per IP + email: satu kantor (IP sama) tidak saling mengunci", async () => {
+    const attempt = (email: string) =>
+      env.app.inject({
+        method: "POST",
+        url: "/api/auth/login",
+        remoteAddress: "10.9.8.7",
+        payload: { email, password: "salahsalah" }
+      })
+    const codes: number[] = []
+    for (let i = 0; i < 11; i++) codes.push((await attempt("budi@bps.go.id")).statusCode)
+    expect(codes.slice(0, 10).every((c) => c === 401)).toBe(true)
+    expect(codes[10]).toBe(429)
+
+    // Pegawai lain dari IP yang sama tetap bisa mencoba login.
+    expect((await attempt("siti@bps.go.id")).statusCode).toBe(401)
+  })
+})
+
 describe("health & CORS", () => {
   it("health check", async () => {
     const res = await env.app.inject({ url: "/health" })

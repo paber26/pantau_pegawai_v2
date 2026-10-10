@@ -12,7 +12,9 @@ export async function authRoutes(app: FastifyInstance, ctx: AppContext) {
     {
       config: {
         // Pegawai satu kantor biasanya berbagi satu IP publik, jadi batasi per IP + email.
+        // hook preHandler: dijalankan setelah body diparse agar email terbaca.
         rateLimit: {
+          hook: "preHandler",
           max: 10,
           timeWindow: "5 minutes",
           keyGenerator: (req) => `${req.ip}|${String((req.body as { email?: string })?.email ?? "").toLowerCase()}`
@@ -40,6 +42,7 @@ export async function authRoutes(app: FastifyInstance, ctx: AppContext) {
         throw new HttpError(401, "Email atau kata sandi salah.")
       }
       const { password_hash: _, ...user } = row
+      await db.query("DELETE FROM sessions WHERE user_id = $1 AND expires_at < NOW()", [user.id])
       const token = await createSession(db, user.id, config.sessionTtlDays)
       return { token, user }
     }
