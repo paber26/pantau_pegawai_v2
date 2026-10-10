@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -28,25 +29,48 @@ void main() {
     expect(calls, 0);
   });
 
-  test('sesi tersimpan dipulihkan dengan profil terbaru dari server', () async {
+  test('sesi tersimpan langsung dipakai, lalu diperbarui dari server',
+      () async {
     SharedPreferences.setMockInitialValues({
       'pantau.session_token': 'tok',
       'pantau.session_user': jsonEncode(_cached.toMap()),
     });
     final store = SessionStore();
+    final server = Completer<AppAuthUser?>();
+    final events = <String?>[];
+    final sub =
+        store.watch(() => server.future).listen((u) => events.add(u?.nama));
+    await Future<void>.delayed(Duration.zero);
+
+    // Tidak menunggu server: profil tersimpan langsung dipakai.
+    expect(events, ['Nama Lama']);
+
+    server.complete(const AppAuthUser(
+      id: 'u1',
+      nama: 'Nama Baru',
+      email: 'budi@bps.go.id',
+      role: 'admin',
+    ));
+    await Future<void>.delayed(Duration.zero);
+    expect(events, ['Nama Lama', 'Nama Baru']);
+    expect(store.currentUser?.isAdmin, isTrue);
+    await sub.cancel();
+  });
+
+  test('token tanpa profil tersimpan → menunggu profil dari server', () async {
+    SharedPreferences.setMockInitialValues({'pantau.session_token': 'tok'});
+    final store = SessionStore();
 
     final first = await store
         .watch(() async => const AppAuthUser(
               id: 'u1',
-              nama: 'Nama Baru',
+              nama: 'Dari Server',
               email: 'budi@bps.go.id',
-              role: 'admin',
+              role: 'pegawai',
             ))
         .first;
 
-    expect(first?.nama, 'Nama Baru');
-    expect(first?.isAdmin, isTrue);
-    expect(store.token, 'tok');
+    expect(first?.nama, 'Dari Server');
   });
 
   test('load() memuat token tanpa akses jaringan (dipakai sebelum runApp)',

@@ -38,9 +38,12 @@ class SessionStore {
     _loaded = true;
   }
 
-  /// Pulihkan sesi tersimpan (sekali saja). [fetchProfile] dipanggil untuk
-  /// memastikan token masih berlaku dan mengambil profil terbaru; boleh
-  /// melempar error jaringan, dalam hal itu profil yang tersimpan dipakai.
+  /// Pulihkan sesi tersimpan (sekali saja).
+  ///
+  /// Bila profil tersimpan ada, langsung dipakai (aplikasi terbuka seketika
+  /// seperti sebelumnya) dan [fetchProfile] dijalankan di belakang untuk
+  /// memastikan token masih berlaku & mengambil profil terbaru. Bila token
+  /// ditolak server, ApiClient menghapus sesi dan [watch] mengirim `null`.
   Future<void> restore(Future<AppAuthUser?> Function() fetchProfile) {
     return _restoring ??= _restore(fetchProfile);
   }
@@ -49,9 +52,17 @@ class SessionStore {
     if (!_loaded) await load();
     if (_token == null) return;
 
+    final verify = _verify(fetchProfile);
+    if (_user == null) await verify;
+  }
+
+  Future<void> _verify(Future<AppAuthUser?> Function() fetchProfile) async {
     try {
       final fresh = await fetchProfile();
-      if (fresh != null && _token != null) await _persistUser(fresh);
+      if (fresh != null && _token != null) {
+        await _persistUser(fresh);
+        _changes.add(fresh);
+      }
     } catch (_) {
       // Token ditolak → sesi sudah dihapus oleh ApiClient.
       // Server tidak bisa dihubungi → tetap pakai profil tersimpan.
