@@ -22,5 +22,13 @@ abstract class DokumentasiRepository {
     String? catatan,
   });
   Future<List<DokumentasiModel>> getByYear(int year);
+
+  /// Menyembunyikan dokumentasi (admin masih bisa melihat & mengembalikan).
   Future<void> delete(String id);
+
+  /// Dokumentasi yang dihapus, terbaru dihapus di atas (khusus admin).
+  Future<List<DokumentasiModel>> getDeleted();
+
+  /// Mengembalikan dokumentasi yang dihapus (khusus admin).
+  Future<void> restore(String id);
 }

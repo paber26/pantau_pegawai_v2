@@ -47,6 +47,16 @@ export async function buildApp(
 
   app.setErrorHandler(errorHandler)
 
+  // Aplikasi versi lama mengirim "Content-Type: application/json" juga pada
+  // request tanpa body (DELETE, logout); Fastify menolaknya dengan 400.
+  // Body kosong diperlakukan sebagai tanpa body; selebihnya parser bawaan.
+  const parseJson = app.getDefaultJsonParser("error", "error")
+  app.removeContentTypeParser("application/json")
+  app.addContentTypeParser("application/json", { parseAs: "string" }, (request, body, done) => {
+    if (typeof body === "string" && body.trim() === "") return done(null, undefined)
+    parseJson(request, body as string, done)
+  })
+
   const isAllowedOrigin = originMatcher(deps.config.corsOrigins)
   await app.register(cors, {
     delegator: (req, cb) => {

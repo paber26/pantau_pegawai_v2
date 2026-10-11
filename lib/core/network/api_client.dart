@@ -81,8 +81,10 @@ class ApiClient {
     Map<String, String?>? query,
     Object? body,
   }) async {
+    // Content-Type JSON hanya bila ada body: server menolak (400) request
+    // ber-Content-Type JSON yang body-nya kosong, mis. DELETE dan logout.
     final request = http.Request(method, _uri(path, query))
-      ..headers.addAll(_headers());
+      ..headers.addAll(_headers(json: body != null));
     if (body != null) request.body = jsonEncode(body);
 
     final sentWithToken = _session.token != null;

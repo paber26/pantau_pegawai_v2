@@ -14,6 +14,7 @@ import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/drive_image.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
+import '../../../shared/widgets/photo_viewer.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../../kegiatan/presentation/kegiatan_provider.dart';
 import '../../pegawai/presentation/pegawai_provider.dart';
@@ -956,7 +957,7 @@ class DokCard extends ConsumerWidget {
           children: [
             GestureDetector(
               onTap: doc.imageUrl != null
-                  ? () => _showFullImage(context, doc.imageUrl!)
+                  ? () => showPhotoViewer(context, doc.imageUrl!)
                   : null,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
@@ -1060,12 +1061,18 @@ class DokCard extends ConsumerWidget {
                         title: 'Hapus Dokumentasi',
                         message: 'Hapus dokumentasi "${doc.proyek}"?');
                     if (confirm == true && context.mounted) {
-                      await ref
+                      final messenger = ScaffoldMessenger.of(context);
+                      final error = await ref
                           .read(myDokumentasiNotifierProvider.notifier)
                           .hapus(doc.id);
                       ref
                           .read(adminDokumentasiNotifierProvider.notifier)
                           .refresh();
+                      messenger.showSnackBar(SnackBar(
+                        content: Text(error ?? 'Dokumentasi dihapus'),
+                        backgroundColor:
+                            error == null ? AppColors.success : AppColors.error,
+                      ));
                     }
                   }
                 },
@@ -1094,28 +1101,4 @@ class DokCard extends ConsumerWidget {
         child: const Icon(Icons.image_outlined,
             color: AppColors.textHint, size: 24),
       );
-
-  void _showFullImage(BuildContext context, String imageUrl) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.black,
-        insetPadding: EdgeInsets.zero,
-        child: Stack(children: [
-          InteractiveViewer(
-              child: DriveImage(
-                  imageUrl: imageUrl,
-                  width: double.infinity,
-                  height: double.infinity,
-                  fit: BoxFit.contain)),
-          Positioned(
-              top: 40,
-              right: 16,
-              child: IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white, size: 28),
-                  onPressed: () => Navigator.pop(context))),
-        ]),
-      ),
-    );
-  }
 }

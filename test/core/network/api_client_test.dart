@@ -49,6 +49,23 @@ void main() {
     expect(captured.headers['Authorization'], 'Bearer tok123');
   });
 
+  test('Content-Type JSON hanya dikirim bila ada body (DELETE/logout tanpa)',
+      () async {
+    final captured = <http.Request>[];
+    final api = client((req) async {
+      captured.add(req);
+      return _json({'success': true});
+    });
+
+    await api.delete('/api/dokumentasi/d1');
+    await api.post('/api/auth/logout');
+    await api.post('/api/dokumentasi', body: {'proyek': 'X'});
+
+    expect(captured[0].headers.containsKey('content-type'), isFalse);
+    expect(captured[1].headers.containsKey('content-type'), isFalse);
+    expect(captured[2].headers['content-type'], startsWith('application/json'));
+  });
+
   test('pesan {error} dari server menjadi AppException', () async {
     final api =
         client((_) async => _json({'error': 'Email sudah terdaftar.'}, 409));

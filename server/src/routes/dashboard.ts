@@ -18,12 +18,12 @@ export async function dashboardRoutes(app: FastifyInstance, ctx: AppContext) {
        SELECT
          (SELECT COUNT(*) FROM users WHERE role = 'pegawai')::int AS total_pegawai,
          (SELECT COUNT(*) FROM kegiatan)::int AS jumlah_proyek,
-         (SELECT COUNT(*) FROM dokumentasi)::int AS total_dokumentasi,
+         (SELECT COUNT(*) FROM dokumentasi WHERE deleted_at IS NULL)::int AS total_dokumentasi,
          (SELECT COUNT(*) FROM users u
            WHERE u.role = 'pegawai'
              AND NOT EXISTS (
                SELECT 1 FROM dokumentasi d, today
-                WHERE d.user_id = u.id AND d.tanggal_kegiatan = today.d
+                WHERE d.user_id = u.id AND d.tanggal_kegiatan = today.d AND d.deleted_at IS NULL
              ))::int AS pegawai_belum_upload,
          (SELECT d FROM today) AS tanggal`,
       [config.appTimezone]

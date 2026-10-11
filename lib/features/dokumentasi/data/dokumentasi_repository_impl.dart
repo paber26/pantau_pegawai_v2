@@ -151,4 +151,28 @@ class DokumentasiRepositoryImpl implements DokumentasiRepository {
       throw AppException('Gagal menghapus dokumentasi: ${e.toString()}');
     }
   }
+
+  @override
+  Future<List<DokumentasiModel>> getDeleted() async {
+    try {
+      return await _list({'deleted': 'true'});
+    } on AppException {
+      rethrow;
+    } catch (e) {
+      throw AppException(
+          'Gagal memuat dokumentasi yang dihapus: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<void> restore(String id) async {
+    try {
+      await _api.post('/api/dokumentasi/$id/restore');
+    } on AppException catch (e) {
+      throw AppException('Gagal mengembalikan dokumentasi: ${e.message}',
+          code: e.code);
+    } catch (e) {
+      throw AppException('Gagal mengembalikan dokumentasi: ${e.toString()}');
+    }
+  }
 }

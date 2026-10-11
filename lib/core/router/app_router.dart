@@ -9,6 +9,7 @@ import '../../features/dashboard/presentation/admin_dashboard_screen.dart';
 import '../../features/import_sheets/presentation/import_sheets_screen.dart';
 import '../../features/dokumentasi/presentation/dokumentasi_screen.dart';
 import '../../features/dokumentasi/presentation/admin_dokumentasi_screen.dart';
+import '../../features/dokumentasi/presentation/deleted_dokumentasi_screen.dart';
 import '../../features/kegiatan/presentation/kegiatan_form_screen.dart';
 import '../../features/kegiatan/presentation/kegiatan_list_screen.dart';
 import '../../features/laporan/presentation/laporan_detail_screen.dart';
@@ -127,6 +128,10 @@ GoRouter appRouter(Ref ref) {
           GoRoute(
             path: '/admin/dokumentasi',
             builder: (context, state) => const AdminDokumentasiScreen(),
+          ),
+          GoRoute(
+            path: '/admin/dokumentasi/dihapus',
+            builder: (context, state) => const DeletedDokumentasiScreen(),
           ),
           GoRoute(
             path: '/admin/import-sheets',

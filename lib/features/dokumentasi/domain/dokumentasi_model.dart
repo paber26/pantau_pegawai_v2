@@ -13,6 +13,10 @@ class DokumentasiModel {
   final String? pegawaiJabatan;
   final String? pegawaiUnitKerja;
 
+  /// Diisi bila dokumentasi dihapus (hanya terlihat oleh admin).
+  final DateTime? deletedAt;
+  final String? deletedByNama;
+
   const DokumentasiModel({
     required this.id,
     required this.userId,
@@ -25,6 +29,8 @@ class DokumentasiModel {
     this.pegawaiNama,
     this.pegawaiJabatan,
     this.pegawaiUnitKerja,
+    this.deletedAt,
+    this.deletedByNama,
   });
 
   factory DokumentasiModel.fromMap(Map<String, dynamic> map) {
@@ -43,6 +49,10 @@ class DokumentasiModel {
           (map['pegawai_nama'] as String?) ?? users?['nama'] as String?,
       pegawaiJabatan: users?['jabatan'] as String?,
       pegawaiUnitKerja: users?['unit_kerja'] as String?,
+      deletedAt: map['deleted_at'] == null
+          ? null
+          : DateTime.parse(map['deleted_at'] as String),
+      deletedByNama: map['deleted_by_nama'] as String?,
     );
   }
 }

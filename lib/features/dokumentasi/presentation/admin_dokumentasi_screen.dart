@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 
@@ -10,6 +11,7 @@ import '../../../shared/widgets/admin_scaffold.dart';
 import '../../../shared/widgets/drive_image.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/widgets/loading_shimmer.dart';
+import '../../../shared/widgets/photo_viewer.dart';
 import '../domain/dokumentasi_model.dart';
 import 'dokumentasi_provider.dart';
 
@@ -27,6 +29,14 @@ class AdminDokumentasiScreen extends ConsumerWidget {
         leading: const AdminMenuButton(),
         actions: [
           const AdminLogoutButton(),
+          IconButton(
+            tooltip: 'Dokumentasi Dihapus',
+            icon: const Icon(Icons.restore_from_trash_outlined),
+            onPressed: () {
+              ref.invalidate(deletedDokumentasiNotifierProvider);
+              context.push('/admin/dokumentasi/dihapus');
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: () => _showFilterSheet(context, ref),
@@ -230,7 +240,7 @@ class _AdminDokCard extends StatelessWidget {
             // Foto
             GestureDetector(
               onTap: doc.imageUrl != null
-                  ? () => _showFullImage(context, doc.imageUrl!)
+                  ? () => showPhotoViewer(context, doc.imageUrl!)
                   : null,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
@@ -305,35 +315,6 @@ class _AdminDokCard extends StatelessWidget {
                     ],
                   ),
                 ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showFullImage(BuildContext context, String imageUrl) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.black,
-        insetPadding: EdgeInsets.zero,
-        child: Stack(
-          children: [
-            InteractiveViewer(
-              child: DriveImage(
-                  imageUrl: imageUrl,
-                  fit: BoxFit.contain,
-                  width: double.infinity,
-                  height: double.infinity),
-            ),
-            Positioned(
-              top: 40,
-              right: 16,
-              child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white, size: 28),
-                onPressed: () => Navigator.pop(context),
               ),
             ),
           ],

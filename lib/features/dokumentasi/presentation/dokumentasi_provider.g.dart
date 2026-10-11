@@ -66,5 +66,25 @@ final adminDokumentasiNotifierProvider = AutoDisposeAsyncNotifierProvider<
 
 typedef _$AdminDokumentasiNotifier
     = AutoDisposeAsyncNotifier<List<DokumentasiModel>>;
+String _$deletedDokumentasiNotifierHash() =>
+    r'702590f191b0d5b77f51dd79599d12f854dfca16';
+
+/// Dokumentasi yang dihapus pegawai/admin (khusus admin), bisa dikembalikan.
+///
+/// Copied from [DeletedDokumentasiNotifier].
+@ProviderFor(DeletedDokumentasiNotifier)
+final deletedDokumentasiNotifierProvider = AutoDisposeAsyncNotifierProvider<
+    DeletedDokumentasiNotifier, List<DokumentasiModel>>.internal(
+  DeletedDokumentasiNotifier.new,
+  name: r'deletedDokumentasiNotifierProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$deletedDokumentasiNotifierHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$DeletedDokumentasiNotifier
+    = AutoDisposeAsyncNotifier<List<DokumentasiModel>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
