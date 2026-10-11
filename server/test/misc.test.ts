@@ -89,6 +89,21 @@ describe("upload & gambar", () => {
     expect(bad.statusCode).toBe(400)
   })
 
+  it("Drive menolak upload → 502 dengan pesan yang jelas, detail tidak bocor", async () => {
+    env.drive.uploadError = new Error("Upload ke Drive gagal: 403 storageQuotaExceeded")
+    const form = new FormData()
+    form.set("tanggal", "2026-10-11")
+    form.set("file", new Blob([Buffer.from("x")], { type: "image/jpeg" }), "foto.jpg")
+    const { payload, headers } = await multipartBody(form)
+    try {
+      const res = await env.app.inject({ method: "POST", url: "/api/uploads", headers: { ...headers, ...bearer(s.budi) }, payload })
+      expect(res.statusCode).toBe(502)
+      expect(res.json().error).toBe("Upload foto ke Google Drive gagal. Coba lagi atau hubungi admin.")
+    } finally {
+      env.drive.uploadError = null
+    }
+  })
+
   it("id gambar divalidasi; yang tidak ada → 404", async () => {
     expect((await env.app.inject({ url: "/api/images?id=../../etc" })).statusCode).toBe(400)
     expect((await env.app.inject({ url: "/api/images?id=tidakAdaFileIni123" })).statusCode).toBe(404)

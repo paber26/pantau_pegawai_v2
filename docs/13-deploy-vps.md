@@ -36,6 +36,7 @@ Aplikasi Android / iOS
 | Subdomain API | `api-pawai.toolkitbps.my.id` → **A record** ke IP VPS, dibuat **sebelum** menjalankan server (lihat *DNS untuk subdomain API* di bawah). Web admin tetap di `pawai.toolkitbps.my.id` (Vercel) |
 | File JSON service account Google | Service account **yang sama** dengan yang dipakai Edge Function Supabase (punya akses ke folder Drive foto) |
 | ID folder Google Drive | Nilai `GOOGLE_DRIVE_ROOT_FOLDER_ID` yang lama |
+| Akun Gmail pemilik folder Drive | Untuk login sekali agar server bisa mengunggah foto atas namanya (lihat *Upload foto ke Drive Gmail biasa*) |
 | Connection string database Supabase | Hanya untuk memindahkan data lama (langkah 5) |
 
 ### File JSON service account
@@ -112,6 +113,7 @@ Isi `.env`:
 | `CORS_ORIGINS` | `https://pawai.toolkitbps.my.id,https://pantau-pegawai-v2.vercel.app,http://localhost:*` | Domain web admin yang boleh memanggil API, pisahkan koma |
 | `POSTGRES_PASSWORD` | hasil `openssl rand -hex 24` | Huruf & angka saja |
 | `GOOGLE_DRIVE_ROOT_FOLDER_ID` | `1AbC...` | ID folder Drive foto (sama seperti dulu) |
+| `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REFRESH_TOKEN` | lihat bagian *Upload foto ke Drive Gmail biasa* | Wajib bila folder foto ada di My Drive Gmail biasa |
 | `GOOGLE_SHEETS_API_KEY` | `AIza...` | Untuk `./sync.sh` (opsional) |
 | `APP_TIMEZONE` | `Asia/Makassar` | Zona waktu "hari ini" di dashboard |
 | `BACKUP_KEEP_DAYS` | `7` | Lama backup harian disimpan |
@@ -177,6 +179,74 @@ nginx yang sudah ada. Vhost lain tidak disentuh.
      -H 'Origin: https://pawai.toolkitbps.my.id' -H 'Access-Control-Request-Method: POST' \
      | grep -i access-control-allow-origin     # → https://pawai.toolkitbps.my.id
    ```
+
+### Upload foto ke Drive Gmail biasa (OAuth)
+
+Service account **tidak punya kuota penyimpanan**. Jika folder foto ada di
+"My Drive" akun Gmail biasa (bukan Shared Drive Google Workspace), Google
+menolak setiap foto baru:
+
+```
+Upload ke Drive gagal: 403 storageQuotaExceeded
+"Service Accounts do not have storage quota. ..."
+```
+
+Solusinya: server mengunggah **atas nama akun Gmail pemilik folder** (memakai
+kuota 15 GB akun itu). Service account tetap dipakai untuk menampilkan foto.
+Cukup disiapkan sekali.
+
+**a. Buat OAuth client** di [Google Cloud Console](https://console.cloud.google.com),
+project yang sama dengan service account (Drive API sudah aktif). Buka menu
+**Google Auth Platform** (atau *APIs & Services → OAuth consent screen*):
+
+1. **Branding**: isi nama aplikasi (mis. `PantauPegawai Server`) dan email dukungan.
+2. **Audience**: User type **External**, lalu klik **Publish app** sampai
+   statusnya **In production**. Jika dibiarkan *Testing*, token kedaluwarsa
+   setelah 7 hari dan upload gagal lagi.
+3. **Clients** → **Create client** → Application type **Desktop app** → Create.
+   Salin **Client ID** dan **Client secret** ke `.env` di VPS:
+
+   ```bash
+   GOOGLE_OAUTH_CLIENT_ID=1234-abcd.apps.googleusercontent.com
+   GOOGLE_OAUTH_CLIENT_SECRET=GOCSPX-...
+   ```
+
+**b. Login sekali** dengan akun pemilik folder (build ulang dulu bila baru `git pull`):
+
+```bash
+docker compose build api
+docker compose run --rm api node dist/scripts/google-oauth-login.js
+```
+
+1. Buka URL yang tercetak di browser (HP/laptop), login dengan akun Gmail
+   **pemilik folder** foto.
+2. Muncul *"Google belum memverifikasi aplikasi ini"* → **Lanjutan** → **Buka
+   ... (tidak aman)**. Aman, karena aplikasinya milik sendiri. Lalu izinkan.
+3. Browser membuka `http://localhost:8765/?code=...` dan menampilkan "tidak
+   dapat dijangkau". Itu normal. Salin **URL lengkap** dari address bar, lalu:
+
+   ```bash
+   docker compose run --rm api node dist/scripts/google-oauth-login.js "<URL yang disalin>"
+   ```
+
+   Skrip menampilkan akun, kuota, dan apakah folder root bisa ditulis, lalu
+   mencetak baris `GOOGLE_OAUTH_REFRESH_TOKEN=...`.
+
+**c. Simpan dan aktifkan:** tambahkan baris itu ke `.env` (rahasia, jangan
+dibagikan), lalu:
+
+```bash
+docker compose up -d api
+docker compose logs api | grep -i "upload foto"
+# → Upload foto ke Drive memakai akun OAuth pemilik folder (GOOGLE_OAUTH_*).
+```
+
+Uji dengan menyimpan dokumentasi berfoto. File baru di Drive dimiliki akun
+Gmail tersebut.
+
+> Token berlaku sampai dicabut. Jika akses aplikasi dicabut di
+> <https://myaccount.google.com/permissions>, upload gagal dengan
+> `invalid_grant` di log; ulangi langkah **b**.
 
 ---
 
@@ -369,6 +439,8 @@ docker compose exec db pg_restore -U pantau -d pantau --clean --if-exists /tmp/r
 | Web admin: error CORS | Domain Vercel belum ada di `CORS_ORIGINS` → ubah `.env`, `docker compose up -d` |
 | Foto tidak tampil / upload error 503 | File `secrets/google-service-account.json` tidak ada/salah, atau `GOOGLE_DRIVE_ROOT_FOLDER_ID` kosong |
 | Upload error "Drive" 403/404 | Folder Drive belum di-share ke email service account (role Editor) |
+| Simpan dokumentasi berfoto gagal; log: `storageQuotaExceeded` | Folder ada di My Drive Gmail biasa, upload masih memakai service account → ikuti *Upload foto ke Drive Gmail biasa (OAuth)* |
+| Upload gagal; log: `invalid_grant` | Refresh token kedaluwarsa/dicabut (mis. aplikasi OAuth masih *Testing*) → pastikan *In production*, ulangi login di bagian OAuth |
 | `docker compose up` error `secret ... not found` | File `secrets/google-service-account.json` belum dibuat |
 | Semua pengguna "Sesi tidak valid" | Wajar sekali setelah pindah: login ulang |
 | Lupa password admin | `docker compose exec api node dist/scripts/create-admin.js` |

@@ -44,6 +44,7 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     appTimezone: "Asia/Makassar",
     googleServiceAccountFile: null,
     googleDriveRootFolderId: null,
+    googleOAuth: null,
     ...overrides
   }
 }
@@ -51,9 +52,12 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
 /** Pengganti Google Drive untuk test: menyimpan file di memori. */
 export class FakeDrive implements DriveService {
   files = new Map<string, { bytes: Buffer; mimeType: string; folderPath: string[]; filename: string }>()
+  /** Bila diisi, upload gagal dengan error ini (meniru penolakan Google). */
+  uploadError: Error | null = null
   private counter = 0
 
   async uploadFile(params: { bytes: Buffer; filename: string; mimeType: string; folderPath: string[] }) {
+    if (this.uploadError) throw this.uploadError
     const id = `fakeFileId${String(++this.counter).padStart(6, "0")}`
     this.files.set(id, params)
     return id
