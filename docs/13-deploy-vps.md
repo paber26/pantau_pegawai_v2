@@ -86,6 +86,11 @@ ufw allow 22/tcp && ufw allow 80/tcp && ufw allow 443/tcp && ufw enable
 > Database sengaja tidak dibuka ke internet (tidak ada `ports:` untuk `db`
 > di `docker-compose.yml`).
 
+> **VPS yang sudah menjalankan layanan lain:** cek dulu `docker --version`,
+> `docker compose version`, dan `sudo ufw status`. Jangan instal ulang Docker,
+> dan jangan `ufw enable` sebelum port layanan lain ikut dibuka — layanan itu
+> bisa ikut terblokir.
+
 ---
 
 ## 3. Pasang aplikasi server
@@ -119,15 +124,59 @@ nano secrets/google-service-account.json     # tempel isi JSON
 chmod 644 secrets/google-service-account.json  # agar bisa dibaca container
 ```
 
-Jalankan:
+Cek dulu siapa yang memegang port 80/443:
 
 ```bash
-docker compose up -d --build
-docker compose ps                       # semua service harus "running"/"healthy"
-curl https://api-pawai.toolkitbps.my.id/health   # → {"status":"ok"}
+sudo ss -tlnp '( sport = :80 or sport = :443 )'
 ```
 
+- **Kosong** → jalankan apa adanya (Caddy di `docker-compose.yml` memasang HTTPS otomatis):
+
+  ```bash
+  docker compose up -d --build
+  docker compose ps                       # semua service harus "running"/"healthy"
+  curl https://api-pawai.toolkitbps.my.id/health   # → {"status":"ok"}
+  ```
+
+- **Sudah dipakai nginx** (VPS yang menjalankan situs lain) → ikuti bagian berikut.
+
 Saat pertama start, API otomatis membuat tabel (folder `server/migrations/`).
+
+### VPS yang sudah memakai nginx (port 80/443 terpakai)
+
+Caddy tidak dijalankan; API dibuka hanya di `127.0.0.1` lalu di-proxy oleh
+nginx yang sudah ada. Vhost lain tidak disentuh.
+
+1. Override compose (file ini tidak ikut git):
+
+   ```bash
+   cp docker-compose.override.example.yml docker-compose.override.yml
+   sudo ss -tlnp | grep ':3102 '    # harus kosong; bila terpakai, ganti port di override
+   docker compose up -d --build     # hanya db, api, backup
+   curl -s http://127.0.0.1:3102/health   # → {"status":"ok"}
+   ```
+
+2. Vhost nginx baru khusus API (contoh: `deploy/nginx-api-pawai.conf`):
+
+   ```bash
+   sudo cp deploy/nginx-api-pawai.conf /etc/nginx/sites-available/api-pawai
+   sudo ln -s /etc/nginx/sites-available/api-pawai /etc/nginx/sites-enabled/api-pawai
+   sudo nginx -t && sudo systemctl reload nginx     # reload, bukan restart
+   sudo certbot --nginx -d api-pawai.toolkitbps.my.id --redirect
+   ```
+
+   Tanpa vhost ini, nginx menjawab domain API dengan situs **lain** (vhost
+   pertama yang mendengar 443): `/health` menampilkan halaman aplikasi lain
+   dan sertifikat tidak valid.
+
+3. Verifikasi dari luar (laptop) dan dari server:
+
+   ```bash
+   curl -s https://api-pawai.toolkitbps.my.id/health     # → {"status":"ok"}, gembok valid
+   curl -si -X OPTIONS https://api-pawai.toolkitbps.my.id/api/auth/login \
+     -H 'Origin: https://pawai.toolkitbps.my.id' -H 'Access-Control-Request-Method: POST' \
+     | grep -i access-control-allow-origin     # → https://pawai.toolkitbps.my.id
+   ```
 
 ---
 
@@ -148,6 +197,9 @@ docker compose exec api node dist/scripts/create-admin.js
 Script yang sama dipakai untuk **memulihkan admin yang lupa password**
 (isi email yang sudah ada, kosongkan nama).
 
+> Script ini selalu menjadikan akun tersebut **admin**. Untuk pegawai yang lupa
+> password, reset lewat web: login sebagai admin → menu **Pegawai** → Reset Password.
+
 ---
 
 ## 5. Pindahkan data dari Supabase
@@ -156,9 +208,16 @@ Semua tabel dipindah dengan ID yang sama. **Password lama tetap berlaku**
 (hash password diambil dari Supabase Auth). URL foto otomatis diarahkan ke
 API baru.
 
-1. Ambil connection string: Supabase Dashboard → tombol **Connect** →
-   **Session pooler** (IPv4). Bentuknya:
-   `postgresql://postgres.<ref>:<password-db>@aws-0-<region>.pooler.supabase.com:5432/postgres`
+1. Ambil connection string: Supabase Dashboard → tombol **Connect** → tab
+   **Direct (Connection string)** → Method **Session pooler** (IPv4, port
+   **5432**; bukan Direct connection maupun Transaction pooler 6543). Bentuknya:
+   `postgresql://postgres.<ref>:<password-db>@aws-1-<region>.pooler.supabase.com:5432/postgres`
+   - Ganti `[YOUR-PASSWORD]` **termasuk tanda kurung sikunya** dengan password database.
+   - Karakter khusus di password harus ditulis dalam kode URL:
+     `@` → `%40`, `#` → `%23`, `/` → `%2F`, `:` → `%3A`
+     (contoh: password `@Rahasia1` ditulis `%40Rahasia1`).
+   - Berikan URL ini langsung di terminal VPS, jangan ditempel ke chat.
+     Setelah migrasi selesai, reset password database di Supabase.
 2. Latihan dulu (tidak ada yang disimpan):
 
    ```bash
@@ -281,6 +340,7 @@ setelah Supabase dihentikan — bagikan APK/iOS baru ke pegawai.
 | Sinkron data dari Spreadsheet AppSheet | `./sync.sh` |
 | Hapus dokumentasi duplikat | `docker compose exec api node dist/scripts/cleanup-duplicates.js --dry-run` (hapus `--dry-run` untuk eksekusi) |
 | Reset password admin | `docker compose exec api node dist/scripts/create-admin.js` |
+| Reset password pegawai | Web, login sebagai admin → menu **Pegawai** → Reset Password |
 | Masuk ke database | `docker compose exec db psql -U pantau pantau` |
 
 ### Backup & restore
@@ -312,6 +372,9 @@ docker compose exec db pg_restore -U pantau -d pantau --clean --if-exists /tmp/r
 | `docker compose up` error `secret ... not found` | File `secrets/google-service-account.json` belum dibuat |
 | Semua pengguna "Sesi tidak valid" | Wajar sekali setelah pindah: login ulang |
 | Lupa password admin | `docker compose exec api node dist/scripts/create-admin.js` |
+| `https://api-.../health` menampilkan situs/login aplikasi lain, sertifikat "Not Secure" | Nginx belum punya vhost untuk domain API → ikuti bagian *VPS yang sudah memakai nginx* |
+| Web: "Tidak dapat terhubung ke server" | API tidak terjangkau dari luar atau CORS ditolak. Cek `/health` dari laptop dan preflight CORS (bagian 3) |
+| Login: "Email atau kata sandi salah" padahal benar | Data belum dipindah (tabel `users` kosong): `docker compose exec -T db psql -U pantau pantau -c "select count(*) from users"` |
 
 ---
 

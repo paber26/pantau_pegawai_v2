@@ -1,0 +1,17 @@
+# Contoh untuk VPS yang SUDAH punya web server (mis. nginx) di port 80/443.
+# Panduan: docs/13-deploy-vps.md bagian "VPS yang sudah memakai nginx".
+#
+#   cp docker-compose.override.example.yml docker-compose.override.yml
+#
+# docker compose membaca docker-compose.override.yml secara otomatis:
+# - service `caddy` tidak dijalankan (hanya jalan bila profil "caddy" dipanggil),
+#   sehingga tidak bentrok dengan nginx yang sudah memegang port 80/443;
+# - API hanya dibuka di 127.0.0.1 untuk di-proxy oleh nginx.
+#   Ganti 3102 bila port itu sudah dipakai (cek: sudo ss -tlnp | grep :3102).
+
+services:
+  api:
+    ports:
+      - "127.0.0.1:3102:3000"
+  caddy:
+    profiles: ["caddy"]
