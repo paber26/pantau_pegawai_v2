@@ -41,6 +41,12 @@ describe("dashboard", () => {
       tanggal: today
     })
   })
+
+  it("dokumentasi yang dihapus tidak dihitung", async () => {
+    await env.db.query("UPDATE dokumentasi SET deleted_at = NOW() WHERE proyek = 'Hari ini'")
+    const stats = (await env.app.inject({ url: "/api/dashboard/stats", headers: bearer(s.admin) })).json()
+    expect(stats).toMatchObject({ total_dokumentasi: 1200, pegawai_belum_upload: 2 })
+  })
 })
 
 describe("upload & gambar", () => {

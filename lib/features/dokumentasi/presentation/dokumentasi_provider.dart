@@ -135,3 +135,32 @@ class AdminDokumentasiNotifier extends _$AdminDokumentasiNotifier {
     await refresh();
   }
 }
+
+/// Dokumentasi yang dihapus pegawai/admin (khusus admin), bisa dikembalikan.
+@riverpod
+class DeletedDokumentasiNotifier extends _$DeletedDokumentasiNotifier {
+  @override
+  Future<List<DokumentasiModel>> build() {
+    return ref.read(dokumentasiRepositoryProvider).getDeleted();
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref.read(dokumentasiRepositoryProvider).getDeleted(),
+    );
+  }
+
+  /// Mengembalikan dokumentasi; `null` bila berhasil, pesan error bila gagal.
+  Future<String?> kembalikan(String id) async {
+    try {
+      await ref.read(dokumentasiRepositoryProvider).restore(id);
+      await refresh();
+      ref.invalidate(adminDokumentasiNotifierProvider);
+      ref.invalidate(myDokumentasiNotifierProvider);
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+}

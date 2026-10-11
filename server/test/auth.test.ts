@@ -63,6 +63,29 @@ describe("sesi", () => {
     expect((await env.app.inject({ url: "/api/auth/me", headers: bearer(token) })).statusCode).toBe(401)
   })
 
+  it("logout tanpa body tetap diterima walau Content-Type JSON (aplikasi lama)", async () => {
+    const token = await login(env.app, "budi@bps.go.id", "passwordLama")
+    const out = await env.app.inject({
+      method: "POST",
+      url: "/api/auth/logout",
+      headers: { ...bearer(token), "content-type": "application/json" }
+    })
+    expect(out.statusCode).toBe(200)
+    expect((await env.app.inject({ url: "/api/auth/me", headers: bearer(token) })).statusCode).toBe(401)
+  })
+
+  it("JSON rusak dan prototype poisoning tetap ditolak", async () => {
+    for (const payload of ["{rusak", '{"__proto__":{"x":1},"email":"a@b.c","password":"x"}']) {
+      const res = await env.app.inject({
+        method: "POST",
+        url: "/api/auth/login",
+        headers: { "content-type": "application/json" },
+        payload
+      })
+      expect(res.statusCode).toBe(400)
+    }
+  })
+
   it("sesi kedaluwarsa ditolak, sesi aktif diperpanjang", async () => {
     const expired = await login(env.app, "budi@bps.go.id", "passwordLama")
     await env.db.query("UPDATE sessions SET expires_at = NOW() - interval '1 minute'")

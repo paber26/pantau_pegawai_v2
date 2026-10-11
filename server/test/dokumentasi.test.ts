@@ -102,3 +102,66 @@ describe("dokumentasi", () => {
     expect((await env.app.inject({ url: "/api/dokumentasi" })).statusCode).toBe(401)
   })
 })
+
+describe("hapus sementara (soft delete)", () => {
+  const ids = async (token: string, query = "") =>
+    (await env.app.inject({ url: `/api/dokumentasi${query}`, headers: bearer(token) }))
+      .json()
+      .map((d: { id: string }) => d.id)
+
+  it("pegawai menghapus miliknya: hilang dari daftar, admin bisa melihat dan mengembalikan", async () => {
+    const doc = (await create(s.budi, { proyek: "Akan dihapus", tanggal_kegiatan: "2026-10-11" })).json()
+
+    // Aplikasi lama mengirim Content-Type JSON tanpa body; tetap diterima.
+    const del = await env.app.inject({
+      method: "DELETE",
+      url: `/api/dokumentasi/${doc.id}`,
+      headers: { ...bearer(s.budi), "content-type": "application/json" }
+    })
+    expect(del.statusCode).toBe(200)
+
+    expect(await ids(s.budi)).not.toContain(doc.id)
+    expect(await ids(s.siti)).not.toContain(doc.id)
+    expect(await ids(s.admin)).not.toContain(doc.id)
+    expect(await ids(s.budi, `?user_id=${s.budiId}`)).not.toContain(doc.id)
+
+    // Daftar yang dihapus: khusus admin, lengkap dengan siapa yang menghapus.
+    expect((await env.app.inject({ url: "/api/dokumentasi?deleted=true", headers: bearer(s.budi) })).statusCode).toBe(403)
+    const trash = (await env.app.inject({ url: "/api/dokumentasi?deleted=true", headers: bearer(s.admin) })).json()
+    expect(trash.every((d: { deleted_at: string | null }) => d.deleted_at)).toBe(true)
+    expect(trash.find((d: { id: string }) => d.id === doc.id)).toMatchObject({
+      proyek: "Akan dihapus",
+      deleted_by: s.budiId,
+      deleted_by_nama: "Budi Santoso",
+      users: { nama: "Budi Santoso" }
+    })
+
+    // Yang sudah dihapus tidak bisa diubah atau dihapus lagi.
+    const patch = await env.app.inject({
+      method: "PATCH",
+      url: `/api/dokumentasi/${doc.id}`,
+      headers: bearer(s.budi),
+      payload: { proyek: "Ubah", tanggal_kegiatan: "2026-10-11" }
+    })
+    expect(patch.statusCode).toBe(404)
+    expect((await env.app.inject({ method: "DELETE", url: `/api/dokumentasi/${doc.id}`, headers: bearer(s.budi) })).statusCode).toBe(404)
+
+    // Hanya admin yang bisa mengembalikan.
+    const restore = (token: string) =>
+      env.app.inject({ method: "POST", url: `/api/dokumentasi/${doc.id}/restore`, headers: bearer(token) })
+    expect((await restore(s.budi)).statusCode).toBe(403)
+    const restored = await restore(s.admin)
+    expect(restored.statusCode).toBe(200)
+    expect(restored.json()).toMatchObject({ id: doc.id, deleted_at: null, deleted_by: null, deleted_by_nama: null })
+    expect(await ids(s.budi)).toContain(doc.id)
+    expect(await ids(s.admin, "?deleted=true")).not.toContain(doc.id)
+    expect((await restore(s.admin)).statusCode).toBe(404)
+  })
+
+  it("admin menghapus dokumentasi pegawai: tercatat sebagai penghapus", async () => {
+    const doc = (await create(s.siti, { proyek: "Dihapus admin", tanggal_kegiatan: "2026-10-11" })).json()
+    expect((await env.app.inject({ method: "DELETE", url: `/api/dokumentasi/${doc.id}`, headers: bearer(s.admin) })).statusCode).toBe(200)
+    const trash = (await env.app.inject({ url: "/api/dokumentasi?deleted=true", headers: bearer(s.admin) })).json()
+    expect(trash[0]).toMatchObject({ id: doc.id, deleted_by_nama: "Admin Sistem", pegawai_nama: "Siti Aminah" })
+  })
+})
