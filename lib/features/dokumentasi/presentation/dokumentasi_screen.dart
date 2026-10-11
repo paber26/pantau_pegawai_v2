@@ -76,13 +76,7 @@ class _DokumentasiScreenState extends ConsumerState<DokumentasiScreen> {
                   .refresh()),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showFormSheet(context),
-        icon: const Icon(Icons.add_a_photo_outlined),
-        label: const Text('Tambah'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-      ),
+      floatingActionButton: const TambahDokumentasiButton(),
       body: docsAsync.when(
         loading: () => const LoadingShimmer(),
         error: (e, _) => ErrorDisplay(
@@ -301,15 +295,33 @@ class _DokumentasiScreenState extends ConsumerState<DokumentasiScreen> {
       ),
     );
   }
+}
 
-  void _showFormSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const DokumentasiFormSheet(),
+/// Tombol "Tambah" di pojok kanan bawah: membuka form tambah dokumentasi.
+/// Dipakai di halaman Dokumentasi Harian dan Riwayat Saya.
+class TambahDokumentasiButton extends StatelessWidget {
+  const TambahDokumentasiButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return FloatingActionButton.extended(
+      onPressed: () => showDokumentasiFormSheet(context),
+      icon: const Icon(Icons.add_a_photo_outlined),
+      label: const Text('Tambah'),
+      backgroundColor: AppColors.primary,
+      foregroundColor: Colors.white,
     );
   }
+}
+
+/// Membuka form tambah dokumentasi sebagai bottom sheet.
+void showDokumentasiFormSheet(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) => const DokumentasiFormSheet(),
+  );
 }
 
 /// Halaman riwayat: hanya milik sendiri
@@ -332,6 +344,7 @@ class RiwayatDokumentasiScreen extends ConsumerWidget {
                   ref.read(myDokumentasiNotifierProvider.notifier).refresh())
         ],
       ),
+      floatingActionButton: const TambahDokumentasiButton(),
       body: docsAsync.when(
         loading: () => const LoadingShimmer(),
         error: (e, _) => ErrorDisplay(message: e.toString()),
@@ -364,7 +377,7 @@ class RiwayatDokumentasiScreen extends ConsumerWidget {
             onRefresh: () =>
                 ref.read(myDokumentasiNotifierProvider.notifier).refresh(),
             child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
               itemCount: grouped.length,
               itemBuilder: (context, index) {
                 final entry = grouped.entries.elementAt(index);
