@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,27 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/services/clipboard_service.dart';
 import '../../../../core/services/clipboard_service_provider.dart';
 import '../../../../core/services/image_compressor.dart';
+
+/// Pesan untuk [ClipboardPermissionDenied], disesuaikan dengan platform.
+///
+/// Di web tidak ada "pengaturan izin aplikasi". Browser iPhone (semuanya
+/// WebKit) tidak punya izin clipboard per situs: iOS hanya memunculkan
+/// tombol "Tempel" yang harus diketuk. Browser lain menyimpan izin
+/// clipboard di pengaturan situs.
+String clipboardPermissionDeniedMessage({
+  required bool isWeb,
+  required TargetPlatform platform,
+}) {
+  if (!isWeb) {
+    return 'Izin akses clipboard ditolak. Periksa pengaturan izin aplikasi.';
+  }
+  if (platform == TargetPlatform.iOS) {
+    return 'iPhone meminta konfirmasi: ketuk tombol "Tempel" yang muncul. '
+        'Atau pakai Pilih dari Galeri.';
+  }
+  return 'Browser menolak akses clipboard. Izinkan Clipboard di pengaturan '
+      'situs (ikon gembok), atau pakai Pilih dari Galeri.';
+}
 
 /// Widget yang membungkus [child] untuk menangani shortcut paste gambar
 /// (Ctrl+V / Cmd+V) pada platform desktop/web, dan menyediakan metode
@@ -210,7 +232,10 @@ class PasteImageHandlerState extends ConsumerState<PasteImageHandler> {
         );
       case ClipboardPermissionDenied():
         _showErrorSnackBar(
-          'Izin akses clipboard ditolak. Periksa pengaturan izin aplikasi.',
+          clipboardPermissionDeniedMessage(
+            isWeb: kIsWeb,
+            platform: defaultTargetPlatform,
+          ),
           const Duration(seconds: 4),
         );
       case ClipboardUnsupported():

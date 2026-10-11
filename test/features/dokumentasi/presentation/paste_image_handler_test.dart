@@ -181,6 +181,41 @@ void main() {
     );
   });
 
+  group('clipboardPermissionDeniedMessage', () {
+    test('aplikasi native memakai pesan izin aplikasi', () {
+      for (final platform in TargetPlatform.values) {
+        expect(
+          clipboardPermissionDeniedMessage(isWeb: false, platform: platform),
+          _expectedErrorMessages[ClipboardPermissionDenied],
+        );
+      }
+    });
+
+    test('web di iPhone mengarahkan ke tombol "Tempel" atau Galeri', () {
+      final message = clipboardPermissionDeniedMessage(
+        isWeb: true,
+        platform: TargetPlatform.iOS,
+      );
+      expect(message, contains('"Tempel"'));
+      expect(message, contains('Pilih dari Galeri'));
+      expect(message, isNot(contains('pengaturan izin aplikasi')));
+    });
+
+    test('web lain mengarahkan ke pengaturan situs', () {
+      for (final platform in [
+        TargetPlatform.android,
+        TargetPlatform.macOS,
+        TargetPlatform.windows,
+        TargetPlatform.linux,
+      ]) {
+        final message =
+            clipboardPermissionDeniedMessage(isWeb: true, platform: platform);
+        expect(message, contains('pengaturan situs'));
+        expect(message, contains('Pilih dari Galeri'));
+      }
+    });
+  });
+
   group(
     'PasteImageHandler — Property 8: Focus-based paste routing',
     () {

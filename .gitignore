@@ -44,9 +44,10 @@ supabase/.temp/
 .env*
 !.env.example
 
-# Deploy VPS (kredensial & backup database — jangan di-commit)
+# Deploy VPS (kredensial, backup database, dan override khusus server — jangan di-commit)
 secrets/
 backups/
+docker-compose.override.yml
 
 # Claude Code (kredensial lokal & log analyze — jangan di-commit)
 .claude/settings.local.json
