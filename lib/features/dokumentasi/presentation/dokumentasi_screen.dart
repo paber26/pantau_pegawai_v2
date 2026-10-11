@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,6 +22,7 @@ import '../domain/dokumentasi_model.dart';
 import '../domain/image_source_type.dart';
 import 'dokumentasi_provider.dart';
 import 'widgets/paste_image_handler.dart';
+import 'widgets/paste_photo_dialog.dart';
 
 /// Halaman utama: semua dokumentasi semua pegawai + filter
 class DokumentasiScreen extends ConsumerStatefulWidget {
@@ -456,9 +458,21 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
     _pasteHandlerKey.currentState?.performPaste();
   }
 
+  /// Browser di iPhone hanya bisa membaca screenshot (PNG) lewat clipboard
+  /// API, jadi di sana paste memakai dialog "Tempel Foto" (tekan lama →
+  /// Tempel) yang juga menerima foto kamera dari aplikasi Foto.
+  bool get _useIosPasteDialog =>
+      kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+
+  Future<void> _openPastePhotoDialog() async {
+    final Uint8List? bytes = await showPastePhotoDialog(context);
+    if (bytes == null || !mounted) return;
+    await _pasteHandlerKey.currentState?.handlePastedBytes(bytes);
+  }
+
   void _showImagePicker() {
     final bool clipboardSupported =
-        ref.read(clipboardServiceProvider).isSupported;
+        _useIosPasteDialog || ref.read(clipboardServiceProvider).isSupported;
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -490,7 +504,11 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
                 // Tutup bottom sheet sebelum membaca clipboard
                 // (Requirement 6.5).
                 Navigator.pop(ctx);
-                _triggerClipboardPaste();
+                if (_useIosPasteDialog) {
+                  _openPastePhotoDialog();
+                } else {
+                  _triggerClipboardPaste();
+                }
               }),
         if (_imageBytes != null || _existingImageUrl != null)
           ListTile(

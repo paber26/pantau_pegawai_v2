@@ -181,6 +181,42 @@ void main() {
     );
   });
 
+  group('handlePastedBytes (dialog Tempel Foto di iPhone)', () {
+    testWidgets('foto yang lolos kompresi diteruskan ke onImagePasted',
+        (tester) async {
+      final bytes = Uint8List.fromList([1, 2, 3, 4]);
+      final harness = _buildHarness(
+        clipboardService: _FakeClipboardService(result: const ClipboardEmpty()),
+      );
+      await tester.pumpWidget(harness.app);
+
+      await harness.handlerKey.currentState!.handlePastedBytes(bytes);
+      await tester.pump();
+
+      expect(harness.pastedBytes, [bytes]);
+      expect(find.text('Gambar berhasil di-paste'), findsOneWidget);
+      expect(harness.errorCount(), 0);
+    });
+
+    testWidgets('foto yang gagal diproses menampilkan error, form tetap kosong',
+        (tester) async {
+      final harness = _buildHarness(
+        clipboardService: _FakeClipboardService(result: const ClipboardEmpty()),
+        imageCompressor:
+            _FakeImageCompressor(result: const CompressError('rusak')),
+      );
+      await tester.pumpWidget(harness.app);
+
+      await harness.handlerKey.currentState!
+          .handlePastedBytes(Uint8List.fromList([9, 9]));
+      await tester.pump();
+
+      expect(harness.pastedBytes, isEmpty);
+      expect(find.text('Gagal memproses gambar. Coba lagi.'), findsOneWidget);
+      expect(harness.errorCount(), 1);
+    });
+  });
+
   group('clipboardPermissionDeniedMessage', () {
     test('aplikasi native memakai pesan izin aplikasi', () {
       for (final platform in TargetPlatform.values) {

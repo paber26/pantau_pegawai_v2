@@ -202,7 +202,6 @@ class PasteImageHandlerState extends ConsumerState<PasteImageHandler> {
     // provider berubah (operasi imperatif).
     final ClipboardService clipboardService =
         ref.read(clipboardServiceProvider);
-    final ImageCompressor imageCompressor = ref.read(imageCompressorProvider);
 
     final ClipboardReadResult readResult =
         await clipboardService.readImageFromClipboard();
@@ -211,10 +210,7 @@ class PasteImageHandlerState extends ConsumerState<PasteImageHandler> {
 
     switch (readResult) {
       case ClipboardImageSuccess(:final imageBytes):
-        final CompressResult compressResult =
-            await imageCompressor.compress(imageBytes);
-        if (!mounted) return;
-        _handleCompressResult(compressResult);
+        await handlePastedBytes(imageBytes);
       case ClipboardEmpty():
         _showErrorSnackBar(
           'Clipboard kosong. Salin gambar terlebih dahulu.',
@@ -245,6 +241,17 @@ class PasteImageHandlerState extends ConsumerState<PasteImageHandler> {
         // beri tahu parent via onError.
         widget.onError?.call();
     }
+  }
+
+  /// Mengompres [imageBytes] yang diperoleh dari luar clipboard API (mis.
+  /// dialog "Tempel Foto" di iPhone), lalu memprosesnya seperti hasil paste
+  /// biasa: [PasteImageHandler.onImagePasted] dan snackbar yang sama.
+  Future<void> handlePastedBytes(Uint8List imageBytes) async {
+    final ImageCompressor imageCompressor = ref.read(imageCompressorProvider);
+    final CompressResult compressResult =
+        await imageCompressor.compress(imageBytes);
+    if (!mounted) return;
+    _handleCompressResult(compressResult);
   }
 
   /// Menangani [CompressResult] hasil kompresi gambar.
