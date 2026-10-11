@@ -1,7 +1,7 @@
 import { buildApp } from "./app.js"
 import { loadConfig } from "./config.js"
 import { createPool } from "./db.js"
-import { GoogleDriveService, type DriveService } from "./drive.js"
+import { createGoogleDriveService, type DriveService } from "./drive.js"
 import { runMigrations } from "./migrate.js"
 
 const config = loadConfig()
@@ -11,7 +11,16 @@ await runMigrations(db)
 
 let drive: DriveService | null = null
 if (config.googleServiceAccountFile && config.googleDriveRootFolderId) {
-  drive = new GoogleDriveService(config.googleServiceAccountFile, config.googleDriveRootFolderId)
+  drive = createGoogleDriveService({
+    serviceAccountFile: config.googleServiceAccountFile,
+    rootFolderId: config.googleDriveRootFolderId,
+    oauth: config.googleOAuth
+  })
+  console.log(
+    config.googleOAuth
+      ? "Upload foto ke Drive memakai akun OAuth pemilik folder (GOOGLE_OAUTH_*)."
+      : "Upload foto ke Drive memakai service account."
+  )
 } else {
   console.warn("GOOGLE_SERVICE_ACCOUNT_FILE / GOOGLE_DRIVE_ROOT_FOLDER_ID belum diset: upload & gambar tidak aktif.")
 }

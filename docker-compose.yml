@@ -43,6 +43,10 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:?isi CORS_ORIGINS di .env}
       GOOGLE_SERVICE_ACCOUNT_FILE: /run/secrets/google-service-account
       GOOGLE_DRIVE_ROOT_FOLDER_ID: ${GOOGLE_DRIVE_ROOT_FOLDER_ID:?isi GOOGLE_DRIVE_ROOT_FOLDER_ID di .env}
+      # Upload foto atas nama Gmail pemilik folder (opsional, lihat docs/13-deploy-vps.md).
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      GOOGLE_OAUTH_REFRESH_TOKEN: ${GOOGLE_OAUTH_REFRESH_TOKEN:-}
       GOOGLE_SHEETS_API_KEY: ${GOOGLE_SHEETS_API_KEY:-}
       APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Makassar}
     secrets:

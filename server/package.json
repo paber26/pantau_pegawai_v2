@@ -17,7 +17,8 @@
     "create-admin": "tsx scripts/create-admin.ts",
     "migrate:supabase": "tsx scripts/migrate-from-supabase.ts",
     "sync:sheets": "tsx scripts/migrate-from-sheets.ts",
-    "cleanup:duplicates": "tsx scripts/cleanup-duplicates.ts"
+    "cleanup:duplicates": "tsx scripts/cleanup-duplicates.ts",
+    "google:login": "tsx scripts/google-oauth-login.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.3.1",

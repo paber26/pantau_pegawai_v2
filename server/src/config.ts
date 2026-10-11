@@ -16,6 +16,18 @@ export interface Config {
   appTimezone: string
   googleServiceAccountFile: string | null
   googleDriveRootFolderId: string | null
+  /**
+   * OAuth akun Gmail pemilik folder Drive, dipakai untuk upload. Service account
+   * tidak punya kuota penyimpanan sehingga tidak bisa memiliki file di My Drive
+   * akun Gmail biasa. `null` = upload tetap memakai service account.
+   */
+  googleOAuth: GoogleOAuthConfig | null
+}
+
+export interface GoogleOAuthConfig {
+  clientId: string
+  clientSecret: string
+  refreshToken: string
 }
 
 function required(name: string): string {
@@ -36,6 +48,22 @@ export function loadConfig(): Config {
     sessionTtlDays: Number(process.env.SESSION_TTL_DAYS ?? 30),
     appTimezone: process.env.APP_TIMEZONE || "Asia/Makassar",
     googleServiceAccountFile: process.env.GOOGLE_SERVICE_ACCOUNT_FILE || null,
-    googleDriveRootFolderId: process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID || null
+    googleDriveRootFolderId: process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID || null,
+    googleOAuth: googleOAuthFromEnv(process.env)
   }
+}
+
+/** Ketiga variabel GOOGLE_OAUTH_* harus terisi; bila hanya sebagian, abaikan dengan peringatan. */
+export function googleOAuthFromEnv(env: NodeJS.ProcessEnv): GoogleOAuthConfig | null {
+  const clientId = env.GOOGLE_OAUTH_CLIENT_ID?.trim() ?? ""
+  const clientSecret = env.GOOGLE_OAUTH_CLIENT_SECRET?.trim() ?? ""
+  const refreshToken = env.GOOGLE_OAUTH_REFRESH_TOKEN?.trim() ?? ""
+  if (clientId && clientSecret && refreshToken) return { clientId, clientSecret, refreshToken }
+  if (clientId || clientSecret || refreshToken) {
+    console.warn(
+      "GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, dan GOOGLE_OAUTH_REFRESH_TOKEN harus diisi semua; " +
+        "upload foto tetap memakai service account."
+    )
+  }
+  return null
 }

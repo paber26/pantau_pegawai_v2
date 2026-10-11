@@ -1,14 +1,21 @@
 /**
- * Akses Google Drive memakai Service Account (pengganti Edge Function
- * `upload-to-drive` dan `image-proxy`).
+ * Akses Google Drive (pengganti Edge Function `upload-to-drive` dan `image-proxy`).
  *
- * Kredensial dibaca dari file JSON service account (GOOGLE_SERVICE_ACCOUNT_FILE).
+ * - Membaca gambar memakai service account (GOOGLE_SERVICE_ACCOUNT_FILE).
+ * - Menulis (folder, upload, izin) memakai OAuth akun Gmail pemilik folder bila
+ *   GOOGLE_OAUTH_* diisi. Service account tidak punya kuota penyimpanan, jadi
+ *   Google menolak file baru miliknya di My Drive akun Gmail biasa
+ *   (403 storageQuotaExceeded). Tanpa OAuth, penulisan memakai service account
+ *   (berhasil bila folder root ada di Shared Drive).
+ *
  * Token akses di-cache oleh google-auth-library sampai hampir kedaluwarsa.
  */
 import { readFileSync } from "node:fs"
 import { Readable } from "node:stream"
 
-import { JWT } from "google-auth-library"
+import { JWT, OAuth2Client } from "google-auth-library"
+
+import type { GoogleOAuthConfig } from "./config.js"
 
 const DRIVE_API = "https://www.googleapis.com/drive/v3"
 const DRIVE_UPLOAD_API = "https://www.googleapis.com/upload/drive/v3"
@@ -33,27 +40,49 @@ export function escapeDriveQuery(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'")
 }
 
+/** Sumber access token Google: `JWT` (service account) atau `OAuth2Client`. */
+export interface TokenSource {
+  getAccessToken(): Promise<{ token?: string | null }>
+}
+
+/**
+ * Membuat `GoogleDriveService` dari konfigurasi: service account untuk membaca,
+ * dan OAuth pemilik folder (bila ada) untuk menulis.
+ */
+export function createGoogleDriveService(options: {
+  serviceAccountFile: string
+  rootFolderId: string
+  oauth: GoogleOAuthConfig | null
+}): GoogleDriveService {
+  const credentials = JSON.parse(readFileSync(options.serviceAccountFile, "utf8")) as {
+    client_email: string
+    private_key: string
+  }
+  const serviceAccount = new JWT({
+    email: credentials.client_email,
+    key: credentials.private_key,
+    scopes: ["https://www.googleapis.com/auth/drive"]
+  })
+
+  let writer: TokenSource = serviceAccount
+  if (options.oauth) {
+    const client = new OAuth2Client({ clientId: options.oauth.clientId, clientSecret: options.oauth.clientSecret })
+    client.setCredentials({ refresh_token: options.oauth.refreshToken })
+    writer = client
+  }
+  return new GoogleDriveService({ read: serviceAccount, write: writer }, options.rootFolderId)
+}
+
 export class GoogleDriveService implements DriveService {
-  private readonly auth: JWT
   private readonly folderCache = new Map<string, { id: Promise<string>; expires: number }>()
 
   constructor(
-    serviceAccountFile: string,
+    private readonly auth: { read: TokenSource; write: TokenSource },
     private readonly rootFolderId: string
-  ) {
-    const credentials = JSON.parse(readFileSync(serviceAccountFile, "utf8")) as {
-      client_email: string
-      private_key: string
-    }
-    this.auth = new JWT({
-      email: credentials.client_email,
-      key: credentials.private_key,
-      scopes: ["https://www.googleapis.com/auth/drive"]
-    })
-  }
+  ) {}
 
-  private async authHeader(): Promise<Record<string, string>> {
-    const { token } = await this.auth.getAccessToken()
+  private async authHeader(source: TokenSource): Promise<Record<string, string>> {
+    const { token } = await source.getAccessToken()
     if (!token) throw new Error("Gagal mendapatkan access token Google")
     return { Authorization: `Bearer ${token}` }
   }
@@ -74,7 +103,7 @@ export class GoogleDriveService implements DriveService {
   }
 
   private async findOrCreateFolder(name: string, parentId: string): Promise<string> {
-    const headers = await this.authHeader()
+    const headers = await this.authHeader(this.auth.write)
     const search = new URL(`${DRIVE_API}/files`)
     search.searchParams.set(
       "q",
@@ -104,7 +133,7 @@ export class GoogleDriveService implements DriveService {
       parentId = await this.folderId(name, parentId)
     }
 
-    const headers = await this.authHeader()
+    const headers = await this.authHeader(this.auth.write)
     const boundary = `pantau_pegawai_${Date.now().toString(36)}`
     const metadata = JSON.stringify({ name: params.filename, parents: [parentId] })
     const head = Buffer.from(
@@ -141,7 +170,7 @@ export class GoogleDriveService implements DriveService {
   }
 
   async getImage(fileId: string): Promise<DriveImage | null> {
-    const headers = await this.authHeader()
+    const headers = await this.authHeader(this.auth.read)
     const res = await fetch(`${DRIVE_API}/files/${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`, {
       headers
     })

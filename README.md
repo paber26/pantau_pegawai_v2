@@ -11,7 +11,7 @@ Aplikasi monitoring pegawai berbasis Flutter + API PostgreSQL di VPS + Google Dr
 | API                 | Node.js 22 + Fastify (folder `server/`)     |
 | Database            | PostgreSQL 16 di VPS                        |
 | Login               | Token sesi dari API (disimpan hash di DB)   |
-| File Storage        | Google Drive via Service Account            |
+| File Storage        | Google Drive (upload atas nama Gmail pemilik folder via OAuth, baca via Service Account) |
 | HTTPS               | Caddy (Let's Encrypt otomatis)              |
 | Deploy server       | Docker Compose (`docker-compose.yml`)       |
 | State Management    | Riverpod                                    |
@@ -44,6 +44,9 @@ docker compose exec api node dist/scripts/create-admin.js   # admin pertama (ins
 2. Buat **Service Account** → tab Keys → Add key → **JSON**
 3. Buat folder di Google Drive (mis. `PantauPegawai`), share ke email service account dengan role **Editor**
 4. Isi `GOOGLE_DRIVE_ROOT_FOLDER_ID` di `.env` dengan ID folder tersebut
+5. Folder di My Drive Gmail biasa? Service account tidak punya kuota untuk
+   upload; siapkan juga OAuth akun pemilik folder (`GOOGLE_OAUTH_*`, lihat
+   [`docs/13-deploy-vps.md`](docs/13-deploy-vps.md))
 
 ### 3. Flutter App
 
@@ -127,7 +130,7 @@ dart run build_runner watch
 ## Catatan Keamanan
 
 - Aplikasi Flutter hanya menyimpan `API_URL` — tidak ada kredensial database di client
-- Kredensial Google Service Account **hanya** ada di server (`secrets/`, tidak di-commit)
+- Kredensial Google (service account di `secrets/`, OAuth di `.env`) **hanya** ada di server, tidak di-commit
 - Aturan akses ditegakkan API: pegawai hanya bisa mengubah/menghapus dokumentasinya
   sendiri, hanya admin yang bisa mengelola pegawai & proyek
 - Database tidak dibuka ke internet; backup harian di folder `backups/` — salin ke luar VPS secara berkala

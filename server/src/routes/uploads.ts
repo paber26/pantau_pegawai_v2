@@ -42,12 +42,21 @@ export async function uploadRoutes(app: FastifyInstance, ctx: AppContext) {
     const filename = (fields.filename ?? "").replace(/[\\/\u0000-\u001f]/g, "_").slice(0, 200) || `foto_${Date.now()}.jpg`
     const mimeType = file.mimeType.startsWith("image/") ? file.mimeType : "image/jpeg"
 
-    const fileId = await drive.uploadFile({
-      bytes: file.bytes,
-      filename,
-      mimeType,
-      folderPath: [currentUser(request).nama, tanggal]
-    })
+    let fileId: string
+    try {
+      fileId = await drive.uploadFile({
+        bytes: file.bytes,
+        filename,
+        mimeType,
+        folderPath: [currentUser(request).nama, tanggal]
+      })
+    } catch (err) {
+      // Detail (mis. 403 storageQuotaExceeded, invalid_grant) hanya di log server.
+      // Hanya pesan & stack: objek error Google bisa membawa konfigurasi request.
+      const { message, stack } = err instanceof Error ? err : new Error(String(err))
+      request.log.error({ reason: message, stack }, "Upload ke Google Drive gagal")
+      throw new HttpError(502, "Upload foto ke Google Drive gagal. Coba lagi atau hubungi admin.")
+    }
     return { image_url: imageUrlFor(config.publicApiUrl, fileId), file_id: fileId }
   })
 }
