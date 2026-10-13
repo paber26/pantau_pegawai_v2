@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../features/auth/presentation/auth_provider.dart';
+import '../../features/auth/presentation/change_password_dialog.dart';
 
 class PegawaiScaffold extends ConsumerWidget {
   final Widget child;
@@ -64,6 +65,8 @@ class PegawaiScaffold extends ConsumerWidget {
 
   void _showProfileSheet(BuildContext context, WidgetRef ref) {
     final user = ref.read(authStateProvider).valueOrNull;
+    // Context halaman: tetap valid setelah sheet ditutup (untuk dialog).
+    final scaffoldContext = context;
 
     showModalBottomSheet(
       context: context,
@@ -152,6 +155,25 @@ class PegawaiScaffold extends ConsumerWidget {
               ),
 
               const SizedBox(height: 20),
+
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    showChangePasswordDialog(scaffoldContext);
+                  },
+                  icon: const Icon(Icons.lock_reset),
+                  label: const Text('Ganti Password'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
 
               // Logout button
               SizedBox(

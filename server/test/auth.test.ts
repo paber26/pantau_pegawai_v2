@@ -101,6 +101,64 @@ describe("sesi", () => {
   })
 })
 
+describe("ganti password sendiri", () => {
+  const change = (token: string | null, payload: Record<string, string>) =>
+    env.app.inject({
+      method: "POST",
+      url: "/api/auth/change-password",
+      headers: token ? bearer(token) : {},
+      payload
+    })
+  const me = async (token: string) => (await env.app.inject({ url: "/api/auth/me", headers: bearer(token) })).statusCode
+
+  it("berhasil: password baru berlaku, sesi ini tetap, sesi perangkat lain dimatikan", async () => {
+    await createUser(env.db, { nama: "Rina", email: "rina@bps.go.id", password: "lama123" })
+    const hpLain = await login(env.app, "rina@bps.go.id", "lama123")
+    const laptop = await login(env.app, "rina@bps.go.id", "lama123")
+
+    const res = await change(laptop, { current_password: "lama123", new_password: "baru4567" })
+    expect(res.statusCode).toBe(200)
+
+    expect(await me(laptop)).toBe(200)
+    expect(await me(hpLain)).toBe(401)
+
+    const loginBaru = await env.app.inject({
+      method: "POST",
+      url: "/api/auth/login",
+      payload: { email: "rina@bps.go.id", password: "baru4567" }
+    })
+    expect(loginBaru.statusCode).toBe(200)
+    const loginLama = await env.app.inject({
+      method: "POST",
+      url: "/api/auth/login",
+      payload: { email: "rina@bps.go.id", password: "lama123" }
+    })
+    expect(loginLama.statusCode).toBe(401)
+  })
+
+  it("password lama salah, password baru pendek atau sama → 400 dan sesi tetap", async () => {
+    await createUser(env.db, { nama: "Doni", email: "doni@bps.go.id", password: "rahasia1" })
+    const token = await login(env.app, "doni@bps.go.id", "rahasia1")
+
+    const salah = await change(token, { current_password: "keliru", new_password: "baru4567" })
+    expect(salah.statusCode).toBe(400)
+    expect(salah.json().error).toBe("Password lama salah.")
+
+    const pendek = await change(token, { current_password: "rahasia1", new_password: "123" })
+    expect(pendek.statusCode).toBe(400)
+    expect(pendek.json().error).toMatch(/minimal 6/)
+
+    const sama = await change(token, { current_password: "rahasia1", new_password: "rahasia1" })
+    expect(sama.statusCode).toBe(400)
+
+    expect(await me(token)).toBe(200)
+  })
+
+  it("butuh login", async () => {
+    expect((await change(null, { current_password: "a", new_password: "bbbbbb" })).statusCode).toBe(401)
+  })
+})
+
 describe("rate limit login", () => {
   it("dibatasi per IP + email: satu kantor (IP sama) tidak saling mengunci", async () => {
     const attempt = (email: string) =>
