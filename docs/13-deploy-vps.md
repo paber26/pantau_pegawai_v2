@@ -21,7 +21,7 @@ Aplikasi Android / iOS
 | Supabase Auth                      | Login API (`/api/auth/login`), token sesi 30 hari |
 | Row Level Security (RLS)           | Aturan akses di kode API (`server/src/routes`)  |
 | Edge Function `upload-to-drive`    | `POST /api/uploads`                             |
-| Edge Function `image-proxy`        | `GET /api/images?id=...`                        |
+| Edge Function `image-proxy`        | `GET /api/images?id=...` (+ `GET /api/images/thumb?id=...` untuk daftar) |
 | Edge Function `admin-*`            | `/api/users` (tambah, ubah, hapus, reset password) |
 | Edge Function `import-from-sheets` | `POST /api/import`                              |
 | Backup otomatis Supabase           | Container `backup` (pg_dump harian), disalin API ke Google Drive |

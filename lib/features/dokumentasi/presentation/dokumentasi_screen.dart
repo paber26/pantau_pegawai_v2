@@ -1202,7 +1202,8 @@ class DokCard extends ConsumerWidget {
                         imageUrl: doc.imageUrl,
                         width: 60,
                         height: 60,
-                        fit: BoxFit.cover)
+                        fit: BoxFit.cover,
+                        thumbnail: true)
                     : _noImage(),
               ),
             ),
