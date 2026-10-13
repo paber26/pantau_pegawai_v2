@@ -5,4 +5,10 @@ abstract class AuthRepository {
   Future<void> logout();
   Future<AppAuthUser?> getCurrentUser();
   Stream<AppAuthUser?> authStateChanges();
+
+  /// Ganti password akun yang sedang login. Sesi perangkat lain dimatikan.
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  });
 }

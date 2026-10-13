@@ -50,6 +50,23 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Stream<AppAuthUser?> authStateChanges() => _session.watch(_fetchProfile);
 
+  @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      await _api.post('/api/auth/change-password', body: {
+        'current_password': currentPassword,
+        'new_password': newPassword,
+      });
+    } on AppException {
+      rethrow;
+    } catch (e) {
+      throw AppException('Gagal mengganti password: ${e.toString()}');
+    }
+  }
+
   Future<AppAuthUser?> _fetchProfile() async {
     final data = await _api.get('/api/auth/me') as Map<String, dynamic>;
     return AppAuthUser.fromMap(data['user'] as Map<String, dynamic>);
