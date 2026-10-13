@@ -133,4 +133,5 @@ dart run build_runner watch
 - Kredensial Google (service account di `secrets/`, OAuth di `.env`) **hanya** ada di server, tidak di-commit
 - Aturan akses ditegakkan API: pegawai hanya bisa mengubah/menghapus dokumentasinya
   sendiri, hanya admin yang bisa mengelola pegawai & proyek
-- Database tidak dibuka ke internet; backup harian di folder `backups/` — salin ke luar VPS secara berkala
+- Database tidak dibuka ke internet; backup harian di folder `backups/`, disalin otomatis
+  ke Google Drive (folder `Backup Database`, tanpa link publik)

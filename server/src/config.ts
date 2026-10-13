@@ -22,6 +22,8 @@ export interface Config {
    * akun Gmail biasa. `null` = upload tetap memakai service account.
    */
   googleOAuth: GoogleOAuthConfig | null
+  /** Folder berisi backup harian (read-only) yang disalin ke Google Drive. `null` = tidak disalin. */
+  backupDir: string | null
 }
 
 export interface GoogleOAuthConfig {
@@ -49,7 +51,8 @@ export function loadConfig(): Config {
     appTimezone: process.env.APP_TIMEZONE || "Asia/Makassar",
     googleServiceAccountFile: process.env.GOOGLE_SERVICE_ACCOUNT_FILE || null,
     googleDriveRootFolderId: process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID || null,
-    googleOAuth: googleOAuthFromEnv(process.env)
+    googleOAuth: googleOAuthFromEnv(process.env),
+    backupDir: process.env.BACKUP_DIR || null
   }
 }
 

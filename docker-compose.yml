@@ -49,6 +49,10 @@ services:
       GOOGLE_OAUTH_REFRESH_TOKEN: ${GOOGLE_OAUTH_REFRESH_TOKEN:-}
       GOOGLE_SHEETS_API_KEY: ${GOOGLE_SHEETS_API_KEY:-}
       APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Makassar}
+      # Backup harian dari container `backup` disalin ke Drive (folder "Backup Database").
+      BACKUP_DIR: /backups
+    volumes:
+      - ./backups:/backups:ro
     secrets:
       - google-service-account
     logging: *logging

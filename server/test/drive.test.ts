@@ -54,6 +54,61 @@ describe("GoogleDriveService", () => {
     expect(calls[3].url).toContain("/upload/drive/v3/files")
   })
 
+  it("shareWithLink: false → file tidak diberi izin link publik", async () => {
+    const calls = stubFetch([
+      json({ files: [{ id: "folderBackup" }] }), // cari folder: sudah ada
+      json({ id: "file456" }) // upload; tidak ada panggilan izin sesudahnya
+    ])
+
+    const id = await drive().uploadFile({
+      bytes: Buffer.from("dump"),
+      filename: "pantau_20261012_020000.dump",
+      mimeType: "application/octet-stream",
+      folderPath: ["Backup Database"],
+      shareWithLink: false
+    })
+
+    expect(id).toBe("file456")
+    expect(calls).toHaveLength(2)
+    expect(calls.some((c) => c.url.includes("/permissions"))).toBe(false)
+  })
+
+  it("file di atas 5 MB diunggah lewat sesi resumable", async () => {
+    const calls = stubFetch([
+      json({ files: [{ id: "folderBackup" }] }),
+      new Response(null, { headers: { location: "https://upload.example/sesi-1" } }), // buka sesi
+      json({ id: "besar1" }) // kirim isi file
+    ])
+
+    const id = await drive().uploadFile({
+      bytes: Buffer.alloc(5 * 1024 * 1024 + 1),
+      filename: "pantau_20261012_020000.dump",
+      mimeType: "application/octet-stream",
+      folderPath: ["Backup Database"],
+      shareWithLink: false
+    })
+
+    expect(id).toBe("besar1")
+    expect(calls[1]).toMatchObject({ method: "POST", authorization: "Bearer tulis" })
+    expect(calls[1].url).toContain("uploadType=resumable")
+    expect(calls[2]).toEqual({ url: "https://upload.example/sesi-1", method: "PUT", authorization: "Bearer tulis" })
+  })
+
+  it("listFileNames membaca semua halaman isi folder", async () => {
+    const calls = stubFetch([
+      json({ files: [{ id: "folderBackup" }] }),
+      json({ nextPageToken: "hal2", files: [{ name: "pantau_a.dump" }] }),
+      json({ files: [{ name: "pantau_b.dump" }] })
+    ])
+
+    expect(await drive().listFileNames(["Backup Database"])).toEqual(["pantau_a.dump", "pantau_b.dump"])
+    const q = new URL(calls[1].url).searchParams.get("q")
+    expect(q).toContain("'folderBackup' in parents")
+    expect(q).toContain("trashed=false")
+    expect(calls[2].url).toContain("pageToken=hal2")
+    expect(calls.every((c) => c.authorization === "Bearer tulis")).toBe(true)
+  })
+
   it("membaca gambar memakai token service account", async () => {
     const calls = stubFetch([new Response("isi", { headers: { "content-type": "image/jpeg" } })])
 

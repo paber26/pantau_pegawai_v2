@@ -12,7 +12,7 @@ Aplikasi Android / iOS
         ▼
    API Node.js (folder server/)  ──►  Google Drive (foto, service account)
         ▼
-   PostgreSQL 16  ──►  backup harian (folder backups/)
+   PostgreSQL 16  ──►  backup harian (folder backups/ + salinan di Google Drive)
 ```
 
 | Dulu (Supabase)                    | Sekarang (VPS)                                  |
@@ -24,7 +24,7 @@ Aplikasi Android / iOS
 | Edge Function `image-proxy`        | `GET /api/images?id=...`                        |
 | Edge Function `admin-*`            | `/api/users` (tambah, ubah, hapus, reset password) |
 | Edge Function `import-from-sheets` | `POST /api/import`                              |
-| Backup otomatis Supabase           | Container `backup` (pg_dump harian)             |
+| Backup otomatis Supabase           | Container `backup` (pg_dump harian), disalin API ke Google Drive |
 
 ---
 
@@ -116,7 +116,7 @@ Isi `.env`:
 | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REFRESH_TOKEN` | lihat bagian *Upload foto ke Drive Gmail biasa* | Wajib bila folder foto ada di My Drive Gmail biasa |
 | `GOOGLE_SHEETS_API_KEY` | `AIza...` | Untuk `./sync.sh` (opsional) |
 | `APP_TIMEZONE` | `Asia/Makassar` | Zona waktu "hari ini" di dashboard |
-| `BACKUP_KEEP_DAYS` | `7` | Lama backup harian disimpan |
+| `BACKUP_KEEP_DAYS` | `7` | Lama backup harian disimpan di VPS (salinan di Drive tidak ikut dihapus) |
 
 Taruh file service account:
 
@@ -415,14 +415,30 @@ setelah Supabase dihentikan — bagikan APK/iOS baru ke pegawai.
 
 ### Backup & restore
 
-Backup harian tersimpan di folder `backups/` (format `pantau_YYYYmmdd_HHMMSS.dump`).
-**Salin secara berkala ke luar VPS**, misalnya dari komputer kantor:
+Container `backup` membuat backup tiap 24 jam di folder `backups/`
+(format `pantau_YYYYmmdd_HHMMSS.dump`). Di VPS hanya disimpan
+`BACKUP_KEEP_DAYS` hari terakhir.
 
-```bash
-rsync -avz root@IP_VPS:/root/pantau_pegawai_v2/backups/ ./backup-pantau/
-```
+**Salinan otomatis di Google Drive.** API membaca folder `backups/` (di-mount
+read-only) dan mengunggah backup yang belum ada ke subfolder
+**`Backup Database`** di folder Drive foto (`GOOGLE_DRIVE_ROOT_FOLDER_ID`).
+Pengecekan berjalan 1 menit setelah API start, lalu tiap jam.
 
-Restore (menimpa isi database):
+- Upload memakai akun yang sama dengan upload foto (OAuth pemilik folder), jadi
+  bagian *Upload foto ke Drive Gmail biasa (OAuth)* harus sudah selesai.
+- File backup **tidak** diberi link publik. Yang bisa membukanya hanya akun
+  yang diberi akses ke folder Drive foto (folder `Backup Database` mewarisi
+  akses folder induknya), jadi jangan bagikan folder itu ke orang lain.
+- Salinan di Drive **tidak dihapus otomatis**. Satu file biasanya hanya
+  ratusan KB; hapus yang lama secara manual di Drive bila perlu. File yang
+  dihapus dari Drive akan diunggah lagi selama masih ada di folder `backups/`.
+- Cek di log: `docker compose logs api | grep -i backup` →
+  `Backup di /backups disalin ke Google Drive ...` saat start, lalu
+  `Backup diunggah ke Drive (Backup Database): pantau_....dump` tiap ada file baru.
+
+Restore (menimpa isi database). Bila backup sudah tidak ada di VPS, unduh
+dulu dari Drive (folder `Backup Database`) lalu taruh di folder `backups/`
+di VPS, mis. dengan `scp pantau_20261010_020000.dump root@IP_VPS:/root/pantau_pegawai_v2/backups/`:
 
 ```bash
 docker compose cp backups/pantau_20261010_020000.dump db:/tmp/restore.dump
@@ -441,6 +457,8 @@ docker compose exec db pg_restore -U pantau -d pantau --clean --if-exists /tmp/r
 | Upload error "Drive" 403/404 | Folder Drive belum di-share ke email service account (role Editor) |
 | Simpan dokumentasi berfoto gagal; log: `storageQuotaExceeded` | Folder ada di My Drive Gmail biasa, upload masih memakai service account → ikuti *Upload foto ke Drive Gmail biasa (OAuth)* |
 | Upload gagal; log: `invalid_grant` | Refresh token kedaluwarsa/dicabut (mis. aplikasi OAuth masih *Testing*) → pastikan *In production*, ulangi login di bagian OAuth |
+| Log: `Gagal mengunggah backup ... ke Drive` | Sama seperti upload foto: cek OAuth (`storageQuotaExceeded`, `invalid_grant`) atau kuota Drive penuh. Diulang otomatis tiap jam |
+| Log: `Gagal memeriksa backup untuk Drive` + `EACCES` | File di `backups/` tidak bisa dibaca API (user uid 1000). Cek `ls -l backups/`; file harus bisa dibaca semua (`-rw-r--r--`) |
 | `docker compose up` error `secret ... not found` | File `secrets/google-service-account.json` belum dibuat |
 | Semua pengguna "Sesi tidak valid" | Wajar sekali setelah pindah: login ulang |
 | Lupa password admin | `docker compose exec api node dist/scripts/create-admin.js` |
