@@ -27,7 +27,7 @@ final dokumentasiRepositoryProvider =
 typedef DokumentasiRepositoryRef
     = AutoDisposeProviderRef<DokumentasiRepository>;
 String _$myDokumentasiNotifierHash() =>
-    r'370496bd1ad9f4d7654b4d8984466ab16fa3f863';
+    r'2f1012b6137edf967e1adb20cc0a6058a20ddb44';
 
 /// Dokumentasi milik pegawai yang login
 ///
@@ -47,7 +47,7 @@ final myDokumentasiNotifierProvider = AutoDisposeAsyncNotifierProvider<
 typedef _$MyDokumentasiNotifier
     = AutoDisposeAsyncNotifier<List<DokumentasiModel>>;
 String _$adminDokumentasiNotifierHash() =>
-    r'11c733d315db2897866102b7d47f5f1387104d42';
+    r'8bb58334461a427b8eb15fdb9a012f29782ab8b1';
 
 /// Semua dokumentasi untuk admin
 ///
@@ -67,7 +67,7 @@ final adminDokumentasiNotifierProvider = AutoDisposeAsyncNotifierProvider<
 typedef _$AdminDokumentasiNotifier
     = AutoDisposeAsyncNotifier<List<DokumentasiModel>>;
 String _$deletedDokumentasiNotifierHash() =>
-    r'702590f191b0d5b77f51dd79599d12f854dfca16';
+    r'f3808c7c0ac6ce46d6facf6445d1644c00f3e81b';
 
 /// Dokumentasi yang dihapus pegawai/admin (khusus admin), bisa dikembalikan.
 ///
@@ -86,5 +86,22 @@ final deletedDokumentasiNotifierProvider = AutoDisposeAsyncNotifierProvider<
 
 typedef _$DeletedDokumentasiNotifier
     = AutoDisposeAsyncNotifier<List<DokumentasiModel>>;
+String _$dokumentasiFocusNotifierHash() =>
+    r'5f80d1e8cdc26ae5e0e5c7cf0075eb86d05016b7';
+
+/// See also [DokumentasiFocusNotifier].
+@ProviderFor(DokumentasiFocusNotifier)
+final dokumentasiFocusNotifierProvider = AutoDisposeNotifierProvider<
+    DokumentasiFocusNotifier, DokumentasiFocus?>.internal(
+  DokumentasiFocusNotifier.new,
+  name: r'dokumentasiFocusNotifierProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$dokumentasiFocusNotifierHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$DokumentasiFocusNotifier = AutoDisposeNotifier<DokumentasiFocus?>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

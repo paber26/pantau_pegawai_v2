@@ -27,8 +27,10 @@ class MyDokumentasiNotifier extends _$MyDokumentasiNotifier {
     return ref.read(dokumentasiRepositoryProvider).getByUserId(user.id);
   }
 
+  /// Memuat ulang tanpa membuang data lama, sehingga daftar tidak diganti
+  /// shimmer dan posisi scroll tetap.
   Future<void> refresh() async {
-    state = const AsyncLoading();
+    state = const AsyncLoading<List<DokumentasiModel>>().copyWithPrevious(state);
     final user = await ref.read(authStateProvider.future);
     if (user == null) return;
     state = await AsyncValue.guard(
@@ -119,8 +121,10 @@ class AdminDokumentasiNotifier extends _$AdminDokumentasiNotifier {
         );
   }
 
+  /// Memuat ulang tanpa membuang data lama, sehingga daftar tidak diganti
+  /// shimmer dan posisi scroll tetap.
   Future<void> refresh() async {
-    state = const AsyncLoading();
+    state = const AsyncLoading<List<DokumentasiModel>>().copyWithPrevious(state);
     state = await AsyncValue.guard(
       () => ref.read(dokumentasiRepositoryProvider).getAll(
             fromDate: _fromDate,
@@ -145,7 +149,7 @@ class DeletedDokumentasiNotifier extends _$DeletedDokumentasiNotifier {
   }
 
   Future<void> refresh() async {
-    state = const AsyncLoading();
+    state = const AsyncLoading<List<DokumentasiModel>>().copyWithPrevious(state);
     state = await AsyncValue.guard(
       () => ref.read(dokumentasiRepositoryProvider).getDeleted(),
     );
@@ -163,4 +167,26 @@ class DeletedDokumentasiNotifier extends _$DeletedDokumentasiNotifier {
       return e.toString();
     }
   }
+}
+
+/// Dokumentasi yang baru disimpan dari form, supaya halaman daftar langsung
+/// menggulir ke tanggalnya alih-alih kembali ke atas.
+class DokumentasiFocus {
+  const DokumentasiFocus({required this.tanggal, required this.isNew});
+
+  /// Tanggal kegiatan (tanpa jam).
+  final DateTime tanggal;
+
+  /// true = baru ditambahkan (di Riwayat Saya muncul paling atas).
+  final bool isNew;
+}
+
+@riverpod
+class DokumentasiFocusNotifier extends _$DokumentasiFocusNotifier {
+  @override
+  DokumentasiFocus? build() => null;
+
+  void focus(DokumentasiFocus value) => state = value;
+
+  void clear() => state = null;
 }

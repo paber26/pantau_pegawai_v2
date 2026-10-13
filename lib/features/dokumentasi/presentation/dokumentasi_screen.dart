@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -38,6 +39,21 @@ class _DokumentasiScreenState extends ConsumerState<DokumentasiScreen> {
   DateTime? _filterFrom;
   DateTime? _filterTo;
 
+  final _scrollController = ScrollController();
+
+  /// Tanggal grup yang sedang tampil (urut seperti di layar) dan key-nya,
+  /// untuk menggulir ke tanggal dokumentasi yang baru disimpan.
+  List<DateTime> _groupDates = const [];
+  List<int> _groupSizes = const [];
+  final Map<DateTime, GlobalKey> _groupKeys = {};
+  DateTime? _pendingFocus;
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -56,15 +72,106 @@ class _DokumentasiScreenState extends ConsumerState<DokumentasiScreen> {
     });
   }
 
+  /// Gulir ke grup [tanggal] begitu daftar selesai dimuat ulang.
+  void _tryFocus() {
+    final target = _pendingFocus;
+    final docs = ref.read(adminDokumentasiNotifierProvider);
+    if (target == null || docs.isLoading || !docs.hasValue) return;
+    _pendingFocus = null;
+    ref.read(dokumentasiFocusNotifierProvider.notifier).clear();
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _scrollToDate(target));
+  }
+
+  Future<void> _scrollToDate(DateTime target) async {
+    if (!mounted || _groupDates.isEmpty || !_scrollController.hasClients) {
+      return;
+    }
+    // Tanggal persis, atau tanggal terdekat sebelumnya bila tersaring filter
+    // (daftar urut terbaru di atas).
+    var index = _groupDates.indexWhere((d) => !d.isAfter(target));
+    if (index < 0) index = _groupDates.length - 1;
+    // Key dibuat sekarang bila grupnya belum pernah dibangun; itemBuilder
+    // memakai key yang sama begitu grup itu tampil.
+    final key = _groupKeys.putIfAbsent(_groupDates[index], GlobalKey.new);
+
+    // ListView hanya membangun item di sekitar layar. Bila grupnya belum
+    // dibangun, lompat ke perkiraan posisinya lalu periksa lagi.
+    for (var attempt = 0; attempt < 8; attempt++) {
+      if (!mounted || !_scrollController.hasClients) return;
+      final ctx = key.currentContext;
+      if (ctx != null && ctx.mounted) {
+        await Scrollable.ensureVisible(ctx,
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeOut);
+        return;
+      }
+      final position = _scrollController.position;
+      _scrollController.jumpTo(_estimateOffset(index)
+          .clamp(position.minScrollExtent, position.maxScrollExtent));
+      await WidgetsBinding.instance.endOfFrame;
+    }
+  }
+
+  /// Perkiraan offset grup ke-[index] dari grup terdekat yang sudah dibangun
+  /// (tinggi per kartu diukur dari grup yang tampil).
+  double _estimateOffset(int index) {
+    const header = 44.0;
+    var perItem = 120.0;
+    int? refIndex;
+    double refOffset = 0;
+    final measured = <double>[];
+    for (var i = 0; i < _groupDates.length; i++) {
+      final box = _groupKeys[_groupDates[i]]?.currentContext?.findRenderObject();
+      if (box is! RenderBox || !box.attached) continue;
+      measured.add((box.size.height - header) / _groupSizes[i]);
+      if (refIndex == null || (i - index).abs() < (refIndex - index).abs()) {
+        refIndex = i;
+        refOffset =
+            RenderAbstractViewport.of(box).getOffsetToReveal(box, 0).offset;
+      }
+    }
+    if (measured.isNotEmpty) {
+      perItem = measured.reduce((a, b) => a + b) / measured.length;
+    }
+    double height(int i) => header + _groupSizes[i] * perItem;
+    if (refIndex == null) {
+      var offset = 0.0;
+      for (var i = 0; i < index; i++) {
+        offset += height(i);
+      }
+      return offset;
+    }
+    var offset = refOffset;
+    if (index > refIndex) {
+      for (var i = refIndex; i < index; i++) {
+        offset += height(i);
+      }
+    } else {
+      for (var i = index; i < refIndex; i++) {
+        offset -= height(i);
+      }
+    }
+    return offset;
+  }
+
   @override
   Widget build(BuildContext context) {
     final docsAsync = ref.watch(adminDokumentasiNotifierProvider);
     final pegawaiList = ref.watch(pegawaiNotifierProvider).valueOrNull ?? [];
 
+    ref.listen(dokumentasiFocusNotifierProvider, (_, focus) {
+      if (focus == null) return;
+      _pendingFocus = focus.tanggal;
+      _tryFocus();
+    });
+    ref.listen(adminDokumentasiNotifierProvider, (_, __) => _tryFocus());
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Dokumentasi Harian'),
+        bottom: _refreshBar(docsAsync.isRefreshing),
         actions: [
           IconButton(
               icon: const Icon(Icons.filter_list),
@@ -96,6 +203,7 @@ class _DokumentasiScreenState extends ConsumerState<DokumentasiScreen> {
                 .toList();
           }
           if (list.isEmpty) {
+            _groupDates = const [];
             return const Center(
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
               Icon(Icons.photo_library_outlined,
@@ -106,16 +214,22 @@ class _DokumentasiScreenState extends ConsumerState<DokumentasiScreen> {
             ]));
           }
           final grouped = _groupByDate(list);
+          _groupDates = grouped.keys.toList();
+          _groupSizes = grouped.values.map((v) => v.length).toList();
           return RefreshIndicator(
             onRefresh: () =>
                 ref.read(adminDokumentasiNotifierProvider.notifier).refresh(),
             child: ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
               itemCount: grouped.length,
               itemBuilder: (context, index) {
                 final entry = grouped.entries.elementAt(index);
                 return DokDateGroup(
-                    tanggal: entry.key, items: entry.value, showPegawai: true);
+                    key: _groupKeys.putIfAbsent(entry.key, GlobalKey.new),
+                    tanggal: entry.key,
+                    items: entry.value,
+                    showPegawai: true);
               },
             ),
           );
@@ -324,19 +438,70 @@ void showDokumentasiFormSheet(BuildContext context) {
   );
 }
 
+/// Garis loading tipis di bawah AppBar saat daftar dimuat ulang.
+PreferredSizeWidget? _refreshBar(bool refreshing) => refreshing
+    ? const PreferredSize(
+        preferredSize: Size.fromHeight(2),
+        child: LinearProgressIndicator(minHeight: 2),
+      )
+    : null;
+
 /// Halaman riwayat: hanya milik sendiri
-class RiwayatDokumentasiScreen extends ConsumerWidget {
+class RiwayatDokumentasiScreen extends ConsumerStatefulWidget {
   const RiwayatDokumentasiScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RiwayatDokumentasiScreen> createState() =>
+      _RiwayatDokumentasiScreenState();
+}
+
+class _RiwayatDokumentasiScreenState
+    extends ConsumerState<RiwayatDokumentasiScreen> {
+  final _scrollController = ScrollController();
+  bool _scrollToTopPending = false;
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  /// Dokumentasi baru selalu tampil paling atas (urut waktu penambahan),
+  /// jadi setelah daftar dimuat ulang cukup gulir ke atas. Edit tidak
+  /// mengubah urutan, sehingga posisi dibiarkan.
+  void _tryScrollToTop() {
+    final docs = ref.read(myDokumentasiNotifierProvider);
+    if (!_scrollToTopPending || docs.isLoading || !docs.hasValue) return;
+    _scrollToTopPending = false;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(0,
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeOut);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final docsAsync = ref.watch(myDokumentasiNotifierProvider);
     final user = ref.watch(authStateProvider).valueOrNull;
+
+    ref.listen(dokumentasiFocusNotifierProvider, (_, focus) {
+      if (focus == null) return;
+      ref.read(dokumentasiFocusNotifierProvider.notifier).clear();
+      if (focus.isNew) {
+        _scrollToTopPending = true;
+        _tryScrollToTop();
+      }
+    });
+    ref.listen(myDokumentasiNotifierProvider, (_, __) => _tryScrollToTop());
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Riwayat Saya'),
+        bottom: _refreshBar(docsAsync.isRefreshing),
         actions: [
           IconButton(
               icon: const Icon(Icons.refresh),
@@ -377,6 +542,7 @@ class RiwayatDokumentasiScreen extends ConsumerWidget {
             onRefresh: () =>
                 ref.read(myDokumentasiNotifierProvider.notifier).refresh(),
             child: ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
               itemCount: grouped.length,
               itemBuilder: (context, index) {
@@ -567,6 +733,13 @@ class _DokumentasiFormSheetState extends ConsumerState<DokumentasiFormSheet> {
       );
     }
     ref.read(adminDokumentasiNotifierProvider.notifier).refresh();
+    if (errorMsg == null) {
+      // Halaman daftar menggulir ke tanggal ini setelah dimuat ulang.
+      ref.read(dokumentasiFocusNotifierProvider.notifier).focus(
+          DokumentasiFocus(
+              tanggal: DateTime(_tanggal.year, _tanggal.month, _tanggal.day),
+              isNew: !_isEdit));
+    }
     if (mounted) {
       setState(() => _isLoading = false);
       Navigator.pop(context);
