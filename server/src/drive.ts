@@ -21,6 +21,8 @@ const DRIVE_API = "https://www.googleapis.com/drive/v3"
 const DRIVE_UPLOAD_API = "https://www.googleapis.com/upload/drive/v3"
 const FOLDER_MIME = "application/vnd.google-apps.folder"
 const FOLDER_CACHE_TTL_MS = 60 * 60 * 1000
+/** Batas upload multipart menurut Drive; file lebih besar memakai upload resumable. */
+const MULTIPART_MAX_BYTES = 5 * 1024 * 1024
 
 export interface DriveImage {
   stream: Readable
@@ -28,9 +30,20 @@ export interface DriveImage {
   contentLength: string | null
 }
 
+export interface UploadParams {
+  bytes: Buffer
+  filename: string
+  mimeType: string
+  folderPath: string[]
+  /** Beri izin "siapa pun yang punya link bisa melihat". Default `true` (foto dokumentasi). */
+  shareWithLink?: boolean
+}
+
 export interface DriveService {
   /** Upload file ke ROOT/{folderPath...}/filename. Mengembalikan file ID. */
-  uploadFile(params: { bytes: Buffer; filename: string; mimeType: string; folderPath: string[] }): Promise<string>
+  uploadFile(params: UploadParams): Promise<string>
+  /** Nama file (bukan folder) di ROOT/{folderPath...}. Folder yang belum ada dibuat. */
+  listFileNames(folderPath: string[]): Promise<string[]>
   /** Ambil isi gambar. `null` bila file tidak ada atau bukan gambar. */
   getImage(fileId: string): Promise<DriveImage | null>
 }
@@ -127,15 +140,38 @@ export class GoogleDriveService implements DriveService {
     return ((await createRes.json()) as { id: string }).id
   }
 
-  async uploadFile(params: { bytes: Buffer; filename: string; mimeType: string; folderPath: string[] }) {
+  private async folderPathId(folderPath: string[]): Promise<string> {
     let parentId = this.rootFolderId
-    for (const name of params.folderPath) {
+    for (const name of folderPath) {
       parentId = await this.folderId(name, parentId)
     }
+    return parentId
+  }
 
+  async uploadFile(params: UploadParams) {
+    const parentId = await this.folderPathId(params.folderPath)
     const headers = await this.authHeader(this.auth.write)
-    const boundary = `pantau_pegawai_${Date.now().toString(36)}`
     const metadata = JSON.stringify({ name: params.filename, parents: [parentId] })
+    const fileId =
+      params.bytes.length > MULTIPART_MAX_BYTES
+        ? await this.uploadResumable(headers, metadata, params)
+        : await this.uploadMultipart(headers, metadata, params)
+
+    if (params.shareWithLink === false) return fileId
+
+    // Sama seperti sebelumnya: siapa pun yang punya link bisa melihat foto.
+    const permRes = await fetch(`${DRIVE_API}/files/${fileId}/permissions?supportsAllDrives=true`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ role: "reader", type: "anyone" })
+    })
+    if (!permRes.ok) console.warn(`Gagal set permission file ${fileId}: ${await permRes.text()}`)
+
+    return fileId
+  }
+
+  private async uploadMultipart(headers: Record<string, string>, metadata: string, params: UploadParams) {
+    const boundary = `pantau_pegawai_${Date.now().toString(36)}`
     const head = Buffer.from(
       [
         `--${boundary}`,
@@ -156,17 +192,59 @@ export class GoogleDriveService implements DriveService {
       body: Buffer.concat([head, params.bytes, tail])
     })
     if (!uploadRes.ok) throw new Error(`Upload ke Drive gagal: ${await uploadRes.text()}`)
-    const fileId = ((await uploadRes.json()) as { id: string }).id
+    return ((await uploadRes.json()) as { id: string }).id
+  }
 
-    // Sama seperti sebelumnya: siapa pun yang punya link bisa melihat foto.
-    const permRes = await fetch(`${DRIVE_API}/files/${fileId}/permissions?supportsAllDrives=true`, {
+  /** Upload resumable dalam satu PUT: sesi dibuka dengan metadata, lalu isi file dikirim ke URL sesi. */
+  private async uploadResumable(headers: Record<string, string>, metadata: string, params: UploadParams) {
+    const startRes = await fetch(`${DRIVE_UPLOAD_API}/files?uploadType=resumable&fields=id&supportsAllDrives=true`, {
       method: "POST",
-      headers: { ...headers, "Content-Type": "application/json" },
-      body: JSON.stringify({ role: "reader", type: "anyone" })
+      headers: {
+        ...headers,
+        "Content-Type": "application/json; charset=UTF-8",
+        "X-Upload-Content-Type": params.mimeType,
+        "X-Upload-Content-Length": String(params.bytes.length)
+      },
+      body: metadata
     })
-    if (!permRes.ok) console.warn(`Gagal set permission file ${fileId}: ${await permRes.text()}`)
+    if (!startRes.ok) throw new Error(`Upload ke Drive gagal: ${await startRes.text()}`)
+    await startRes.body?.cancel()
+    const sessionUrl = startRes.headers.get("location")
+    if (!sessionUrl) throw new Error("Upload ke Drive gagal: Drive tidak memberi URL sesi upload")
 
-    return fileId
+    const uploadRes = await fetch(sessionUrl, {
+      method: "PUT",
+      headers: { ...headers, "Content-Type": params.mimeType },
+      body: new Uint8Array(params.bytes)
+    })
+    if (!uploadRes.ok) throw new Error(`Upload ke Drive gagal: ${await uploadRes.text()}`)
+    return ((await uploadRes.json()) as { id: string }).id
+  }
+
+  async listFileNames(folderPath: string[]): Promise<string[]> {
+    const folderId = await this.folderPathId(folderPath)
+    const headers = await this.authHeader(this.auth.write)
+    const names: string[] = []
+    let pageToken: string | undefined
+    do {
+      const url = new URL(`${DRIVE_API}/files`)
+      url.searchParams.set(
+        "q",
+        `'${escapeDriveQuery(folderId)}' in parents and mimeType!='${FOLDER_MIME}' and trashed=false`
+      )
+      url.searchParams.set("fields", "nextPageToken,files(name)")
+      url.searchParams.set("pageSize", "1000")
+      url.searchParams.set("supportsAllDrives", "true")
+      url.searchParams.set("includeItemsFromAllDrives", "true")
+      if (pageToken) url.searchParams.set("pageToken", pageToken)
+
+      const res = await fetch(url, { headers })
+      if (!res.ok) throw new Error(`Gagal membaca isi folder '${folderPath.join("/")}': ${await res.text()}`)
+      const page = (await res.json()) as { nextPageToken?: string; files?: { name: string }[] }
+      names.push(...(page.files ?? []).map((f) => f.name))
+      pageToken = page.nextPageToken
+    } while (pageToken)
+    return names
   }
 
   async getImage(fileId: string): Promise<DriveImage | null> {

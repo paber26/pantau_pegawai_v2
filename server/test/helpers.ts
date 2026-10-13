@@ -7,7 +7,7 @@ import pg from "pg"
 import { buildApp } from "../src/app.js"
 import type { Config } from "../src/config.js"
 import { createPool, type Db } from "../src/db.js"
-import type { DriveImage, DriveService } from "../src/drive.js"
+import type { DriveImage, DriveService, UploadParams } from "../src/drive.js"
 import { runMigrations } from "../src/migrate.js"
 
 /**
@@ -45,22 +45,29 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     googleServiceAccountFile: null,
     googleDriveRootFolderId: null,
     googleOAuth: null,
+    backupDir: null,
     ...overrides
   }
 }
 
 /** Pengganti Google Drive untuk test: menyimpan file di memori. */
 export class FakeDrive implements DriveService {
-  files = new Map<string, { bytes: Buffer; mimeType: string; folderPath: string[]; filename: string }>()
+  files = new Map<string, UploadParams>()
   /** Bila diisi, upload gagal dengan error ini (meniru penolakan Google). */
   uploadError: Error | null = null
   private counter = 0
 
-  async uploadFile(params: { bytes: Buffer; filename: string; mimeType: string; folderPath: string[] }) {
+  async uploadFile(params: UploadParams) {
     if (this.uploadError) throw this.uploadError
     const id = `fakeFileId${String(++this.counter).padStart(6, "0")}`
     this.files.set(id, params)
     return id
+  }
+
+  async listFileNames(folderPath: string[]) {
+    return [...this.files.values()]
+      .filter((f) => f.folderPath.join("/") === folderPath.join("/"))
+      .map((f) => f.filename)
   }
 
   async getImage(fileId: string): Promise<DriveImage | null> {
