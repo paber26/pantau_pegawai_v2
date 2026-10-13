@@ -1,8 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-import '../../core/constants/api_constants.dart';
 import '../../core/utils/image_url_utils.dart';
+import 'drive_image.dart';
 
 /// Menampilkan foto dokumentasi layar penuh.
 ///
@@ -111,8 +111,11 @@ class _PhotoViewerState extends State<PhotoViewer> {
   }
 }
 
-/// Foto Drive (lewat proxy gambar API) dengan ukuran mengikuti foto,
+/// Foto Drive asli (lewat proxy gambar API) dengan ukuran mengikuti foto,
 /// diperkecil agar muat di layar. Cache sama dengan `DriveImage`.
+///
+/// Selama foto asli dimuat, thumbnail dari daftar (biasanya sudah ada di
+/// cache) langsung tampil diperbesar dengan indikator loading di atasnya.
 class _FullDriveImage extends StatelessWidget {
   const _FullDriveImage({required this.imageUrl});
 
@@ -120,17 +123,37 @@ class _FullDriveImage extends StatelessWidget {
 
   static const Widget _broken =
       Icon(Icons.broken_image_outlined, color: Colors.white54, size: 48);
+  static const Widget _loading = CircularProgressIndicator(color: Colors.white);
 
   @override
   Widget build(BuildContext context) {
     final fileId = ImageUrlUtils.extractFileId(imageUrl);
     if (fileId == null) return _broken;
+    final full = DriveImage.source(fileId, thumbnail: false);
+    final thumb = DriveImage.source(fileId, thumbnail: true);
     return CachedNetworkImage(
-      imageUrl: ApiConstants.imageUrl(fileId),
-      cacheKey: fileId,
+      imageUrl: full.url,
+      cacheKey: full.cacheKey,
       fit: BoxFit.contain,
-      placeholder: (_, __) =>
-          const CircularProgressIndicator(color: Colors.white),
+      placeholder: (_, __) => Stack(
+        alignment: Alignment.center,
+        children: [
+          // Diperbesar sampai muat di layar, seperti foto aslinya nanti.
+          // FittedBox hanya menerima ketukan di area foto, jadi ketuk area
+          // hitam tetap menutup penampil.
+          SizedBox.expand(
+            child: FittedBox(
+              child: CachedNetworkImage(
+                imageUrl: thumb.url,
+                cacheKey: thumb.cacheKey,
+                placeholder: (_, __) => const SizedBox.shrink(),
+                errorWidget: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+          ),
+          _loading,
+        ],
+      ),
       errorWidget: (_, __, ___) => _broken,
     );
   }

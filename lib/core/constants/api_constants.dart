@@ -17,6 +17,11 @@ class ApiConstants {
   /// URL proxy gambar Google Drive (publik, tanpa header Authorization).
   static String imageUrl(String fileId) => '$apiUrl/api/images?id=$fileId';
 
+  /// Thumbnail kecil (±320 px) dari foto Drive, untuk daftar. Foto asli
+  /// ([imageUrl]) baru dimuat saat foto dibuka.
+  static String thumbnailUrl(String fileId) =>
+      '$apiUrl/api/images/thumb?id=$fileId';
+
   /// API Key Google Sheets (untuk menu Import Data).
   static const String googleSheetsApiKey = String.fromEnvironment(
     'GOOGLE_SHEETS_API_KEY',

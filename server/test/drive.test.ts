@@ -118,6 +118,35 @@ describe("GoogleDriveService", () => {
     expect(calls[0].authorization).toBe("Bearer baca")
   })
 
+  it("thumbnail: ukuran thumbnailLink diganti, dibuka dengan token service account", async () => {
+    const calls = stubFetch([
+      json({ mimeType: "image/jpeg", thumbnailLink: "https://lh3.googleusercontent.com/drive-storage/AbC123=s220" }),
+      new Response("kecil", { headers: { "content-type": "image/jpeg" } })
+    ])
+
+    const thumb = await drive().getThumbnail("file123", 320)
+
+    expect(thumb?.contentType).toBe("image/jpeg")
+    expect(calls[0].url).toContain("fields=thumbnailLink")
+    expect(calls[1].url).toBe("https://lh3.googleusercontent.com/drive-storage/AbC123=s320")
+    expect(calls.every((c) => c.authorization === "Bearer baca")).toBe(true)
+  })
+
+  it("thumbnail belum ada / bukan gambar / file tidak ada → null", async () => {
+    stubFetch([
+      json({ mimeType: "image/jpeg" }),
+      json({ mimeType: "application/pdf", thumbnailLink: "https://lh3.googleusercontent.com/x=s220" }),
+      json({ error: { code: 404 } }, 404),
+      json({ mimeType: "image/png", thumbnailLink: "https://lh3.googleusercontent.com/y=s220" }),
+      json({ error: "forbidden" }, 403)
+    ])
+
+    expect(await drive().getThumbnail("baru", 320)).toBeNull()
+    expect(await drive().getThumbnail("pdf", 320)).toBeNull()
+    expect(await drive().getThumbnail("hilang", 320)).toBeNull()
+    expect(await drive().getThumbnail("ditolak", 320)).toBeNull()
+  })
+
   it("penolakan Drive saat upload dilempar sebagai error berisi detailnya", async () => {
     stubFetch([
       json({ files: [{ id: "folderBudi" }] }),

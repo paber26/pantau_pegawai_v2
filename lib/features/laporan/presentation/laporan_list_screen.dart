@@ -139,6 +139,7 @@ class _LaporanCard extends StatelessWidget {
                   imageUrl: laporan.imageUrl,
                   width: 72,
                   height: 72,
+                  thumbnail: true,
                 ),
               ),
               const SizedBox(width: 12),

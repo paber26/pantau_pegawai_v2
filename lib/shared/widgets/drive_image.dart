@@ -22,22 +22,35 @@ class DriveImage extends StatelessWidget {
   final double? height;
   final BoxFit fit;
 
+  /// Muat thumbnail kecil, bukan foto asli. Untuk gambar kecil di daftar,
+  /// agar halaman cepat tampil dan hemat kuota.
+  final bool thumbnail;
+
   const DriveImage({
     super.key,
     required this.imageUrl,
     this.width,
     this.height,
     this.fit = BoxFit.cover,
+    this.thumbnail = false,
   });
+
+  /// URL dan cache key untuk file Drive [fileId].
+  static ({String url, String cacheKey}) source(String fileId,
+          {required bool thumbnail}) =>
+      thumbnail
+          ? (url: ApiConstants.thumbnailUrl(fileId), cacheKey: '$fileId@thumb')
+          : (url: ApiConstants.imageUrl(fileId), cacheKey: fileId);
 
   @override
   Widget build(BuildContext context) {
     final fileId = ImageUrlUtils.extractFileId(imageUrl);
     if (fileId == null) return _placeholder();
+    final src = source(fileId, thumbnail: thumbnail);
 
     return CachedNetworkImage(
-      imageUrl: ApiConstants.imageUrl(fileId),
-      cacheKey: fileId,
+      imageUrl: src.url,
+      cacheKey: src.cacheKey,
       width: width,
       height: height,
       fit: fit,
@@ -47,7 +60,11 @@ class DriveImage extends StatelessWidget {
         color: AppColors.background,
         child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
       ),
-      errorWidget: (context, url, error) => _placeholder(),
+      // Thumbnail gagal (mis. API belum versi baru): pakai foto asli.
+      errorWidget: (context, url, error) => thumbnail
+          ? DriveImage(
+              imageUrl: imageUrl, width: width, height: height, fit: fit)
+          : _placeholder(),
     );
   }
 

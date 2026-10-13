@@ -46,6 +46,11 @@ export interface DriveService {
   listFileNames(folderPath: string[]): Promise<string[]>
   /** Ambil isi gambar. `null` bila file tidak ada atau bukan gambar. */
   getImage(fileId: string): Promise<DriveImage | null>
+  /**
+   * Thumbnail buatan Google Drive, sisi terpanjang `size` px. `null` bila
+   * file tidak ada, bukan gambar, atau thumbnail-nya belum dibuat Drive.
+   */
+  getThumbnail(fileId: string, size: number): Promise<DriveImage | null>
 }
 
 /** Escape nilai untuk query Drive (`name='...'`). Nama seperti "Ma'ruf" tetap aman. */
@@ -257,16 +262,43 @@ export class GoogleDriveService implements DriveService {
       return null
     }
     if (!res.ok || !res.body) throw new Error(`Drive error: ${res.status}`)
+    return imageFromResponse(res)
+  }
 
-    const contentType = res.headers.get("content-type") ?? "application/octet-stream"
-    if (!contentType.startsWith("image/")) {
-      await res.body.cancel()
+  async getThumbnail(fileId: string, size: number): Promise<DriveImage | null> {
+    const headers = await this.authHeader(this.auth.read)
+    const meta = await fetch(
+      `${DRIVE_API}/files/${encodeURIComponent(fileId)}?fields=thumbnailLink,mimeType&supportsAllDrives=true`,
+      { headers }
+    )
+    if (!meta.ok) {
+      await meta.body?.cancel()
       return null
     }
-    return {
-      stream: Readable.fromWeb(res.body as import("node:stream/web").ReadableStream),
-      contentType,
-      contentLength: res.headers.get("content-length")
+    const { thumbnailLink, mimeType } = (await meta.json()) as { thumbnailLink?: string; mimeType?: string }
+    if (!thumbnailLink || !mimeType?.startsWith("image/")) return null
+
+    // thumbnailLink berakhiran ukuran (mis. "=s220"); ganti dengan ukuran yang diminta.
+    // Link ini hanya bisa dibuka dengan token akun yang punya akses ke file.
+    const res = await fetch(thumbnailLink.replace(/=s\d+(-[a-z0-9-]+)?$/i, `=s${size}`), { headers })
+    if (!res.ok || !res.body) {
+      await res.body?.cancel()
+      return null
     }
+    return imageFromResponse(res)
+  }
+}
+
+/** Respons gambar → `DriveImage`; `null` bila isinya bukan image/*. */
+async function imageFromResponse(res: Response): Promise<DriveImage | null> {
+  const contentType = res.headers.get("content-type") ?? "application/octet-stream"
+  if (!res.body || !contentType.startsWith("image/")) {
+    await res.body?.cancel()
+    return null
+  }
+  return {
+    stream: Readable.fromWeb(res.body as import("node:stream/web").ReadableStream),
+    contentType,
+    contentLength: res.headers.get("content-length")
   }
 }

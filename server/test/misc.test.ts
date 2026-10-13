@@ -3,7 +3,17 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import { buildApp } from "../src/app.js"
 import { normalizeDate } from "../src/dates.js"
 import { escapeDriveQuery } from "../src/drive.js"
-import { bearer, multipartBody, PUBLIC_API_URL, seedUsers, setup, teardown, testConfig, type TestEnv } from "./helpers.js"
+import {
+  bearer,
+  FakeDrive,
+  multipartBody,
+  PUBLIC_API_URL,
+  seedUsers,
+  setup,
+  teardown,
+  testConfig,
+  type TestEnv
+} from "./helpers.js"
 
 let env: TestEnv
 let s: Awaited<ReturnType<typeof seedUsers>>
@@ -113,6 +123,43 @@ describe("upload & gambar", () => {
   it("id gambar divalidasi; yang tidak ada → 404", async () => {
     expect((await env.app.inject({ url: "/api/images?id=../../etc" })).statusCode).toBe(400)
     expect((await env.app.inject({ url: "/api/images?id=tidakAdaFileIni123" })).statusCode).toBe(404)
+    expect((await env.app.inject({ url: "/api/images/thumb?id=tidakAdaFileIni123" })).statusCode).toBe(404)
+    expect((await env.app.inject({ url: "/api/images/thumb?id=../../etc" })).statusCode).toBe(400)
+  })
+
+  it("/api/images/thumb → thumbnail Drive (cache lama); belum ada → foto asli dengan cache pendek", async () => {
+    const drive = new FakeDrive()
+    const app = await buildApp({ config: testConfig(), db: env.db, drive })
+    const id = await drive.uploadFile({
+      bytes: Buffer.from("foto-asli"),
+      filename: "foto.jpg",
+      mimeType: "image/jpeg",
+      folderPath: ["Budi Santoso", "2026-10-13"]
+    })
+    try {
+      const thumb = await app.inject({ url: `/api/images/thumb?id=${id}` })
+      expect(thumb.statusCode).toBe(200)
+      expect(thumb.body).toBe("thumb320:foto-asli")
+      expect(thumb.headers["cache-control"]).toContain("immutable")
+
+      // Foto asli tetap tersedia tanpa size.
+      expect((await app.inject({ url: `/api/images?id=${id}` })).body).toBe("foto-asli")
+
+      drive.thumbnailsReady = false
+      const fallback = await app.inject({ url: `/api/images/thumb?id=${id}` })
+      expect(fallback.statusCode).toBe(200)
+      expect(fallback.body).toBe("foto-asli")
+      expect(fallback.headers["cache-control"]).toBe("public, max-age=600")
+
+      drive.getThumbnail = async () => {
+        throw new Error("lh3 429")
+      }
+      const error = await app.inject({ url: `/api/images/thumb?id=${id}` })
+      expect(error.statusCode).toBe(200)
+      expect(error.body).toBe("foto-asli")
+    } finally {
+      await app.close()
+    }
   })
 
   it("tanpa kredensial Drive → 503 yang jelas", async () => {

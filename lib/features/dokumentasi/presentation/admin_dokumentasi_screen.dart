@@ -249,6 +249,7 @@ class _AdminDokCard extends StatelessWidget {
                   width: 64,
                   height: 64,
                   fit: BoxFit.cover,
+                  thumbnail: true,
                 ),
               ),
             ),

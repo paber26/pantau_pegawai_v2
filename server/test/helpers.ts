@@ -75,6 +75,17 @@ export class FakeDrive implements DriveService {
     if (!file || !file.mimeType.startsWith("image/")) return null
     return { stream: Readable.from(file.bytes), contentType: file.mimeType, contentLength: String(file.bytes.length) }
   }
+
+  /** `false` meniru thumbnail yang belum dibuat Drive (foto baru diunggah). */
+  thumbnailsReady = true
+
+  /** Thumbnail palsu: isi file diberi awalan `thumb<size>:`. */
+  async getThumbnail(fileId: string, size: number): Promise<DriveImage | null> {
+    const file = this.files.get(fileId)
+    if (!this.thumbnailsReady || !file || !file.mimeType.startsWith("image/")) return null
+    const bytes = Buffer.concat([Buffer.from(`thumb${size}:`), file.bytes])
+    return { stream: Readable.from(bytes), contentType: "image/jpeg", contentLength: String(bytes.length) }
+  }
 }
 
 export interface TestEnv {

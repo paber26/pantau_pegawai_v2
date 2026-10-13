@@ -119,6 +119,7 @@ class _DeletedCard extends ConsumerWidget {
                   width: 64,
                   height: 64,
                   fit: BoxFit.cover,
+                  thumbnail: true,
                 ),
               ),
             ),
