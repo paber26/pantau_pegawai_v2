@@ -60,12 +60,13 @@ List<DokumentasiModel> _seed() => [
           _doc('$d-$n', DateTime(2026, 10, 12).subtract(Duration(days: d))),
     ];
 
-Future<_FakeRepo> _pumpScreen(WidgetTester tester) async {
+Future<_FakeRepo> _pumpScreen(WidgetTester tester,
+    {List<DokumentasiModel>? docs}) async {
   tester.view.physicalSize = const Size(400, 800);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 
-  final repo = _FakeRepo(_seed());
+  final repo = _FakeRepo(docs ?? _seed());
   await tester.pumpWidget(ProviderScope(
     overrides: [
       dokumentasiRepositoryProvider.overrideWithValue(repo),
@@ -155,5 +156,55 @@ void main() {
     await tester.pumpAndSettle();
 
     _expectVisible(tester, '25 September 2026');
+  });
+
+  group('tombol Lompat ke tanggal', () {
+    Future<void> bukaKalender(WidgetTester tester) async {
+      await tester.tap(find.byTooltip('Lompat ke tanggal'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('pilih 20 Juli → daftar langsung menuju tanggal itu',
+        (tester) async {
+      await _pumpScreen(tester);
+      expect(_scrollOffset(tester), 0);
+
+      await bukaKalender(tester);
+      // Kalender terbuka di bulan yang sedang dilihat (Oktober).
+      expect(find.text('October 2026'), findsOneWidget);
+      for (var i = 0; i < 3; i++) {
+        await tester.tap(find.byTooltip('Previous month'));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.text('20'));
+      await tester.tap(find.text('Lompat'));
+      await tester.pumpAndSettle();
+
+      _expectVisible(tester, '20 Juli 2026');
+
+      // Dibuka lagi: kalender langsung di bulan yang sedang dilihat (Juli).
+      await bukaKalender(tester);
+      expect(find.text('July 2026'), findsOneWidget);
+      await tester.tap(find.text('Batal'));
+      await tester.pumpAndSettle();
+      _expectVisible(tester, '20 Juli 2026');
+    });
+
+    testWidgets('tanggal tanpa dokumentasi tidak bisa dipilih',
+        (tester) async {
+      await _pumpScreen(tester, docs: [
+        _doc('a', DateTime(2026, 10, 12)),
+        _doc('b', DateTime(2026, 10, 10)),
+      ]);
+
+      await bukaKalender(tester);
+
+      Finder bisaDipilih(String day) => find.ancestor(
+          of: find.text(day), matching: find.byType(InkResponse));
+      expect(bisaDipilih('12'), findsOneWidget);
+      expect(bisaDipilih('10'), findsOneWidget);
+      expect(bisaDipilih('11'), findsNothing);
+      expect(bisaDipilih('9'), findsNothing);
+    });
   });
 }

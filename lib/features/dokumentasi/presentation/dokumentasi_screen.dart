@@ -113,6 +113,52 @@ class _DokumentasiScreenState extends ConsumerState<DokumentasiScreen> {
     }
   }
 
+  /// Tombol "Lompat ke tanggal": pilih tanggal di kalender (hanya tanggal yang
+  /// ada dokumentasinya), lalu daftar langsung menggulir ke tanggal itu.
+  Future<void> _pilihTanggal() async {
+    if (_groupDates.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Belum ada dokumentasi')));
+      return;
+    }
+    final tersedia = _groupDates.toSet();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _visibleDate() ?? _groupDates.first,
+      firstDate: _groupDates.reduce((a, b) => a.isBefore(b) ? a : b),
+      lastDate: _groupDates.reduce((a, b) => a.isAfter(b) ? a : b),
+      selectableDayPredicate: (d) =>
+          tersedia.contains(DateTime(d.year, d.month, d.day)),
+      helpText: 'Lompat ke tanggal',
+      cancelText: 'Batal',
+      confirmText: 'Lompat',
+    );
+    if (picked == null || !mounted) return;
+    await _scrollToDate(DateTime(picked.year, picked.month, picked.day));
+  }
+
+  /// Tanggal grup yang sedang tampil paling atas, agar kalender langsung
+  /// membuka bulan yang sedang dilihat.
+  DateTime? _visibleDate() {
+    if (!_scrollController.hasClients) return null;
+    // Toleransi setinggi header tanggal: grup yang header-nya baru saja
+    // tergulir lewat atas layar tetap dianggap yang sedang dilihat.
+    final top = _scrollController.offset + 60;
+    DateTime? result;
+    var best = double.negativeInfinity;
+    for (final date in _groupDates) {
+      final box = _groupKeys[date]?.currentContext?.findRenderObject();
+      if (box is! RenderBox || !box.attached) continue;
+      final offset =
+          RenderAbstractViewport.of(box).getOffsetToReveal(box, 0).offset;
+      if (offset <= top && offset > best) {
+        best = offset;
+        result = date;
+      }
+    }
+    return result;
+  }
+
   /// Perkiraan offset grup ke-[index] dari grup terdekat yang sudah dibangun
   /// (tinggi per kartu diukur dari grup yang tampil).
   double _estimateOffset(int index) {
@@ -173,6 +219,10 @@ class _DokumentasiScreenState extends ConsumerState<DokumentasiScreen> {
         title: const Text('Dokumentasi Harian'),
         bottom: _refreshBar(docsAsync.isRefreshing),
         actions: [
+          IconButton(
+              icon: const Icon(Icons.event_outlined),
+              tooltip: 'Lompat ke tanggal',
+              onPressed: docsAsync.hasValue ? _pilihTanggal : null),
           IconButton(
               icon: const Icon(Icons.filter_list),
               onPressed: () => _showFilterSheet(context, pegawaiList)),
