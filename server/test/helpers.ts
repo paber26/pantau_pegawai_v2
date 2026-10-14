@@ -46,6 +46,8 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     googleDriveRootFolderId: null,
     googleOAuth: null,
     backupDir: null,
+    vapid: { publicKey: "BTestPublicKey", privateKey: "testPrivateKey", subject: PUBLIC_API_URL },
+    reminder: { time: "15:00", days: [1, 2, 3, 4, 5] },
     ...overrides
   }
 }

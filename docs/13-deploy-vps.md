@@ -116,6 +116,8 @@ Isi `.env`:
 | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REFRESH_TOKEN` | lihat bagian *Upload foto ke Drive Gmail biasa* | Wajib bila folder foto ada di My Drive Gmail biasa |
 | `GOOGLE_SHEETS_API_KEY` | `AIza...` | Untuk `./sync.sh` (opsional) |
 | `APP_TIMEZONE` | `Asia/Makassar` | Zona waktu "hari ini" di dashboard |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | lihat bagian *Pengingat harian* | Opsional; kosong = pengingat harian tidak aktif |
+| `REMINDER_TIME`, `REMINDER_DAYS` | `15:00`, `1-5` | Jam & hari pengingat (1 = Senin) |
 | `BACKUP_KEEP_DAYS` | `7` | Lama backup harian disimpan di VPS (salinan di Drive tidak ikut dihapus) |
 
 Taruh file service account:
@@ -247,6 +249,39 @@ Gmail tersebut.
 > Token berlaku sampai dicabut. Jika akses aplikasi dicabut di
 > <https://myaccount.google.com/permissions>, upload gagal dengan
 > `invalid_grant` di log; ulangi langkah **b**.
+
+### Pengingat harian (notifikasi web)
+
+Pada hari kerja pukul 15.00 (zona `APP_TIMEZONE`), pegawai yang **belum punya
+dokumentasi untuk hari itu** mendapat notifikasi di perangkat yang
+mengaktifkan pengingat (Profil → **Pengingat Harian**). Admin tidak diingatkan.
+
+1. Buat kunci VAPID **sekali saja** dan salin kedua barisnya ke `.env`
+   (jangan ditempel ke chat/dokumen lain):
+   ```bash
+   docker compose run --rm --no-deps api node dist/scripts/generate-vapid-keys.js
+   ```
+2. Opsional: ubah jadwal di `.env`, mis. `REMINDER_TIME=14:00` dan
+   `REMINDER_DAYS=1-6` (Senin–Sabtu; 1 = Senin ... 7 = Minggu).
+3. `docker compose up -d api`, lalu cek log:
+   ```bash
+   docker compose logs api | grep -i pengingat
+   # → Pengingat harian aktif: Senin–Jumat pukul 15:00 (Asia/Makassar).
+   ```
+
+Catatan:
+- **iPhone/iPad (iOS 16.4+)**: notifikasi web hanya bisa di Pawai yang sudah
+  dipasang di layar utama (Safari → Bagikan → *Tambah ke Layar Utama*) dan
+  dibuka dari ikon itu. Android (Chrome) dan laptop bisa langsung dari browser.
+- Aplikasi APK belum mendukung pengingat; pakai versi web.
+- Pengingat dikirim sekali per hari (dicatat di tabel `reminder_runs`). Bila API
+  mati saat jam pengingat, pengingat masih dikirim saat API hidup kembali
+  sampai 3 jam sesudahnya; lewat dari itu hari tersebut dilewati.
+- Hari libur nasional tidak dikenali otomatis.
+- Logout, ganti/reset password, atau hapus pegawai otomatis mematikan pengingat
+  di perangkat terkait.
+- Jangan mengganti kunci VAPID yang sudah dipakai: semua perangkat harus
+  mengaktifkan ulang pengingatnya.
 
 ---
 
@@ -457,6 +492,9 @@ docker compose exec db pg_restore -U pantau -d pantau --clean --if-exists /tmp/r
 | Upload error "Drive" 403/404 | Folder Drive belum di-share ke email service account (role Editor) |
 | Simpan dokumentasi berfoto gagal; log: `storageQuotaExceeded` | Folder ada di My Drive Gmail biasa, upload masih memakai service account → ikuti *Upload foto ke Drive Gmail biasa (OAuth)* |
 | Upload gagal; log: `invalid_grant` | Refresh token kedaluwarsa/dicabut (mis. aplikasi OAuth masih *Testing*) → pastikan *In production*, ulangi login di bagian OAuth |
+| Pengingat: "Pasang Pawai di layar utama dulu" di iPhone | Notifikasi web iOS hanya untuk Pawai yang dibuka dari ikon layar utama (bagian *Pengingat harian*) |
+| Pengingat: "Notifikasi diblokir" | iPhone: Pengaturan → Notifikasi → Pawai → Izinkan. Android/laptop: ikon gembok di address bar → Notifikasi → Izinkan |
+| Pengingat: "belum diaktifkan di server" | `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` di `.env` kosong → bagian *Pengingat harian* |
 | Log: `Gagal mengunggah backup ... ke Drive` | Sama seperti upload foto: cek OAuth (`storageQuotaExceeded`, `invalid_grant`) atau kuota Drive penuh. Diulang otomatis tiap jam |
 | Log: `Gagal memeriksa backup untuk Drive` + `EACCES` | File di `backups/` tidak bisa dibaca API (user uid 1000). Cek `ls -l backups/`; file harus bisa dibaca semua (`-rw-r--r--`) |
 | `docker compose up` error `secret ... not found` | File `secrets/google-service-account.json` belum dibuat |

@@ -19,6 +19,7 @@ import '../../../shared/widgets/photo_viewer.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../../kegiatan/presentation/kegiatan_provider.dart';
 import '../../pegawai/presentation/pegawai_provider.dart';
+import '../../pengingat/presentation/pengingat_widgets.dart';
 import '../data/dokumentasi_filter_store.dart';
 import '../domain/dokumentasi_model.dart';
 import '../domain/image_source_type.dart';
@@ -234,57 +235,64 @@ class _DokumentasiScreenState extends ConsumerState<DokumentasiScreen> {
         ],
       ),
       floatingActionButton: const TambahDokumentasiButton(),
-      body: docsAsync.when(
-        loading: () => const LoadingShimmer(),
-        error: (e, _) => ErrorDisplay(
-            message: e.toString(),
-            onRetry: () =>
-                ref.read(adminDokumentasiNotifierProvider.notifier).refresh()),
-        data: (allList) {
-          var list = allList;
-          if (_filterPegawaiId != null) {
-            list = list.where((d) => d.userId == _filterPegawaiId).toList();
-          }
-          if (_filterProyek != null && _filterProyek!.isNotEmpty) {
-            list = list
-                .where((d) => d.proyek
-                    .toLowerCase()
-                    .contains(_filterProyek!.toLowerCase()))
-                .toList();
-          }
-          if (list.isEmpty) {
-            _groupDates = const [];
-            return const Center(
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.photo_library_outlined,
-                  size: 64, color: AppColors.textHint),
-              SizedBox(height: 16),
-              Text('Belum ada dokumentasi',
-                  style: TextStyle(color: AppColors.textSecondary)),
-            ]));
-          }
-          final grouped = _groupByDate(list);
-          _groupDates = grouped.keys.toList();
-          _groupSizes = grouped.values.map((v) => v.length).toList();
-          return RefreshIndicator(
-            onRefresh: () =>
-                ref.read(adminDokumentasiNotifierProvider.notifier).refresh(),
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-              itemCount: grouped.length,
-              itemBuilder: (context, index) {
-                final entry = grouped.entries.elementAt(index);
-                return DokDateGroup(
-                    key: _groupKeys.putIfAbsent(entry.key, GlobalKey.new),
-                    tanggal: entry.key,
-                    items: entry.value,
-                    showPegawai: true);
-              },
-            ),
-          );
-        },
-      ),
+      body: Column(children: [
+        const PengingatBanner(),
+        Expanded(
+          child: docsAsync.when(
+            loading: () => const LoadingShimmer(),
+            error: (e, _) => ErrorDisplay(
+                message: e.toString(),
+                onRetry: () => ref
+                    .read(adminDokumentasiNotifierProvider.notifier)
+                    .refresh()),
+            data: (allList) {
+              var list = allList;
+              if (_filterPegawaiId != null) {
+                list = list.where((d) => d.userId == _filterPegawaiId).toList();
+              }
+              if (_filterProyek != null && _filterProyek!.isNotEmpty) {
+                list = list
+                    .where((d) => d.proyek
+                        .toLowerCase()
+                        .contains(_filterProyek!.toLowerCase()))
+                    .toList();
+              }
+              if (list.isEmpty) {
+                _groupDates = const [];
+                return const Center(
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.photo_library_outlined,
+                      size: 64, color: AppColors.textHint),
+                  SizedBox(height: 16),
+                  Text('Belum ada dokumentasi',
+                      style: TextStyle(color: AppColors.textSecondary)),
+                ]));
+              }
+              final grouped = _groupByDate(list);
+              _groupDates = grouped.keys.toList();
+              _groupSizes = grouped.values.map((v) => v.length).toList();
+              return RefreshIndicator(
+                onRefresh: () => ref
+                    .read(adminDokumentasiNotifierProvider.notifier)
+                    .refresh(),
+                child: ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                  itemCount: grouped.length,
+                  itemBuilder: (context, index) {
+                    final entry = grouped.entries.elementAt(index);
+                    return DokDateGroup(
+                        key: _groupKeys.putIfAbsent(entry.key, GlobalKey.new),
+                        tanggal: entry.key,
+                        items: entry.value,
+                        showPegawai: true);
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+      ]),
     );
   }
 

@@ -49,6 +49,12 @@ services:
       GOOGLE_OAUTH_REFRESH_TOKEN: ${GOOGLE_OAUTH_REFRESH_TOKEN:-}
       GOOGLE_SHEETS_API_KEY: ${GOOGLE_SHEETS_API_KEY:-}
       APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Makassar}
+      # Pengingat harian lewat notifikasi web (opsional, lihat docs/13-deploy-vps.md).
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      REMINDER_TIME: ${REMINDER_TIME:-15:00}
+      REMINDER_DAYS: ${REMINDER_DAYS:-1-5}
       # Backup harian dari container `backup` disalin ke Drive (folder "Backup Database").
       BACKUP_DIR: /backups
     volumes:

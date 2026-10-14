@@ -4,6 +4,9 @@ import { loadConfig } from "./config.js"
 import { createPool } from "./db.js"
 import { createGoogleDriveService, type DriveService } from "./drive.js"
 import { runMigrations } from "./migrate.js"
+import { createWebPushSender } from "./push.js"
+import { scheduleReminders } from "./reminders.js"
+import { describeDays } from "./routes/push.js"
 
 const config = loadConfig()
 const db = createPool(config.databaseUrl)
@@ -26,7 +29,25 @@ if (config.googleServiceAccountFile && config.googleDriveRootFolderId) {
   console.warn("GOOGLE_SERVICE_ACCOUNT_FILE / GOOGLE_DRIVE_ROOT_FOLDER_ID belum diset: upload & gambar tidak aktif.")
 }
 
-const app = await buildApp({ config, db, drive }, { logger: { level: process.env.LOG_LEVEL ?? "info" } })
+const push = config.vapid ? createWebPushSender(config.vapid) : null
+
+const app = await buildApp({ config, db, drive, push }, { logger: { level: process.env.LOG_LEVEL ?? "info" } })
+
+let stopReminders = () => {}
+if (push) {
+  stopReminders = scheduleReminders({
+    db,
+    sender: push,
+    timeZone: config.appTimezone,
+    reminder: config.reminder,
+    log: app.log
+  })
+  app.log.info(
+    `Pengingat harian aktif: ${describeDays(config.reminder.days)} pukul ${config.reminder.time} (${config.appTimezone}).`
+  )
+} else {
+  app.log.info("VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY belum diisi: pengingat harian tidak aktif.")
+}
 
 let stopBackupUploads = () => {}
 if (config.backupDir && drive) {
@@ -38,6 +59,7 @@ if (config.backupDir && drive) {
 
 const shutdown = async () => {
   stopBackupUploads()
+  stopReminders()
   await app.close()
   await db.end()
   process.exit(0)
