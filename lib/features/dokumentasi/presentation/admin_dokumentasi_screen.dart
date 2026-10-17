@@ -14,13 +14,32 @@ import '../../../shared/widgets/loading_shimmer.dart';
 import '../../../shared/widgets/photo_viewer.dart';
 import '../domain/dokumentasi_model.dart';
 import 'dokumentasi_provider.dart';
+import 'widgets/dokumentasi_search.dart';
 
-class AdminDokumentasiScreen extends ConsumerWidget {
+class AdminDokumentasiScreen extends ConsumerStatefulWidget {
   const AdminDokumentasiScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AdminDokumentasiScreen> createState() =>
+      _AdminDokumentasiScreenState();
+}
+
+class _AdminDokumentasiScreenState
+    extends ConsumerState<AdminDokumentasiScreen> {
+  /// Kata pencarian (catatan, kegiatan, nama pegawai).
+  String _query = '';
+  final _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final docsAsync = ref.watch(adminDokumentasiNotifierProvider);
+    final semua = docsAsync.valueOrNull;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -48,16 +67,35 @@ class AdminDokumentasiScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: docsAsync.when(
+      body: Column(children: [
+        if (semua?.isNotEmpty ?? false)
+          DokSearchField(
+            onChanged: (q) {
+              setState(() => _query = q);
+              if (_scrollController.hasClients) _scrollController.jumpTo(0);
+            },
+            jumlahHasil: _query.trim().isEmpty
+                ? null
+                : saringPencarian(semua!, _query).length,
+          ),
+        Expanded(child: _daftar(docsAsync)),
+      ]),
+    );
+  }
+
+  Widget _daftar(AsyncValue<List<DokumentasiModel>> docsAsync) {
+    return docsAsync.when(
         loading: () => const LoadingShimmer(),
         error: (e, _) => ErrorDisplay(message: e.toString()),
-        data: (list) {
-          if (list.isEmpty) {
+        data: (semua) {
+          if (semua.isEmpty) {
             return const Center(
               child: Text('Belum ada dokumentasi',
                   style: TextStyle(color: AppColors.textSecondary)),
             );
           }
+          final list = saringPencarian(semua, _query);
+          if (list.isEmpty) return DokSearchEmpty(query: _query);
 
           // Kelompokkan per tanggal
           final grouped = <DateTime, List<DokumentasiModel>>{};
@@ -71,17 +109,17 @@ class AdminDokumentasiScreen extends ConsumerWidget {
             onRefresh: () =>
                 ref.read(adminDokumentasiNotifierProvider.notifier).refresh(),
             child: ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.all(16),
               itemCount: grouped.length,
               itemBuilder: (context, index) {
                 final entry = grouped.entries.elementAt(index);
-                return _AdminDateGroup(tanggal: entry.key, items: entry.value);
+                return _AdminDateGroup(
+                    tanggal: entry.key, items: entry.value, query: _query);
               },
             ),
           );
-        },
-      ),
-    );
+        });
   }
 
   void _showFilterSheet(BuildContext context, WidgetRef ref) {
@@ -178,8 +216,10 @@ class AdminDokumentasiScreen extends ConsumerWidget {
 class _AdminDateGroup extends StatelessWidget {
   final DateTime tanggal;
   final List<DokumentasiModel> items;
+  final String query;
 
-  const _AdminDateGroup({required this.tanggal, required this.items});
+  const _AdminDateGroup(
+      {required this.tanggal, required this.items, required this.query});
 
   @override
   Widget build(BuildContext context) {
@@ -216,7 +256,7 @@ class _AdminDateGroup extends StatelessWidget {
             ],
           ),
         ),
-        ...items.map((doc) => _AdminDokCard(doc: doc)),
+        ...items.map((doc) => _AdminDokCard(doc: doc, query: query)),
         const SizedBox(height: 8),
       ],
     );
@@ -225,8 +265,9 @@ class _AdminDateGroup extends StatelessWidget {
 
 class _AdminDokCard extends StatelessWidget {
   final DokumentasiModel doc;
+  final String query;
 
-  const _AdminDokCard({required this.doc});
+  const _AdminDokCard({required this.doc, required this.query});
 
   @override
   Widget build(BuildContext context) {
@@ -260,16 +301,18 @@ class _AdminDokCard extends StatelessWidget {
                 children: [
                   // Nama pegawai
                   if (doc.pegawaiNama != null)
-                    Text(doc.pegawaiNama!,
+                    HighlightText(doc.pegawaiNama!,
+                        query: query,
                         style: const TextStyle(
                             fontWeight: FontWeight.w600, fontSize: 13)),
-                  Text(doc.proyek,
+                  HighlightText(doc.proyek,
+                      query: query,
                       style: const TextStyle(
                           fontSize: 13, color: AppColors.textSecondary)),
                   if (doc.catatan != null)
-                    Text(doc.catatan!,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                    HighlightText(doc.catatan!,
+                        query: query,
+                        maxLines: query.trim().isEmpty ? 2 : 6,
                         style: const TextStyle(
                             fontSize: 12, color: AppColors.textHint)),
                   const SizedBox(height: 4),

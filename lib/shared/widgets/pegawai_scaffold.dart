@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../features/auth/presentation/auth_provider.dart';
 import '../../features/auth/presentation/change_password_dialog.dart';
+import '../../features/pengingat/presentation/pengingat_widgets.dart';
 
 class PegawaiScaffold extends ConsumerWidget {
   final Widget child;
@@ -75,7 +76,7 @@ class PegawaiScaffold extends ConsumerWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) => SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -153,6 +154,9 @@ class PegawaiScaffold extends ConsumerWidget {
                   ],
                 ),
               ),
+
+              const SizedBox(height: 12),
+              const PengingatTile(),
 
               const SizedBox(height: 20),
 

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/network/network_providers.dart';
+import '../../../core/services/push/push_service_provider.dart';
 import '../data/auth_repository.dart';
 import '../data/auth_repository_impl.dart';
 import '../domain/auth_state.dart';
@@ -37,6 +38,11 @@ class AuthNotifier extends _$AuthNotifier {
   }
 
   Future<void> logout() async {
+    // Perangkat ini berhenti menerima pengingat akun ini. Langganan di server
+    // ikut terhapus bersama sesinya.
+    try {
+      await ref.read(pushServiceProvider).unsubscribe();
+    } catch (_) {}
     await ref.read(authRepositoryProvider).logout();
   }
 }

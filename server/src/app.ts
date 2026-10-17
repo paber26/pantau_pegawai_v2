@@ -8,6 +8,7 @@ import type { Config } from "./config.js"
 import type { Db } from "./db.js"
 import type { DriveService } from "./drive.js"
 import { errorHandler } from "./errors.js"
+import type { PushSender } from "./push.js"
 import { authRoutes } from "./routes/auth.js"
 import { dashboardRoutes } from "./routes/dashboard.js"
 import { dokumentasiRoutes } from "./routes/dokumentasi.js"
@@ -16,6 +17,7 @@ import { importRoutes } from "./routes/import.js"
 import { kegiatanRoutes } from "./routes/kegiatan.js"
 import { laporanRoutes } from "./routes/laporan.js"
 import { penugasanRoutes } from "./routes/penugasan.js"
+import { pushRoutes } from "./routes/push.js"
 import { uploadRoutes } from "./routes/uploads.js"
 import { userRoutes } from "./routes/users.js"
 
@@ -27,6 +29,8 @@ export interface AppContext {
   auth: AuthHooks
   /** null bila kredensial Google belum dikonfigurasi (upload & gambar → 503). */
   drive: DriveService | null
+  /** null bila kunci VAPID belum diisi (pengingat harian → 503). */
+  push: PushSender | null
 }
 
 /** Cocokkan origin dengan daftar CORS_ORIGINS; `*` = wildcard (mis. http://localhost:*). */
@@ -38,12 +42,12 @@ export function originMatcher(patterns: string[]): (origin: string) => boolean {
 }
 
 export async function buildApp(
-  deps: { config: Config; db: Db; drive: DriveService | null },
+  deps: { config: Config; db: Db; drive: DriveService | null; push?: PushSender | null },
   opts: FastifyServerOptions = {}
 ): Promise<FastifyInstance> {
   // trustProxy: API berjalan di belakang Caddy, jadi IP asli ada di X-Forwarded-For.
   const app = Fastify({ trustProxy: true, ...opts })
-  const ctx: AppContext = { ...deps, auth: authHooks(deps.db, deps.config.sessionTtlDays) }
+  const ctx: AppContext = { ...deps, push: deps.push ?? null, auth: authHooks(deps.db, deps.config.sessionTtlDays) }
 
   app.setErrorHandler(errorHandler)
 
@@ -88,7 +92,8 @@ export async function buildApp(
     uploadRoutes,
     imageRoutes,
     dashboardRoutes,
-    importRoutes
+    importRoutes,
+    pushRoutes
   ]) {
     await app.register(async (instance) => routes(instance, ctx))
   }
