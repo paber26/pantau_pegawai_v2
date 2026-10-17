@@ -24,6 +24,7 @@ import '../data/dokumentasi_filter_store.dart';
 import '../domain/dokumentasi_model.dart';
 import '../domain/image_source_type.dart';
 import 'dokumentasi_provider.dart';
+import 'widgets/dokumentasi_search.dart';
 import 'widgets/paste_image_handler.dart';
 import 'widgets/paste_photo_dialog.dart';
 
@@ -39,6 +40,9 @@ class _DokumentasiScreenState extends ConsumerState<DokumentasiScreen> {
   String? _filterProyek;
   DateTime? _filterFrom;
   DateTime? _filterTo;
+
+  /// Kata pencarian (catatan, kegiatan, nama pegawai).
+  String _query = '';
 
   final _scrollController = ScrollController();
 
@@ -112,6 +116,26 @@ class _DokumentasiScreenState extends ConsumerState<DokumentasiScreen> {
           .clamp(position.minScrollExtent, position.maxScrollExtent));
       await WidgetsBinding.instance.endOfFrame;
     }
+  }
+
+  /// Daftar setelah filter pegawai/kegiatan dan pencarian.
+  List<DokumentasiModel> _saring(List<DokumentasiModel> all) {
+    var list = all;
+    if (_filterPegawaiId != null) {
+      list = list.where((d) => d.userId == _filterPegawaiId).toList();
+    }
+    if (_filterProyek != null && _filterProyek!.isNotEmpty) {
+      list = list
+          .where((d) =>
+              d.proyek.toLowerCase().contains(_filterProyek!.toLowerCase()))
+          .toList();
+    }
+    return saringPencarian(list, _query);
+  }
+
+  void _cari(String query) {
+    setState(() => _query = query);
+    if (_scrollController.hasClients) _scrollController.jumpTo(0);
   }
 
   /// Tombol "Lompat ke tanggal": pilih tanggal di kalender (hanya tanggal yang
@@ -214,6 +238,9 @@ class _DokumentasiScreenState extends ConsumerState<DokumentasiScreen> {
     });
     ref.listen(adminDokumentasiNotifierProvider, (_, __) => _tryFocus());
 
+    final semua = docsAsync.valueOrNull;
+    final hasil = semua == null ? null : _saring(semua);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -237,6 +264,10 @@ class _DokumentasiScreenState extends ConsumerState<DokumentasiScreen> {
       floatingActionButton: const TambahDokumentasiButton(),
       body: Column(children: [
         const PengingatBanner(),
+        DokSearchField(
+          onChanged: _cari,
+          jumlahHasil: _query.trim().isEmpty ? null : hasil?.length,
+        ),
         Expanded(
           child: docsAsync.when(
             loading: () => const LoadingShimmer(),
@@ -246,19 +277,12 @@ class _DokumentasiScreenState extends ConsumerState<DokumentasiScreen> {
                     .read(adminDokumentasiNotifierProvider.notifier)
                     .refresh()),
             data: (allList) {
-              var list = allList;
-              if (_filterPegawaiId != null) {
-                list = list.where((d) => d.userId == _filterPegawaiId).toList();
-              }
-              if (_filterProyek != null && _filterProyek!.isNotEmpty) {
-                list = list
-                    .where((d) => d.proyek
-                        .toLowerCase()
-                        .contains(_filterProyek!.toLowerCase()))
-                    .toList();
-              }
+              final list = hasil ?? _saring(allList);
               if (list.isEmpty) {
                 _groupDates = const [];
+                if (_query.trim().isNotEmpty) {
+                  return DokSearchEmpty(query: _query);
+                }
                 return const Center(
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
                   Icon(Icons.photo_library_outlined,
@@ -285,7 +309,8 @@ class _DokumentasiScreenState extends ConsumerState<DokumentasiScreen> {
                         key: _groupKeys.putIfAbsent(entry.key, GlobalKey.new),
                         tanggal: entry.key,
                         items: entry.value,
-                        showPegawai: true);
+                        showPegawai: true,
+                        query: _query);
                   },
                 ),
               );
@@ -518,6 +543,9 @@ class _RiwayatDokumentasiScreenState
   final _scrollController = ScrollController();
   bool _scrollToTopPending = false;
 
+  /// Kata pencarian (catatan, kegiatan).
+  String _query = '';
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -568,16 +596,35 @@ class _RiwayatDokumentasiScreenState
         ],
       ),
       floatingActionButton: const TambahDokumentasiButton(),
-      body: docsAsync.when(
+      body: Column(children: [
+        if (docsAsync.valueOrNull?.isNotEmpty ?? false)
+          DokSearchField(
+            onChanged: (q) {
+              setState(() => _query = q);
+              if (_scrollController.hasClients) _scrollController.jumpTo(0);
+            },
+            jumlahHasil: _query.trim().isEmpty
+                ? null
+                : saringPencarian(docsAsync.value!, _query).length,
+            hintText: 'Cari catatan atau kegiatan…',
+          ),
+        Expanded(child: _riwayat(docsAsync, user?.nama)),
+      ]),
+    );
+  }
+
+  Widget _riwayat(
+      AsyncValue<List<DokumentasiModel>> docsAsync, String? namaPegawai) {
+    return docsAsync.when(
         loading: () => const LoadingShimmer(),
         error: (e, _) => ErrorDisplay(message: e.toString()),
-        data: (list) {
-          if (list.isEmpty) {
+        data: (semua) {
+          if (semua.isEmpty) {
             return Center(
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
               const Icon(Icons.history, size: 64, color: AppColors.textHint),
               const SizedBox(height: 16),
-              Text('Halo, ${user?.nama ?? "Pegawai"}!',
+              Text('Halo, ${namaPegawai ?? "Pegawai"}!',
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
@@ -585,6 +632,8 @@ class _RiwayatDokumentasiScreenState
                   style: TextStyle(color: AppColors.textSecondary)),
             ]));
           }
+          final list = saringPencarian(semua, _query);
+          if (list.isEmpty) return DokSearchEmpty(query: _query);
           // Dikelompokkan berdasarkan tanggal penambahan (createdAt), bukan
           // tanggal kegiatan, supaya halaman ini menunjukkan riwayat
           // penambahan dokumentasi terakhir alih-alih riwayat per tanggal
@@ -609,13 +658,12 @@ class _RiwayatDokumentasiScreenState
                     tanggal: entry.key,
                     items: entry.value,
                     showPegawai: false,
-                    showTanggalKegiatan: true);
+                    showTanggalKegiatan: true,
+                    query: _query);
               },
             ),
           );
-        },
-      ),
-    );
+        });
   }
 }
 
@@ -1112,12 +1160,16 @@ class DokDateGroup extends ConsumerWidget {
   final bool showPegawai;
   final bool showTanggalKegiatan;
 
+  /// Kata pencarian yang ditandai di kartu.
+  final String query;
+
   const DokDateGroup(
       {super.key,
       required this.tanggal,
       required this.items,
       required this.showPegawai,
-      this.showTanggalKegiatan = false});
+      this.showTanggalKegiatan = false,
+      this.query = ''});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1166,7 +1218,8 @@ class DokDateGroup extends ConsumerWidget {
         ...items.map((doc) => DokCard(
             doc: doc,
             showPegawai: showPegawai,
-            showTanggalKegiatan: showTanggalKegiatan)),
+            showTanggalKegiatan: showTanggalKegiatan,
+            query: query)),
         const SizedBox(height: 8),
       ],
     );
@@ -1179,11 +1232,15 @@ class DokCard extends ConsumerWidget {
   final bool showPegawai;
   final bool showTanggalKegiatan;
 
+  /// Kata pencarian yang ditandai.
+  final String query;
+
   const DokCard(
       {super.key,
       required this.doc,
       required this.showPegawai,
-      this.showTanggalKegiatan = false});
+      this.showTanggalKegiatan = false,
+      this.query = ''});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1221,18 +1278,22 @@ class DokCard extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (showPegawai && doc.pegawaiNama != null)
-                    Text(doc.pegawaiNama!,
+                    HighlightText(doc.pegawaiNama!,
+                        query: query,
                         style: const TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 13,
                             color: AppColors.primary)),
-                  Text(doc.proyek,
+                  HighlightText(doc.proyek,
+                      query: query,
                       style: const TextStyle(
                           fontWeight: FontWeight.w600, fontSize: 14)),
                   if (doc.catatan != null)
-                    Text(doc.catatan!,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                    // Saat mencari, catatan ditampilkan lebih panjang agar
+                    // bagian yang cocok terlihat.
+                    HighlightText(doc.catatan!,
+                        query: query,
+                        maxLines: query.trim().isEmpty ? 2 : 6,
                         style: const TextStyle(
                             fontSize: 12, color: AppColors.textSecondary)),
                   if (showTanggalKegiatan) ...[

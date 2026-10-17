@@ -79,8 +79,12 @@ Future<_FakeRepo> _pumpScreen(WidgetTester tester,
   return repo;
 }
 
+/// Posisi gulir daftar (bukan Scrollable milik kolom pencarian).
 double _scrollOffset(WidgetTester tester) => tester
-    .state<ScrollableState>(find.byType(Scrollable).first)
+    .state<ScrollableState>(find
+        .descendant(
+            of: find.byType(ListView), matching: find.byType(Scrollable))
+        .first)
     .position
     .pixels;
 
