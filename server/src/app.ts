@@ -1,3 +1,6 @@
+import { constants as zlib } from "node:zlib"
+
+import compress from "@fastify/compress"
 import cors from "@fastify/cors"
 import multipart from "@fastify/multipart"
 import rateLimit from "@fastify/rate-limit"
@@ -73,6 +76,13 @@ export async function buildApp(
         maxAge: 600
       })
     }
+  })
+  // Respons JSON (mis. daftar dokumentasi) dikompres agar hemat kuota; gambar
+  // tidak, karena JPEG/PNG sudah terkompresi. Brotli kualitas 4: ringan di CPU.
+  await app.register(compress, {
+    threshold: 1024,
+    encodings: ["br", "gzip"],
+    brotliOptions: { params: { [zlib.BROTLI_PARAM_QUALITY]: 4 } }
   })
   await app.register(rateLimit, { global: false })
   await app.register(multipart, { limits: { fileSize: MAX_UPLOAD_BYTES, files: 1, fields: 10 } })
